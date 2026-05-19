@@ -1,0 +1,4 @@
+interface:
+  display_name: "GMerge"
+  short_description: "Merge branches into develop safely"
+  default_prompt: "Use $gmerge to merge the current branch into develop with --no-ff."

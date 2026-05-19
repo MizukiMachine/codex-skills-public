@@ -1,0 +1,4 @@
+interface:
+  display_name: "Diagram"
+  short_description: "Generate architecture diagrams from code"
+  default_prompt: "Use $diagram to analyze this project and generate architecture diagrams."
