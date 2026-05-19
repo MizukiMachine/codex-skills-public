@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import importlib.util
 import subprocess
 import tempfile
@@ -21,6 +23,110 @@ spec.loader.exec_module(pixel_snapper)
 
 
 class PixelSnapperWrapperTests(unittest.TestCase):
+    def test_aspect_canvas_preserves_square_sources(self) -> None:
+        self.assertEqual(
+            pixel_snapper.aspect_canvas_for_output(64, 64, 24, 25),
+            (25, 25),
+        )
+        self.assertEqual(
+            pixel_snapper.aspect_canvas_for_output(64, 64, 25, 24),
+            (25, 25),
+        )
+
+    def test_aspect_canvas_preserves_wide_sources(self) -> None:
+        self.assertEqual(
+            pixel_snapper.aspect_canvas_for_output(1920, 1080, 31, 18),
+            (32, 18),
+        )
+
+    def test_aspect_canvas_preserves_non_square_sources_exactly(self) -> None:
+        cases = [
+            ((3, 2, 10, 7), (12, 8)),
+            ((2, 3, 7, 10), (8, 12)),
+            ((4, 3, 10, 8), (12, 9)),
+            ((5, 4, 6, 5), (10, 8)),
+        ]
+
+        for (source_width, source_height, output_width, output_height), expected in cases:
+            with self.subTest(case=(source_width, source_height, output_width, output_height)):
+                target_width, target_height = pixel_snapper.aspect_canvas_for_output(
+                    source_width,
+                    source_height,
+                    output_width,
+                    output_height,
+                )
+
+                self.assertEqual((target_width, target_height), expected)
+                self.assertGreaterEqual(target_width, output_width)
+                self.assertGreaterEqual(target_height, output_height)
+                self.assertEqual(source_width * target_height, source_height * target_width)
+
+    def test_preserve_output_aspect_pads_rgba_png(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_path = root / "input.png"
+            output_path = root / "output.png"
+            red = bytes([255, 0, 0, 255])
+            transparent = bytes([0, 0, 0, 0])
+
+            pixel_snapper.write_rgba_png(input_path, 10, 10, [red * 10 for _ in range(10)])
+            pixel_snapper.write_rgba_png(output_path, 2, 3, [red * 2 for _ in range(3)])
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                changed = pixel_snapper.preserve_output_aspect(input_path, output_path)
+
+            width, height, rows = pixel_snapper.decode_rgba_png(output_path)
+            self.assertTrue(changed)
+            self.assertEqual((width, height), (3, 3))
+            self.assertEqual(rows, [red * 2 + transparent for _ in range(3)])
+
+    def test_preserve_output_aspect_leaves_matching_ratio_alone(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_path = root / "input.png"
+            output_path = root / "output.png"
+            red = bytes([255, 0, 0, 255])
+
+            pixel_snapper.write_rgba_png(input_path, 10, 10, [red * 10 for _ in range(10)])
+            pixel_snapper.write_rgba_png(output_path, 3, 3, [red * 3 for _ in range(3)])
+
+            changed = pixel_snapper.preserve_output_aspect(input_path, output_path)
+
+            width, height = pixel_snapper.read_image_dimensions(output_path)
+            self.assertFalse(changed)
+            self.assertEqual((width, height), (3, 3))
+
+    def test_main_fails_when_aspect_preservation_fails(self) -> None:
+        args = argparse.Namespace(
+            input="input.webp",
+            output="output.png",
+            colors=8,
+            pixel_size=None,
+            repo=None,
+            repo_url=pixel_snapper.REPO_URL,
+            ref="none",
+            dry_run=False,
+            debug=False,
+            preserve_aspect=True,
+        )
+
+        with mock.patch.object(pixel_snapper, "parse_args", return_value=args):
+            with mock.patch.object(pixel_snapper, "ensure_repo", return_value=Path("/repo")):
+                with mock.patch.object(pixel_snapper, "build_command", return_value=["cargo"]):
+                    with mock.patch.object(pixel_snapper, "require_executable"):
+                        with mock.patch.object(pixel_snapper.subprocess, "run"):
+                            with mock.patch.object(
+                                pixel_snapper,
+                                "preserve_output_aspect",
+                                side_effect=ValueError("unsupported image format"),
+                            ):
+                                with contextlib.redirect_stdout(io.StringIO()):
+                                    with self.assertRaisesRegex(
+                                        SystemExit,
+                                        "Failed to preserve output aspect ratio",
+                                    ):
+                                        pixel_snapper.main()
+
     def test_build_command_uses_upstream_cli_order(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

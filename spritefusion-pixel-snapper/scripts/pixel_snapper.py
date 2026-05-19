@@ -4,15 +4,21 @@
 from __future__ import annotations
 
 import argparse
+import binascii
+import math
 import os
 import shutil
 import subprocess
+import struct
+import zlib
 from pathlib import Path
 
 
 REPO_URL = "https://github.com/Hugo-Dz/spritefusion-pixel-snapper.git"
 VERIFIED_REF = "9f1ccdf0496d0eb2e6b343b6385f4cb42cf36a36"
 NO_REF_VALUES = {"", "none", "skip", "false", "no"}
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+PNG_RGBA_BYTES_PER_PIXEL = 4
 
 
 def default_repo_dir() -> Path:
@@ -69,6 +75,23 @@ def parse_args() -> argparse.Namespace:
         "--debug",
         action="store_true",
         help="Use cargo run without --release.",
+    )
+    aspect_group = parser.add_mutually_exclusive_group()
+    aspect_group.add_argument(
+        "--preserve-aspect",
+        dest="preserve_aspect",
+        action="store_true",
+        default=True,
+        help=(
+            "Pad the output PNG canvas with transparent pixels when needed so "
+            "the final dimensions keep the input image aspect ratio. This is the default."
+        ),
+    )
+    aspect_group.add_argument(
+        "--no-preserve-aspect",
+        dest="preserve_aspect",
+        action="store_false",
+        help="Keep the upstream output dimensions exactly, even if the aspect ratio changes.",
     )
     return parser.parse_args()
 
@@ -178,6 +201,254 @@ def build_command(args: argparse.Namespace, repo: Path) -> list[str]:
     return command
 
 
+def read_image_dimensions(path: Path) -> tuple[int, int]:
+    data = path.read_bytes()
+    if data.startswith(PNG_SIGNATURE):
+        return read_png_dimensions(data)
+    if data.startswith((b"\xff\xd8\xff", b"\xff\xd8")):
+        return read_jpeg_dimensions(data)
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return struct.unpack_from("<HH", data, 6)
+    if data.startswith(b"BM") and len(data) >= 26:
+        width = struct.unpack_from("<i", data, 18)[0]
+        height = abs(struct.unpack_from("<i", data, 22)[0])
+        if width > 0 and height > 0:
+            return width, height
+    raise ValueError(f"unsupported image format for dimension read: {path}")
+
+
+def read_png_dimensions(data: bytes) -> tuple[int, int]:
+    if not data.startswith(PNG_SIGNATURE):
+        raise ValueError("not a PNG file")
+    if len(data) < 33:
+        raise ValueError("truncated PNG header")
+    chunk_len = struct.unpack(">I", data[8:12])[0]
+    chunk_type = data[12:16]
+    if chunk_type != b"IHDR" or chunk_len != 13:
+        raise ValueError("missing PNG IHDR chunk")
+    width, height = struct.unpack(">II", data[16:24])
+    if width == 0 or height == 0:
+        raise ValueError("PNG dimensions cannot be zero")
+    return width, height
+
+
+def read_jpeg_dimensions(data: bytes) -> tuple[int, int]:
+    offset = 2
+    sof_markers = {
+        0xC0,
+        0xC1,
+        0xC2,
+        0xC3,
+        0xC5,
+        0xC6,
+        0xC7,
+        0xC9,
+        0xCA,
+        0xCB,
+        0xCD,
+        0xCE,
+        0xCF,
+    }
+    while offset < len(data):
+        while offset < len(data) and data[offset] == 0xFF:
+            offset += 1
+        if offset >= len(data):
+            break
+        marker = data[offset]
+        offset += 1
+        if marker in {0xD8, 0xD9} or 0xD0 <= marker <= 0xD7:
+            continue
+        if offset + 2 > len(data):
+            break
+        segment_len = struct.unpack(">H", data[offset : offset + 2])[0]
+        if segment_len < 2 or offset + segment_len > len(data):
+            break
+        if marker in sof_markers:
+            if segment_len < 7:
+                break
+            height, width = struct.unpack(">HH", data[offset + 3 : offset + 7])
+            if width > 0 and height > 0:
+                return width, height
+        offset += segment_len
+    raise ValueError("could not find JPEG dimensions")
+
+
+def aspect_canvas_for_output(
+    source_width: int,
+    source_height: int,
+    output_width: int,
+    output_height: int,
+) -> tuple[int, int]:
+    if min(source_width, source_height, output_width, output_height) <= 0:
+        raise ValueError("image dimensions must be positive")
+
+    common = math.gcd(source_width, source_height)
+    ratio_width = source_width // common
+    ratio_height = source_height // common
+    ceil_width_scale = (output_width + ratio_width - 1) // ratio_width
+    ceil_height_scale = (output_height + ratio_height - 1) // ratio_height
+    scale = max(
+        ceil_width_scale,
+        ceil_height_scale,
+    )
+    return ratio_width * scale, ratio_height * scale
+
+
+def _iter_png_chunks(data: bytes):
+    if not data.startswith(PNG_SIGNATURE):
+        raise ValueError("not a PNG file")
+    offset = len(PNG_SIGNATURE)
+    while offset < len(data):
+        if offset + 8 > len(data):
+            raise ValueError("truncated PNG chunk")
+        chunk_len = struct.unpack(">I", data[offset : offset + 4])[0]
+        chunk_type = data[offset + 4 : offset + 8]
+        chunk_start = offset + 8
+        chunk_end = chunk_start + chunk_len
+        crc_end = chunk_end + 4
+        if crc_end > len(data):
+            raise ValueError("truncated PNG chunk data")
+        yield chunk_type, data[chunk_start:chunk_end]
+        offset = crc_end
+        if chunk_type == b"IEND":
+            break
+
+
+def _paeth_predictor(left: int, up: int, upper_left: int) -> int:
+    estimate = left + up - upper_left
+    dist_left = abs(estimate - left)
+    dist_up = abs(estimate - up)
+    dist_upper_left = abs(estimate - upper_left)
+    if dist_left <= dist_up and dist_left <= dist_upper_left:
+        return left
+    if dist_up <= dist_upper_left:
+        return up
+    return upper_left
+
+
+def decode_rgba_png(path: Path) -> tuple[int, int, list[bytes]]:
+    data = path.read_bytes()
+    idat_parts: list[bytes] = []
+    width = height = bit_depth = color_type = interlace = None
+
+    for chunk_type, payload in _iter_png_chunks(data):
+        if chunk_type == b"IHDR":
+            width, height, bit_depth, color_type, compression, filter_method, interlace = (
+                struct.unpack(">IIBBBBB", payload)
+            )
+            if compression != 0 or filter_method != 0:
+                raise ValueError("unsupported PNG compression or filter method")
+        elif chunk_type == b"IDAT":
+            idat_parts.append(payload)
+
+    if width is None or height is None:
+        raise ValueError("missing PNG IHDR chunk")
+    if bit_depth != 8 or color_type != 6 or interlace != 0:
+        raise ValueError("only non-interlaced 8-bit RGBA PNG output is supported")
+
+    stride = width * PNG_RGBA_BYTES_PER_PIXEL
+    raw = zlib.decompress(b"".join(idat_parts))
+    expected_min = height * (stride + 1)
+    if len(raw) < expected_min:
+        raise ValueError("truncated PNG pixel data")
+
+    rows: list[bytes] = []
+    previous = bytearray(stride)
+    offset = 0
+    for _ in range(height):
+        filter_type = raw[offset]
+        offset += 1
+        row = bytearray(raw[offset : offset + stride])
+        offset += stride
+        for idx in range(stride):
+            left = row[idx - PNG_RGBA_BYTES_PER_PIXEL] if idx >= PNG_RGBA_BYTES_PER_PIXEL else 0
+            up = previous[idx]
+            upper_left = (
+                previous[idx - PNG_RGBA_BYTES_PER_PIXEL]
+                if idx >= PNG_RGBA_BYTES_PER_PIXEL
+                else 0
+            )
+            if filter_type == 1:
+                row[idx] = (row[idx] + left) & 0xFF
+            elif filter_type == 2:
+                row[idx] = (row[idx] + up) & 0xFF
+            elif filter_type == 3:
+                row[idx] = (row[idx] + ((left + up) // 2)) & 0xFF
+            elif filter_type == 4:
+                row[idx] = (row[idx] + _paeth_predictor(left, up, upper_left)) & 0xFF
+            elif filter_type != 0:
+                raise ValueError(f"unsupported PNG filter type: {filter_type}")
+        rows.append(bytes(row))
+        previous = row
+
+    return width, height, rows
+
+
+def _png_chunk(chunk_type: bytes, payload: bytes) -> bytes:
+    crc = binascii.crc32(chunk_type)
+    crc = binascii.crc32(payload, crc) & 0xFFFFFFFF
+    return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", crc)
+
+
+def write_rgba_png(path: Path, width: int, height: int, rows: list[bytes]) -> None:
+    stride = width * PNG_RGBA_BYTES_PER_PIXEL
+    if len(rows) != height or any(len(row) != stride for row in rows):
+        raise ValueError("RGBA row data does not match target dimensions")
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    raw = b"".join(b"\x00" + row for row in rows)
+    payload = (
+        PNG_SIGNATURE
+        + _png_chunk(b"IHDR", ihdr)
+        + _png_chunk(b"IDAT", zlib.compress(raw))
+        + _png_chunk(b"IEND", b"")
+    )
+    path.write_bytes(payload)
+
+
+def pad_rgba_png(path: Path, target_width: int, target_height: int) -> tuple[int, int]:
+    width, height, rows = decode_rgba_png(path)
+    if target_width < width or target_height < height:
+        raise ValueError("target canvas cannot be smaller than the PNG")
+    if target_width == width and target_height == height:
+        return width, height
+
+    left = (target_width - width) // 2
+    right = target_width - width - left
+    top = (target_height - height) // 2
+    bottom = target_height - height - top
+    transparent = b"\x00\x00\x00\x00"
+    blank_row = transparent * target_width
+    padded_rows = [blank_row for _ in range(top)]
+    padded_rows.extend(transparent * left + row + transparent * right for row in rows)
+    padded_rows.extend(blank_row for _ in range(bottom))
+    write_rgba_png(path, target_width, target_height, padded_rows)
+    return target_width, target_height
+
+
+def preserve_output_aspect(input_path: Path, output_path: Path) -> bool:
+    source_width, source_height = read_image_dimensions(input_path)
+    output_data = output_path.read_bytes()
+    output_width, output_height = read_png_dimensions(output_data)
+    target_width, target_height = aspect_canvas_for_output(
+        source_width,
+        source_height,
+        output_width,
+        output_height,
+    )
+    if (target_width, target_height) == (output_width, output_height):
+        return False
+
+    pad_rgba_png(output_path, target_width, target_height)
+    print(
+        "Aspect preserved: padded output canvas "
+        f"{output_width}x{output_height} -> {target_width}x{target_height} "
+        f"(input {source_width}x{source_height})",
+        flush=True,
+    )
+    return True
+
+
 def main() -> int:
     args = parse_args()
     repo = args.repo or default_repo_dir()
@@ -185,9 +456,22 @@ def main() -> int:
     command = build_command(args, repo)
     print(" ".join(f'"{part}"' if " " in part else part for part in command), flush=True)
     if args.dry_run:
+        if args.preserve_aspect:
+            print(
+                "# After processing, the wrapper will pad the output PNG if needed "
+                "to preserve the input aspect ratio.",
+                flush=True,
+            )
         return 0
     require_executable("cargo")
     subprocess.run(command, check=True)
+    if args.preserve_aspect:
+        input_path = Path(args.input).expanduser().resolve()
+        output_path = Path(args.output).expanduser().resolve()
+        try:
+            preserve_output_aspect(input_path, output_path)
+        except Exception as exc:  # noqa: BLE001 - report a clear CLI error.
+            raise SystemExit(f"Failed to preserve output aspect ratio: {exc}") from exc
     return 0
 
 

@@ -10,6 +10,8 @@ Official online version: https://spritefusion.com/pixel-snapper
 
 Purpose: snap messy/inconsistent pixel art to a perfect grid and tie colors to a strict quantized palette. The README says this is intended for AI-generated pixel art, procedural 2D art, tilemaps, isometric maps, 2D game assets, and 3D textures.
 
+Aspect-ratio note: upstream resamples to one output pixel per detected grid cell. The output dimensions are derived independently from the detected column cuts and row cuts, so a square source can become rectangular when the two axes resolve to different cell counts. The bundled wrapper preserves the source aspect ratio by default by padding the final PNG canvas with transparent pixels after upstream processing. Pass `--no-preserve-aspect` to keep raw upstream dimensions.
+
 Official CLI setup:
 
 ```sh
