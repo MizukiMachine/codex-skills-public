@@ -12,6 +12,10 @@ Purpose: snap messy/inconsistent pixel art to a perfect grid and tie colors to a
 
 Aspect-ratio note: upstream resamples to one output pixel per detected grid cell. The output dimensions are derived independently from the detected column cuts and row cuts, so a square source can become rectangular when the two axes resolve to different cell counts. The bundled wrapper preserves the source aspect ratio by default by padding the final PNG canvas with transparent pixels after upstream processing. Pass `--no-preserve-aspect` to keep raw upstream dimensions.
 
+Frame-size note: upstream does not guarantee a fixed absolute output size. Even if all source frames are `2048x2048`, different detected grid counts can produce different final sizes such as `355x355` and `425x425`. This is acceptable for single-image cleanup, but unsafe as final output for animation frames that need a consistent in-game scale unless a fixed-canvas post-process is applied and verified.
+
+Bundled fixed-canvas fallback: `scripts/fixed_canvas_pixelate.py` delegates to a bundled Rust tool. It does not call upstream's grid walker. It rescales the whole source canvas to a requested fixed output size, preserves relative paths, and applies color quantization. Use it when fixed frame dimensions and consistent sprite scale are required.
+
 Official CLI setup:
 
 ```sh
