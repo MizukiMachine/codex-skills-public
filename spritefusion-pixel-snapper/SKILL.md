@@ -15,6 +15,8 @@ Sprite Fusion Pixel Snapper is a grid-snapper, not a fixed-resolution image resi
 
 For animation frames, sprites, and game assets, treat frame dimensions as a contract. If the source frames share a fixed canvas and the user needs consistent in-game scale, preserve the whole source canvas at one uniform scale or use a fixed-canvas post-process. Do not accept raw upstream batch output as final until all frame dimensions and relative paths have been verified.
 
+Transparency is also part of the visual contract. For PNG sprites, RGB palette size and alpha preservation are separate concerns: an output can be correctly reduced to `8` RGB colors while still retaining many alpha values for soft edges. Do not flatten, premultiply, or hard-mask alpha unless the user explicitly asks for that look. If a source has many nonzero alpha levels but the output has only `A=255` for visible pixels, treat that as a failed conversion because it can turn transparent dark edge pixels into opaque black halos.
+
 ## Intent Gate
 
 Before generating final outputs, establish what the user wants the conversion to optimize. Do not infer this silently for batches, animation frames, character sprites, or other assets that may be used in a game runtime.
@@ -53,7 +55,8 @@ Proceed without asking only when the user already specified the mode and all req
 6. For animation or frame-sequence work, run a calibration pass before final batch conversion:
    - Count source images and inspect source PNG dimensions.
    - Convert representative frames from different actions/views.
-   - Inspect output dimensions, not only visual quality.
+   - Inspect output dimensions and alpha behavior, not only visual quality.
+   - If source PNGs have multiple nonzero alpha values, the representative outputs should also preserve multiple alpha values unless the user explicitly requested hard edges.
    - If representative outputs differ in size, raw upstream output is not acceptable for fixed-frame animation assets.
 7. Run the appropriate script only after the expected output contract is clear:
    - Use `scripts/pixel_snapper.py` for single images or batches where grid-derived output dimensions are acceptable.
@@ -61,7 +64,28 @@ Proceed without asking only when the user already specified the mode and all req
 8. Keep the wrapper's default aspect-ratio preservation enabled unless the user explicitly asks for raw upstream dimensions. The wrapper pads the PNG canvas with transparent pixels when the upstream grid would change the input aspect ratio.
 9. Inspect the output:
    - For single images, verify the grid is neither too coarse nor too fine; rerun with `--pixel-size N` if needed.
-   - For frame batches, verify file count, relative path parity, and unique frame dimensions. If `unique frame dimensions != 1` when fixed frames are required, treat the batch as failed and regenerate with a fixed-canvas workflow.
+   - For frame batches, verify file count, relative path parity, unique frame dimensions, RGB color count among visible pixels, and alpha preservation. If `unique frame dimensions != 1` when fixed frames are required, treat the batch as failed and regenerate with a fixed-canvas workflow.
+
+## Failure-Proof Batch Flow
+
+Use this flow before producing or replacing a full animation asset set:
+
+```text
+classify asset
+  -> record source count, dimensions, RGB count, alpha count
+  -> choose fixed canvas size and color count
+  -> generate one action/view sample in a new output directory
+  -> verify sample:
+       file count matches
+       all dimensions match target
+       visible RGB colors <= requested color count
+       alpha is preserved when source has soft alpha
+       preview source/output on the same background
+  -> only then run full batch
+  -> verify the full batch with the same checks
+```
+
+Do not proceed from sample to full batch if any invariant fails. Do not overwrite a known-good output until the new output passes validation.
 
 ## Animation Frame Contract
 
@@ -74,6 +98,8 @@ Use this contract whenever the input is a character animation, frame sequence, o
 - All final frame PNGs must have the same dimensions.
 - Character scale must come from the original source canvas, not from per-image content bounds.
 - Do not crop to the visible character unless the user explicitly asks for trimmed frames and accepts anchor/offset handling.
+- Alpha channel behavior must be intentional. Preserve soft alpha by default; use a hard alpha threshold only when the user explicitly wants crisp cutout edges.
+- Validate RGB colors among pixels with `alpha > 0` separately from RGBA colors. Many RGBA values can be correct when one RGB palette color appears at many alpha levels.
 
 If the user asks for "low-resolution pixel art" but also needs game-ready animation frames, a fixed-canvas downscale plus palette quantization may be more appropriate than raw upstream grid snapping. In that case, state that Sprite Fusion's grid-derived output is unsafe for fixed-frame animation and use a fixed-canvas pipeline while preserving the source directory structure.
 
@@ -120,6 +146,18 @@ comm -3 \
   <(find "input_dir" -type f -iname '*.png' -printf '%P\n' | sort) \
   <(find "$out" -path "$out/spritesheets" -prune -o -type f -iname '*.png' -printf '%P\n' | sort)
 ```
+
+Inspect RGB palette count and alpha preservation in a PNG batch:
+
+```bash
+python3 "<skill>/scripts/inspect_png_batch.py" \
+  --root "output_dir" \
+  --source-root "input_dir" \
+  --require-single-size \
+  --max-visible-rgb "<requested_color_count>"
+```
+
+With `--source-root`, the inspector reads the first matching source files by default (`--source-check-limit 8`) to detect whether the source set uses soft alpha, then fails outputs that collapse visible pixels to one alpha level. Use `--source-check-limit 0` for exhaustive source/output alpha comparison, especially when an asset set intentionally mixes soft-alpha frames and hard-edged or fully opaque frames. Add `--min-alpha-levels 2` only when every non-empty output frame is expected to contain soft alpha; do not use it for fully opaque or intentionally hard-edged sprites.
 
 Run comparison samples:
 
@@ -198,6 +236,8 @@ It preserves relative paths, resizes the whole source canvas to the requested ou
 - Aspect ratio changed unexpectedly: keep the default `--preserve-aspect` behavior enabled. If a caller used `--no-preserve-aspect`, rerun without it.
 - Animation character size changes between frames: raw upstream grid-derived output dimensions differ. Treat the batch as failed; regenerate with a fixed output canvas and uniform scale from the original source canvas.
 - Frame batch has many output dimensions: auto-detected pixel size or content-sensitive grid walking changed per image. Do not ship as animation frames unless the engine also receives per-frame offsets/anchors.
+- Output looks darker or has black halos: alpha was probably flattened, premultiplied, or hard-masked. Compare source/output alpha-level counts. Regenerate with the fixed-canvas workflow and preserve soft alpha.
+- Output appears to exceed the requested color count: check visible RGB colors separately from RGBA colors. Many RGBA colors can be expected when soft alpha is preserved.
 - Aspect preservation fails on source dimension reading: convert the source to PNG, JPEG, GIF, or BMP, or pass `--no-preserve-aspect` when raw upstream dimensions are acceptable.
 - Too few colors: increase `--colors`.
 - Too many colors or blurry result: decrease `--colors`.
