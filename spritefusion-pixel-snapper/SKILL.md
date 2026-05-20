@@ -1,6 +1,6 @@
 ---
 name: spritefusion-pixel-snapper
-description: Use Sprite Fusion Pixel Snapper to convert or clean arbitrary raster images into grid-snapped pixel art PNGs. Trigger this skill when the user asks to pixelate, dot-art, pixel-snap, clean AI-generated pixel art, quantize colors for pixel art, or run Hugo-Dz/spritefusion-pixel-snapper on an image.
+description: Use Sprite Fusion Pixel Snapper to convert or clean raster images into grid-snapped pixel art PNGs, and use the fixed-canvas workflow for animation frame batches that need consistent frame dimensions or sprite scale. Trigger this skill when the user asks to pixelate, dot-art, pixel-snap, clean AI-generated pixel art, quantize colors for pixel art, convert animation frames, preserve fixed frame dimensions, or run Hugo-Dz/spritefusion-pixel-snapper on an image.
 ---
 
 # Sprite Fusion Pixel Snapper
@@ -9,25 +9,116 @@ description: Use Sprite Fusion Pixel Snapper to convert or clean arbitrary raste
 
 Use Hugo-Dz/spritefusion-pixel-snapper as the processing engine for raster images. The tool snaps source pixels to a regular grid and quantizes colors into a strict palette, which is especially useful for AI-generated pixel art, tilemaps, isometric maps, 2D game assets, and textures.
 
+## Operating Model
+
+Sprite Fusion Pixel Snapper is a grid-snapper, not a fixed-resolution image resizer. Upstream output dimensions are derived from the detected grid cell count: one output pixel per detected cell. Different images can produce different output sizes even when their source canvases match. The wrapper's `--preserve-aspect` only pads the final PNG to keep the input aspect ratio; it does not guarantee a specific absolute size such as `512x512`, nor does it guarantee that animation frames keep a consistent character scale.
+
+For animation frames, sprites, and game assets, treat frame dimensions as a contract. If the source frames share a fixed canvas and the user needs consistent in-game scale, preserve the whole source canvas at one uniform scale or use a fixed-canvas post-process. Do not accept raw upstream batch output as final until all frame dimensions and relative paths have been verified.
+
+## Intent Gate
+
+Before generating final outputs, establish what the user wants the conversion to optimize. Do not infer this silently for batches, animation frames, character sprites, or other assets that may be used in a game runtime.
+
+If the requested mode is not explicit, ask a short question before final processing:
+
+```text
+どちらを優先しますか？
+1. Sprite Fusion grid-snap: グリッド補正の見た目優先。出力サイズは画像ごとに変わる可能性あり。
+2. Fixed-canvas animation output: 全フレーム同じサイズ・同じキャラスケール優先。
+3. まず代表フレームで比較サンプルを作る。
+```
+
+Ask only for missing parameters needed by the chosen mode:
+
+- For Sprite Fusion grid-snap: color count and output path.
+- For fixed-canvas animation output: color count, output path, and target frame size such as `512` or `512x512`.
+- For comparison samples: representative source frame(s), color counts to compare, and sample output path.
+
+Proceed without asking only when the user already specified the mode and all required parameters, or when the task is a single image where grid-derived output size is clearly acceptable.
+
 ## Workflow
 
-1. Use the provided input and output paths. Ask when either path is missing or ambiguous. Prefer PNG output.
-2. Choose `k_colors` before final processing:
+1. Run the Intent Gate before final conversion. Ask the mode question when the desired tradeoff is unclear.
+2. Use the provided input and output paths. Ask when either path is missing or ambiguous. Prefer PNG output.
+3. Classify the asset before conversion:
+   - Single images, textures, maps, and cleanup samples may use upstream's natural grid-derived output size.
+   - Animation frames, character sprites, action folders, frame sequences, and spritesheet inputs require a dimension contract before batch conversion.
+   - If fixed frame size or consistent character scale matters, ask for or infer the target output canvas size and make the output path explicit. Prefer writing to a new directory instead of overwriting source assets.
+4. Choose `k_colors` before final processing:
    - If the user specified a color count, use that value.
    - If the color count is missing, ask before running final or batch conversion. Offer `8` for stronger retro styling, `16` for balanced pixel-art detail, and `32` when preserving shading matters.
    - If the user is unsure, create comparison samples from a representative image at `8`, `16`, and `32` colors, then ask which setting to use for the remaining images.
    - Use `16` only when the user explicitly accepts the default or asks you to proceed without choosing.
-3. Use auto-detected pixel size first. Add `--pixel-size N` only if the output grid is wrong.
-4. Run the wrapper script in `scripts/pixel_snapper.py`.
-5. Keep the wrapper's default aspect-ratio preservation enabled unless the user explicitly asks for raw upstream dimensions. The wrapper pads the PNG canvas with transparent pixels when the upstream grid would change the input aspect ratio.
-6. Inspect the output. If the grid is too coarse or too fine, rerun with an explicit `--pixel-size`.
+5. For single-image work, use auto-detected pixel size first. Add `--pixel-size N` only if the output grid is wrong.
+6. For animation or frame-sequence work, run a calibration pass before final batch conversion:
+   - Count source images and inspect source PNG dimensions.
+   - Convert representative frames from different actions/views.
+   - Inspect output dimensions, not only visual quality.
+   - If representative outputs differ in size, raw upstream output is not acceptable for fixed-frame animation assets.
+7. Run the appropriate script only after the expected output contract is clear:
+   - Use `scripts/pixel_snapper.py` for single images or batches where grid-derived output dimensions are acceptable.
+   - Use `scripts/fixed_canvas_pixelate.py` for animation frames that need fixed frame dimensions and consistent sprite scale. This fixed-canvas script preserves the source canvas at one uniform scale and quantizes colors; it does not run the upstream grid walker.
+8. Keep the wrapper's default aspect-ratio preservation enabled unless the user explicitly asks for raw upstream dimensions. The wrapper pads the PNG canvas with transparent pixels when the upstream grid would change the input aspect ratio.
+9. Inspect the output:
+   - For single images, verify the grid is neither too coarse nor too fine; rerun with `--pixel-size N` if needed.
+   - For frame batches, verify file count, relative path parity, and unique frame dimensions. If `unique frame dimensions != 1` when fixed frames are required, treat the batch as failed and regenerate with a fixed-canvas workflow.
+
+## Animation Frame Contract
+
+Use this contract whenever the input is a character animation, frame sequence, or spritesheet source:
+
+- Source frame count must match output frame count.
+- Relative paths should match unless the user explicitly asks for a new structure.
+- Source frame dimensions should be recorded before conversion.
+- Required output frame dimensions must be known before final batch conversion.
+- All final frame PNGs must have the same dimensions.
+- Character scale must come from the original source canvas, not from per-image content bounds.
+- Do not crop to the visible character unless the user explicitly asks for trimmed frames and accepts anchor/offset handling.
+
+If the user asks for "low-resolution pixel art" but also needs game-ready animation frames, a fixed-canvas downscale plus palette quantization may be more appropriate than raw upstream grid snapping. In that case, state that Sprite Fusion's grid-derived output is unsafe for fixed-frame animation and use a fixed-canvas pipeline while preserving the source directory structure.
 
 ## Quick Commands
+
+Run a fixed-canvas animation batch after the user chooses the target size and color count:
+
+```bash
+python3 "<skill>/scripts/fixed_canvas_pixelate.py" --input-dir "input_dir" --output-dir "output_dir" --size 512 --colors 16
+```
 
 Run after the user chooses a 16-color palette:
 
 ```bash
 python3 "<skill>/scripts/pixel_snapper.py" --input "input.png" --output "output.png" --colors 16
+```
+
+Inspect PNG dimensions in a batch:
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+import struct
+root = Path("output_dir")
+counts = {}
+for p in root.rglob("*.png"):
+    if "spritesheets" in p.parts:
+        continue
+    data = p.read_bytes()
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        size = struct.unpack(">II", data[16:24])
+        counts[size] = counts.get(size, 0) + 1
+print("unique sizes", len(counts))
+for size, count in sorted(counts.items()):
+    print(size, count)
+PY
+```
+
+Check source/output path parity:
+
+```bash
+out="output_dir"
+comm -3 \
+  <(find "input_dir" -type f -iname '*.png' -printf '%P\n' | sort) \
+  <(find "$out" -path "$out/spritesheets" -prune -o -type f -iname '*.png' -printf '%P\n' | sort)
 ```
 
 Run comparison samples:
@@ -91,10 +182,22 @@ Use `--dry-run` to print the command without executing it. Use `--ref none` to s
 
 By default, the wrapper post-processes the upstream PNG output with `--preserve-aspect`: if the detected grid makes a square source become rectangular, or otherwise changes the source aspect ratio, the wrapper pads the output canvas with transparent pixels instead of stretching pixels. Use `--no-preserve-aspect` only when exact upstream dimensions are required.
 
+Important: `--preserve-aspect` does not preserve the source dimensions and does not normalize all batch outputs to one frame size. It only preserves the source aspect ratio by padding the upstream result.
+
+The fixed-canvas script accepts PNG frame directories:
+
+```text
+--input-dir <dir> --output-dir <dir> --size <N|WIDTHxHEIGHT> --colors <k>
+```
+
+It preserves relative paths, resizes the whole source canvas to the requested output canvas, and quantizes each frame to the requested color count. It supports non-interlaced 8-bit grayscale, RGB, grayscale-alpha, and RGBA PNG inputs. Use it when animation scale consistency is more important than upstream's content-sensitive grid snapping.
+
 ## Troubleshooting
 
 - Bad grid detection: rerun with `--pixel-size N`. The upstream range is `1` through half of the smallest image dimension.
 - Aspect ratio changed unexpectedly: keep the default `--preserve-aspect` behavior enabled. If a caller used `--no-preserve-aspect`, rerun without it.
+- Animation character size changes between frames: raw upstream grid-derived output dimensions differ. Treat the batch as failed; regenerate with a fixed output canvas and uniform scale from the original source canvas.
+- Frame batch has many output dimensions: auto-detected pixel size or content-sensitive grid walking changed per image. Do not ship as animation frames unless the engine also receives per-frame offsets/anchors.
 - Aspect preservation fails on source dimension reading: convert the source to PNG, JPEG, GIF, or BMP, or pass `--no-preserve-aspect` when raw upstream dimensions are acceptable.
 - Too few colors: increase `--colors`.
 - Too many colors or blurry result: decrease `--colors`.

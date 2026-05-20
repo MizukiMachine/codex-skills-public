@@ -1,4 +1,4 @@
 interface:
   display_name: "SpriteFusion Pixel Snapper"
-  short_description: "Sprite Fusionで画像をドット絵グリッドへ補正"
-  default_prompt: "Use $spritefusion-pixel-snapper to convert an input image into a grid-snapped pixel-art PNG."
+  short_description: "Sprite Fusionで画像をドット絵化し寸法も検証"
+  default_prompt: "Use $spritefusion-pixel-snapper to convert images into pixel-art PNGs. If the output mode is ambiguous, ask whether to prioritize Sprite Fusion grid-snapping, fixed-canvas animation frames, or comparison samples before final conversion."
