@@ -19,13 +19,18 @@ struct Args {
     height: u32,
     colors: usize,
     alpha_threshold: u8,
+    palette_alpha_threshold: u8,
     dry_run: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = parse_args()?;
     if !args.input_dir.is_dir() {
-        return Err(format!("input directory does not exist: {}", args.input_dir.display()).into());
+        return Err(format!(
+            "input directory does not exist: {}",
+            args.input_dir.display()
+        )
+        .into());
     }
     if args.input_dir == args.output_dir || args.output_dir.starts_with(&args.input_dir) {
         return Err("--output-dir must differ from and not be inside --input-dir".into());
@@ -64,6 +69,7 @@ fn parse_args() -> Result<Args, Box<dyn std::error::Error>> {
     let mut size = None;
     let mut colors = 16usize;
     let mut alpha_threshold = 1u8;
+    let mut palette_alpha_threshold = 16u8;
     let mut dry_run = false;
 
     let mut iter = env::args().skip(1);
@@ -75,6 +81,10 @@ fn parse_args() -> Result<Args, Box<dyn std::error::Error>> {
             "--colors" | "-k" => colors = require_value(&mut iter, "--colors")?.parse()?,
             "--alpha-threshold" => {
                 alpha_threshold = require_value(&mut iter, "--alpha-threshold")?.parse()?
+            }
+            "--palette-alpha-threshold" => {
+                palette_alpha_threshold =
+                    require_value(&mut iter, "--palette-alpha-threshold")?.parse()?
             }
             "--dry-run" => dry_run = true,
             "--help" | "-h" => {
@@ -99,6 +109,7 @@ fn parse_args() -> Result<Args, Box<dyn std::error::Error>> {
         height,
         colors,
         alpha_threshold,
+        palette_alpha_threshold,
         dry_run,
     })
 }
@@ -133,13 +144,15 @@ fn absolute_path(path: PathBuf) -> PathBuf {
     if path.is_absolute() {
         path
     } else {
-        env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join(path)
+        env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(path)
     }
 }
 
 fn print_usage() {
     eprintln!(
-        "usage: fixed_canvas_pixelate --input-dir DIR --output-dir DIR --size N|WxH [--colors K] [--alpha-threshold N] [--dry-run]"
+        "usage: fixed_canvas_pixelate --input-dir DIR --output-dir DIR --size N|WxH [--colors K] [--alpha-threshold N] [--palette-alpha-threshold N] [--dry-run]"
     );
 }
 
@@ -166,27 +179,94 @@ fn process_frame(
     args: &Args,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let source = ImageReader::open(input)?.decode()?.to_rgba8();
-    let resized = resize(&source, args.width, args.height, FilterType::Triangle);
-    let quantized = quantize_rgba(&resized, args.colors, args.alpha_threshold);
+    let premultiplied = premultiply_alpha(&source);
+    let resized = resize(
+        &premultiplied,
+        args.width,
+        args.height,
+        FilterType::Triangle,
+    );
+    let resized = unpremultiply_alpha(&resized);
+    let quantized = quantize_rgba(
+        &resized,
+        args.colors,
+        args.alpha_threshold,
+        args.palette_alpha_threshold,
+    );
     quantized.save(output)?;
     Ok(())
 }
 
-fn quantize_rgba(img: &RgbaImage, color_count: usize, alpha_threshold: u8) -> RgbaImage {
-    let colors: Vec<Rgb> = img
-        .pixels()
+fn premultiply_alpha(img: &RgbaImage) -> RgbaImage {
+    let mut out = RgbaImage::new(img.width(), img.height());
+
+    for (x, y, p) in img.enumerate_pixels() {
+        let a = p[3] as u16;
+        if a == 0 {
+            out.put_pixel(x, y, Rgba([0, 0, 0, 0]));
+            continue;
+        }
+        let r = ((p[0] as u16 * a + 127) / 255) as u8;
+        let g = ((p[1] as u16 * a + 127) / 255) as u8;
+        let b = ((p[2] as u16 * a + 127) / 255) as u8;
+        out.put_pixel(x, y, Rgba([r, g, b, p[3]]));
+    }
+
+    out
+}
+
+fn unpremultiply_alpha(img: &RgbaImage) -> RgbaImage {
+    let mut out = RgbaImage::new(img.width(), img.height());
+
+    for (x, y, p) in img.enumerate_pixels() {
+        let a = p[3] as u32;
+        if a == 0 {
+            out.put_pixel(x, y, Rgba([0, 0, 0, 0]));
+            continue;
+        }
+        let r = ((p[0] as u32 * 255 + a / 2) / a).min(255) as u8;
+        let g = ((p[1] as u32 * 255 + a / 2) / a).min(255) as u8;
+        let b = ((p[2] as u32 * 255 + a / 2) / a).min(255) as u8;
+        out.put_pixel(x, y, Rgba([r, g, b, p[3]]));
+    }
+
+    out
+}
+
+fn collect_palette_colors(
+    img: &RgbaImage,
+    alpha_threshold: u8,
+    palette_alpha_threshold: u8,
+) -> Vec<Rgb> {
+    let palette_min_alpha = palette_alpha_threshold.max(alpha_threshold);
+    let colors = collect_colors_with_min_alpha(img, palette_min_alpha);
+
+    if colors.is_empty() && palette_min_alpha > alpha_threshold {
+        collect_colors_with_min_alpha(img, alpha_threshold)
+    } else {
+        colors
+    }
+}
+
+fn collect_colors_with_min_alpha(img: &RgbaImage, min_alpha: u8) -> Vec<Rgb> {
+    img.pixels()
         .filter_map(|p| {
-            if p[3] < alpha_threshold {
-                None
-            } else {
-                Some(Rgb {
-                    r: p[0],
-                    g: p[1],
-                    b: p[2],
-                })
-            }
+            (p[3] >= min_alpha).then_some(Rgb {
+                r: p[0],
+                g: p[1],
+                b: p[2],
+            })
         })
-        .collect();
+        .collect()
+}
+
+fn quantize_rgba(
+    img: &RgbaImage,
+    color_count: usize,
+    alpha_threshold: u8,
+    palette_alpha_threshold: u8,
+) -> RgbaImage {
+    let colors = collect_palette_colors(img, alpha_threshold, palette_alpha_threshold);
 
     if colors.is_empty() {
         return ImageBuffer::from_pixel(img.width(), img.height(), Rgba([0, 0, 0, 0]));

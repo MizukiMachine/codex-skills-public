@@ -57,6 +57,7 @@ Proceed without asking only when the user already specified the mode and all req
    - Convert representative frames from different actions/views.
    - Inspect output dimensions and alpha behavior, not only visual quality.
    - If source PNGs have multiple nonzero alpha values, the representative outputs should also preserve multiple alpha values unless the user explicitly requested hard edges.
+   - For fixed-canvas resizing, require premultiplied-alpha resizing and unpremultiply before palette quantization. Do not resize straight/unassociated RGBA directly, because transparent black RGB can bleed into semi-transparent edges and make the result look dark.
    - If representative outputs differ in size, raw upstream output is not acceptable for fixed-frame animation assets.
 7. Run the appropriate script only after the expected output contract is clear:
    - Use `scripts/pixel_snapper.py` for single images or batches where grid-derived output dimensions are acceptable.
@@ -80,6 +81,7 @@ classify asset
        all dimensions match target
        visible RGB colors <= requested color count
        alpha is preserved when source has soft alpha
+       RGB palette is built from sufficiently visible pixels, not from near-transparent edge pixels
        preview source/output on the same background
   -> only then run full batch
   -> verify the full batch with the same checks
@@ -228,7 +230,7 @@ The fixed-canvas script accepts PNG frame directories:
 --input-dir <dir> --output-dir <dir> --size <N|WIDTHxHEIGHT> --colors <k>
 ```
 
-It preserves relative paths, resizes the whole source canvas to the requested output canvas, and quantizes each frame to the requested color count. It supports non-interlaced 8-bit grayscale, RGB, grayscale-alpha, and RGBA PNG inputs. Use it when animation scale consistency is more important than upstream's content-sensitive grid snapping.
+It preserves relative paths, resizes the whole source canvas to the requested output canvas, and quantizes each frame to the requested color count. During resize it premultiplies alpha first, then unpremultiplies before quantization. By default it preserves every nonzero alpha value, while excluding very low-alpha pixels from palette selection (`--palette-alpha-threshold 16`) so transparent dark edge pixels do not consume palette entries. It supports non-interlaced 8-bit grayscale, RGB, grayscale-alpha, and RGBA PNG inputs. Use it when animation scale consistency is more important than upstream's content-sensitive grid snapping.
 
 ## Troubleshooting
 

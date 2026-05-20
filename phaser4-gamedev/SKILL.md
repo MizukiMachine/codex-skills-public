@@ -9,6 +9,14 @@ description: Phaser 4-specific game development for projects explicitly using Ph
 
 Use this skill to implement, debug, optimize, or migrate Phaser 4 browser games with codebase-aware choices. Invoke it when the user explicitly asks for Phaser 4, the codebase confirms Phaser 4.x, or the task is a Phaser 3 to 4 migration. Produce working game code, measured asset metadata, explicit rendering or migration decisions, and verification from project scripts or a browser smoke test.
 
+## Companion Skill
+
+This skill extends `phaser-gamedev`; it does not replace the common Phaser workflow.
+
+For any Phaser 4 task, first read enough of `phaser-gamedev/SKILL.md` to apply its shared Phaser guidance: version discovery, scene ownership, asset metadata, delta-time simulation, object lifecycle anti-patterns, debug visibility, and verification. Then apply this Phaser 4-specific skill for renderer, API, migration, and WebGL-focused decisions.
+
+Do not deep-read extra `phaser-gamedev` references unless the task specifically needs them.
+
 ## Operating Model
 
 Phaser 4 work is renderer-aware game engineering. The default target is WebGL; Canvas exists for compatibility, but filters, real-time lighting, GPU layers, and the modern renderer path are WebGL-centered. Preserve game feel first, then choose the simplest rendering path that satisfies the visual and performance constraints.
