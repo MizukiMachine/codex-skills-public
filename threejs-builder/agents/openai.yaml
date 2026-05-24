@@ -1,0 +1,4 @@
+interface:
+  display_name: "Three.js Builder"
+  short_description: "Build and verify Three.js scenes and games"
+  default_prompt: "Use $threejs-builder to create a polished Three.js web scene with responsive rendering and visual verification."
