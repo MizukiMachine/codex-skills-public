@@ -1,9 +1,9 @@
 interface:
   display_name: "OpenAI Docs"
-  short_description: "Reference docs, choose models, and migrate OpenAI API integrations"
+  short_description: "公式docs参照、モデル選定、OpenAI API移行"
   icon_small: "./assets/openai-small.svg"
   icon_large: "./assets/openai.png"
-  default_prompt: "Use OpenAI Docs for official docs lookup, model selection, model migration, and prompt-upgrade work."
+  default_prompt: "OpenAI Docsを使って、公式docs検索、モデル選定、モデル移行、prompt upgradeを行ってください。"
 
 dependencies:
   tools:

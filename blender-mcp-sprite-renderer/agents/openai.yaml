@@ -1,4 +1,4 @@
 interface:
   display_name: "Blender MCP Sprite Renderer"
-  short_description: "Render aligned game sprite PNGs via Blender MCP"
-  default_prompt: "Use $blender-mcp-sprite-renderer; first ask me to choose or confirm the image resolution from numbered options, then ask for the capture rules, and only render the FBX animations as aligned transparent side-view sprite sequences after I confirm."
+  short_description: "Blender MCPで整列済みゲーム用スプライトPNGを生成"
+  default_prompt: "$blender-mcp-sprite-renderer を使ってください。最初に番号付き選択肢で画像解像度を選ぶか確認するよう私に聞き、その次にキャプチャ規則を確認してください。私が確認してから、FBXアニメーションを整列済み透明背景の横視点スプライトシーケンスとしてレンダリングしてください。"

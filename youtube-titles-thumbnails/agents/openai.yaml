@@ -1,4 +1,4 @@
 interface:
   display_name: "YouTube Titles & Thumbnails"
-  short_description: "Generate YouTube title-thumbnail pairs"
-  default_prompt: "Use $youtube-titles-thumbnails to create title and thumbnail options for this video."
+  short_description: "YouTubeのタイトルとサムネ案を生成"
+  default_prompt: "$youtube-titles-thumbnails を使って、この動画のタイトル案とサムネイル案を作成してください。"

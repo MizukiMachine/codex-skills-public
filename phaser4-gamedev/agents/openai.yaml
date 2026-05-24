@@ -1,4 +1,4 @@
 interface:
   display_name: "Phaser 4 Game Dev"
-  short_description: "Phaser 4 renderer and migration"
-  default_prompt: "Use $phaser4-gamedev for Phaser 4 renderer work or a Phaser 3 to 4 migration with browser verification."
+  short_description: "Phaser 4のrendererと移行を扱う"
+  default_prompt: "$phaser4-gamedev を使って、Phaser 4のrenderer作業またはPhaser 3から4への移行をブラウザ検証付きで進めてください。"

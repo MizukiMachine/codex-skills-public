@@ -1,4 +1,4 @@
 interface:
   display_name: "Diagram"
-  short_description: "Generate architecture diagrams from code"
-  default_prompt: "Use $diagram to analyze this project and generate architecture diagrams."
+  short_description: "コードからアーキテクチャ図を生成"
+  default_prompt: "$diagram を使って、このプロジェクトを解析しアーキテクチャ図を生成してください。"

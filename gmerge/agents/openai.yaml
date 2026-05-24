@@ -1,4 +1,4 @@
 interface:
   display_name: "GMerge"
-  short_description: "Merge branches into develop safely"
-  default_prompt: "Use $gmerge to merge the current branch into develop with --no-ff."
+  short_description: "ブランチをdevelopへ安全にマージ"
+  default_prompt: "$gmerge を使って、現在のブランチを --no-ff で develop にマージしてください。"
