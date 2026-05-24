@@ -1,6 +1,6 @@
 ---
 name: phaser4-gamedev
-description: Phaser 4-specific game development for projects explicitly using Phaser 4, package.json or Phaser.VERSION 4.x, or Phaser 3 to 4 migration. Use for Phaser 4 renderer work, WebGL-only filters, lighting, shaders, texture orientation, DynamicTexture or RenderTexture, SpriteGPULayer, TilemapGPULayer, and v4 migration hotspots. Prefer the broader phaser-gamedev skill for Phaser 3-only or version-unknown work.
+description: "Phaser 4を明示的に使うプロジェクト、`package.json` や `Phaser.VERSION` が4.xのプロジェクト、またはPhaser 3から4への移行で使うPhaser 4専用のゲーム開発スキル。Phaser 4 renderer、WebGL-only filter、lighting、shader、texture orientation、DynamicTexture/RenderTexture、SpriteGPULayer、TilemapGPULayer、v4移行の注意点を扱うときに使う。Phaser 3のみ、またはバージョン不明の場合はより広い `phaser-gamedev` を優先する。"
 ---
 
 # Phaser 4 Game Development

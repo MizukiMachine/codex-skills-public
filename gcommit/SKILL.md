@@ -1,6 +1,6 @@
 ---
 name: gcommit
-description: "Review the Git working tree, create a new branch, and commit changes safely. Use when the user asks to commit changes, git commit, branch and commit, コミットして, 変更をコミット, or ブランチ切ってコミット. Split into grouped commits when many files changed."
+description: "Git作業ツリーを確認し、新しいブランチを作成して安全にコミットする。コミット、git commit、ブランチ作成とコミット、コミットして、変更をコミット、ブランチ切ってコミットなどを求められたときに使う。変更ファイルが多い場合は意味のある単位に分けてコミットする。"
 ---
 
 # Git Commit Skill

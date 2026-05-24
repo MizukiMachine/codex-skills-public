@@ -1,6 +1,6 @@
 ---
 name: flow-visualizer
-description: "Explain systems, programs, commands, application features, and code paths as detailed ASCII flow diagrams. Use when the user asks how something works, wants the whole picture, asks for a processing flow, or uses prompts like 仕組みを説明して, 全体像を知りたい, どう動いているか教えて, or フローを説明して."
+description: "システム、プログラム、コマンド、アプリ機能、コードパスの動きを、詳細なASCIIフロー図で説明する。仕組み、全体像、処理フロー、実行経路を知りたいときや、「仕組みを説明して」「全体像を知りたい」「どう動いているか教えて」「フローを説明して」などの依頼で使う。"
 ---
 
 # Flow Visualizer

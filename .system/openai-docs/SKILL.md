@@ -1,6 +1,6 @@
 ---
 name: "openai-docs"
-description: "Use when the user asks how to build with OpenAI products or APIs and needs up-to-date official documentation with citations, help choosing the latest model for a use case, or model upgrade and prompt-upgrade guidance; prioritize OpenAI docs MCP tools, use bundled references only as helper context, and restrict any fallback browsing to official OpenAI domains."
+description: "OpenAI製品やAPIの実装方法、最新モデル選定、モデル移行、プロンプト改善について、最新の公式ドキュメントと引用が必要なときに使う。OpenAI docs MCPを優先し、同梱リファレンスは補助文脈としてのみ使い、ブラウズのフォールバックはOpenAI公式ドメインに限定する。"
 ---
 
 

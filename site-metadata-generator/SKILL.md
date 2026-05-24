@@ -1,6 +1,6 @@
 ---
 name: site-metadata-generator
-description: Generate, audit, and implement site metadata for web projects, including SEO meta tags, Open Graph and Twitter cards, canonical URLs, robots.txt, sitemaps, and Schema.org JSON-LD. Use when Codex is asked to improve SEO, add metadata, create social sharing previews, generate sitemap.xml, add structured data, audit crawlability, or implement metadata in Next.js, Astro, Gatsby, React, Vue/Nuxt, or static HTML sites.
+description: "Webプロジェクトのsite metadataを生成、監査、実装する。SEO meta tag、Open Graph/Twitter card、canonical URL、robots.txt、sitemap、Schema.org JSON-LDを含む。SEO改善、metadata追加、ソーシャル共有プレビュー作成、`sitemap.xml` 生成、構造化データ追加、crawlability監査、Next.js/Astro/Gatsby/React/Vue/Nuxt/static HTMLでのmetadata実装を求められたときに使う。"
 ---
 
 # Site Metadata Generator

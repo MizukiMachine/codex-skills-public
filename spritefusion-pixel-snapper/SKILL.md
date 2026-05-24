@@ -1,6 +1,6 @@
 ---
 name: spritefusion-pixel-snapper
-description: Use Sprite Fusion Pixel Snapper to convert or clean raster images into grid-snapped pixel art PNGs, and use the fixed-canvas workflow for animation frame batches that need consistent frame dimensions or sprite scale. Trigger this skill when the user asks to pixelate, dot-art, pixel-snap, clean AI-generated pixel art, quantize colors for pixel art, convert animation frames, preserve fixed frame dimensions, or run Hugo-Dz/spritefusion-pixel-snapper on an image.
+description: "Sprite Fusion Pixel Snapperを使って、ラスタ画像をグリッドに揃えたピクセルアートPNGへ変換または整える。アニメーションフレームのバッチで一貫したフレーム寸法やスプライトスケールを保つ必要がある場合はfixed-canvasワークフローを使う。pixelate、dot-art、pixel-snap、AI生成ピクセルアートの整理、ピクセルアート向け色量子化、アニメーションフレーム変換、固定フレーム寸法の保持、Hugo-Dz/spritefusion-pixel-snapperの実行を求められたときに発動する。"
 ---
 
 # Sprite Fusion Pixel Snapper

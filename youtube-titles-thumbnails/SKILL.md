@@ -1,6 +1,6 @@
 ---
 name: youtube-titles-thumbnails
-description: Create and optimize YouTube titles, thumbnail text, title-thumbnail pairs, hooks, and packaging strategy for CTR while preserving viewer trust. Use when Codex is asked to generate YouTube title ideas, thumbnail copy, A/B test variants, analyze transcripts or video concepts, improve existing titles/thumbnails, or advise on YouTube content packaging for tutorials, analysis, stories, comparisons, reviews, educational videos, tech content, or creator strategy.
+description: "視聴者からの信頼を保ちながら、CTR向上を狙うYouTubeタイトル、サムネイル文言、タイトルとサムネの組み合わせ、hook、packaging strategyを作成または最適化する。YouTubeタイトル案、サムネコピー、A/B test案、transcriptや動画企画の分析、既存タイトル/サムネ改善、tutorial/analysis/story/comparison/review/education/tech/creator strategy向けのYouTube packaging助言を求められたときに使う。"
 ---
 
 # YouTube Titles & Thumbnails

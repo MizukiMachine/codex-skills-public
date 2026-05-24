@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Build, redesign, review, or polish production frontend interfaces with codebase-aware visual design, design-system adherence, accessibility, interaction states, responsive layout, and browser screenshot QA. Use when Codex works on web components, pages, dashboards, SaaS tools, landing pages, apps, design-system UI, visual QA, or UI code review, especially when the user asks for high-quality design, UI improvement, frontend implementation, or to avoid generic AI-looking aesthetics.
+description: "本番向けフロントエンドUIを、コードベースに沿った視覚設計、デザインシステム遵守、アクセシビリティ、インタラクション状態、レスポンシブレイアウト、ブラウザスクリーンショットQAまで含めて構築、再設計、レビュー、改善する。Webコンポーネント、ページ、ダッシュボード、SaaSツール、ランディングページ、アプリ、デザインシステムUI、視覚QA、UIコードレビューを扱うときに使う。特に高品質なデザイン、UI改善、フロントエンド実装、汎用的なAIっぽい見た目の回避を求められた場合に使う。"
 ---
 
 # Frontend Design

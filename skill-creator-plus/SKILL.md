@@ -1,8 +1,8 @@
 ---
 name: skill-creator-plus
-description: Enhanced guide for creating high-quality skills with philosophy-first design, clear what/why/deliverables, anti-pattern prevention, variation guidance, verification, and progressive disclosure. Use when users want to create a new skill, update an existing skill, improve skill quality, or turn a checklist-like skill into a production-ready reusable workflow.
+description: "高品質なCodexスキルを作成するための拡張ガイド。哲学から設計すること、明確なwhat/why/deliverables、アンチパターン防止、バリエーション指針、検証、progressive disclosureを重視する。新規スキル作成、既存スキル更新、スキル品質改善、チェックリスト的なスキルを本番利用できる再利用可能ワークフローへ変える依頼で使う。"
 metadata:
-  short-description: Create high-quality skills
+  short-description: "高品質なスキルを作成"
 ---
 
 # Skill Creator Plus
