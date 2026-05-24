@@ -1,4 +1,4 @@
 interface:
   display_name: "Frontend Design"
-  short_description: "Design polished production frontends"
-  default_prompt: "Use $frontend-design to build or polish this frontend with codebase-aware visual design and browser verification."
+  short_description: "Design polished, verified production UIs"
+  default_prompt: "Use $frontend-design to build or polish this frontend with codebase-aware visual design, accessible states, and browser verification."

@@ -1,13 +1,13 @@
 ---
 name: frontend-design
-description: Build, redesign, review, or polish production frontend interfaces with codebase-aware visual design. Use when Codex works on web components, pages, dashboards, SaaS tools, landing pages, apps, design-system UI, responsive layout, interaction polish, or visual QA, especially when the user asks for high-quality design, UI improvement, frontend implementation, or to avoid generic AI-looking aesthetics.
+description: Build, redesign, review, or polish production frontend interfaces with codebase-aware visual design, design-system adherence, accessibility, interaction states, responsive layout, and browser screenshot QA. Use when Codex works on web components, pages, dashboards, SaaS tools, landing pages, apps, design-system UI, visual QA, or UI code review, especially when the user asks for high-quality design, UI improvement, frontend implementation, or to avoid generic AI-looking aesthetics.
 ---
 
 # Frontend Design
 
 ## Purpose
 
-Use this skill to produce working frontend code that feels intentionally designed for its product, audience, and workflow. The goal is not decoration; it is a usable interface with a clear visual point of view, stable responsive behavior, accessible controls, and verified rendering.
+Use this skill to produce working frontend code that feels intentionally designed for its product, audience, and workflow. The goal is not decoration or a design essay; it is a usable interface with a clear visual point of view, stable responsive behavior, accessible controls, and verified rendering.
 
 ## Operating Model
 
@@ -32,36 +32,49 @@ Before acting, answer:
 
 Ask at most one to three questions only when missing constraints would materially change the result.
 
+## Design Contracts
+
+- Treat the local design system as the source of truth. If Storybook, Figma notes, `DESIGN.md`, component docs, shadcn config, CSS variables, or theme tokens exist, inspect them before inventing new styles.
+- If no design system exists, define a compact token set first: color roles, type scale, spacing, radius, elevation, motion, and interaction states. Implement through CSS variables, Tailwind theme values, or the project's equivalent.
+- Keep scope bounded to the requested surface. Do not replace the framework, router, styling system, or UI library unless the existing stack cannot reasonably support the task.
+- Design toward WCAG 2.2 AA where feasible: semantic structure, labels, keyboard flow, visible focus, contrast, target size, error identification, and reduced-motion behavior.
+- Translate inspiration into local principles. Do not copy a proprietary brand, product UI, or external asset set unless the user owns it or explicitly provided it for reuse.
+
 ## Discovery First
 
 For an existing project, inspect before designing or editing:
 
 ```bash
-rg --files | rg '(^|/)(package.json|src|app|pages|components|styles|public|assets|static|tailwind|vite|next|astro|nuxt|svelte)'
-rg -n "className=|styled\\.|createTheme|ThemeProvider|tailwind|@theme|:root|--[a-zA-Z0-9-]+|font-family|from ['\\\"]lucide|from ['\\\"]@mui|from ['\\\"]antd|from ['\\\"]@radix-ui" .
-rg -n "Button|Card|Dialog|Modal|Tabs|Toggle|Select|Slider|Tooltip|Navbar|Sidebar|Header|Footer|Logo|Icon" src app pages components 2>/dev/null
+rg --files | rg '(^|/)(DESIGN\.md|AGENTS\.md|README\.md|package.json|src|app|pages|components|styles|public|assets|static|tailwind|vite|next|astro|nuxt|svelte|storybook|\.storybook)'
+rg -n "className=|styled\\.|createTheme|ThemeProvider|tailwind|@theme|:root|--[a-zA-Z0-9-]+|font-family|from ['\\\"]lucide|from ['\\\"]@mui|from ['\\\"]antd|from ['\\\"]@radix-ui|from ['\\\"]react-aria|from ['\\\"]framer-motion|from ['\\\"]motion/react|cva\\(" .
+rg -n "Button|Card|Dialog|Modal|Tabs|Toggle|Select|Slider|Tooltip|Navbar|Sidebar|Header|Footer|Logo|Icon|Empty|Error|Skeleton|Toast" src app pages components stories 2>/dev/null
 ```
+
+If these searches produce too much output, narrow them to the target route, component, or style folder before reading more.
 
 Extract:
 
 - Framework and route structure
 - Existing component primitives and UI libraries
-- Color tokens, CSS variables, Tailwind config, font loading, and spacing scale
+- Design docs, Storybook stories, Figma handoff notes, screenshots, and acceptance criteria
+- Color tokens, CSS variables, Tailwind config, font loading, spacing scale, radius, elevation, and motion patterns
 - Icon library and any brand/logo assets
 - Existing page layout patterns and responsive breakpoints
+- Existing loading, empty, error, disabled, selected, focus, and validation patterns
 - Available scripts for lint, typecheck, test, build, and dev preview
 
 For a greenfield page or app, choose the simplest stack already implied by the workspace. Build the actual usable experience as the first screen unless the user specifically asks for a marketing landing page.
 
 ## Workflow
 
-1. Define the design direction in a short phrase, then make concrete choices for typography, palette, density, motion, and imagery.
-2. Map the interaction surface: navigation, primary actions, controls, data states, feedback states, and responsive behavior.
-3. Implement in the project's native style. Reuse local components, CSS variables, Tailwind utilities, icon libraries, and framework patterns before adding new abstractions.
-4. Use appropriate visual assets. Product, venue, person, object, game, and website experiences need real or generated visual signals, not abstract placeholders. If raster assets are required and absent, use an image-generation workflow when available.
-5. Add polished states: hover, focus-visible, active, disabled, loading, empty, error, selected, drag/resize if relevant.
-6. Keep layout stable with explicit constraints such as aspect ratio, min/max sizes, grid tracks, and fixed control dimensions.
-7. Verify visually at desktop and mobile sizes, then revise anything that overlaps, clips, wraps badly, shifts unexpectedly, or renders blank.
+1. Define the screen job and design direction in a short phrase. Include surface type, audience, density, palette, typography, imagery, motion, and one memorable product-specific move.
+2. Align or create the token contract. Decide color roles, type scale, spacing, radius, elevation, focus ring, disabled treatment, and motion rules before styling many components.
+3. Map the interaction surface: navigation, primary and secondary actions, controls, data states, feedback states, keyboard paths, touch ergonomics, and responsive behavior.
+4. Implement in the project's native style. Reuse local components, CSS variables, Tailwind utilities, icon libraries, accessibility primitives, and framework patterns before adding new abstractions.
+5. Use appropriate visual assets. Product, venue, person, object, game, and website experiences need real or generated visual signals, not abstract placeholders. If raster assets are required and absent, use an image-generation workflow when available.
+6. Add polished states: hover, focus-visible, active, disabled, loading, empty, error, selected, drag/resize if relevant.
+7. Keep layout stable with explicit constraints such as aspect ratio, min/max sizes, grid tracks, container queries where useful, and fixed control dimensions.
+8. Verify visually at desktop and mobile sizes, then revise anything that overlaps, clips, wraps badly, shifts unexpectedly, or renders blank.
 
 ## Direction By Surface
 
@@ -74,11 +87,22 @@ For a greenfield page or app, choose the simplest stack already implied by the w
 | Portfolio, editorial, culture | Strong typography, art direction, image rhythm, intentional whitespace |
 | Game or playful experience | More animation, custom assets, immediate playable or interactive surface |
 
+## Interaction Rules
+
+- Make the common path obvious. Each screen should make the next action clear without competing primary buttons.
+- Use progressive disclosure for secondary actions, filters, advanced settings, and destructive controls.
+- Give each async region a loading, empty, error, retry, and success or saved state when relevant.
+- Prefer URL state for shareable filters, search, sort, tabs, and pagination. Use local state for transient UI such as open menus and temporary selections.
+- Build forms with persistent labels, useful helper text, inline validation, submit feedback, and safe destructive confirmation.
+- Make dialogs, popovers, menus, command palettes, and drawers manage focus, Escape, outside click, scroll lock, and return focus.
+- Treat keyboard and touch as first-class: visible focus, logical tab order, hit targets large enough for touch, and no hover-only affordances.
+
 ## Visual Rules
 
 - Match the aesthetic to the domain. Do not make operational software look like a marketing hero unless the user asked for that.
+- Commit to a clear aesthetic direction, then execute it with restraint or intensity as the domain requires. Minimal designs need precision; maximal designs need orchestration.
 - Use distinctive typography when appropriate, but respect existing font loading and performance. Avoid converging on the same popular choices across unrelated projects.
-- Use palettes with real contrast and purposeful accents. Avoid one-note themes made only from one hue family.
+- Use palettes with real contrast, purposeful accents, and semantic roles. Avoid one-note themes made only from one hue family.
 - Prefer icons for tool actions when a familiar symbol exists. Use the project's icon library, often Lucide, instead of hand-drawn inline SVG.
 - Use familiar controls: segmented controls for modes, toggles or checkboxes for booleans, sliders or numeric inputs for numbers, tabs for views, menus for option sets.
 - Keep cards to real repeated items, modals, and framed tools. Do not put cards inside cards or turn every page section into a floating card.
@@ -86,6 +110,18 @@ For a greenfield page or app, choose the simplest stack already implied by the w
 - Use motion for meaningful state change, spatial orientation, and high-impact reveals. Avoid scattered animation that distracts from the workflow.
 - Do not add visible in-app text that explains the app's features, keyboard shortcuts, or visual styling unless the product surface genuinely needs onboarding.
 - Ensure text fits its container at mobile and desktop sizes. Do not use viewport-width font scaling or negative letter spacing to force drama.
+
+## Quality Gates
+
+Before calling the work done, confirm:
+
+- The first viewport contains a product, brand, workflow, or domain signal specific enough that it could not belong to any generic app.
+- Primary task completion is clear, with no more than one dominant primary action per view unless the workflow truly requires branching.
+- Design tokens and local primitives are used instead of hardcoded one-off styling when a system exists.
+- For interactive or data-driven surfaces, critical states are designed: loading, empty, error, disabled, selected, focused, active, hover, mobile, and long-content cases.
+- Accessibility basics pass: semantic elements, labels, contrast, focus-visible, keyboard operation, reduced motion, and screen-reader names for icon-only controls.
+- The UI tolerates realistic content: long names, localized text, many/few items, missing images, slow network, and narrow screens.
+- Visual assets, fonts, animation, shadows, and effects support the concept without excessive payload, jank, or readability loss.
 
 ## Anti-Patterns
 
@@ -113,6 +149,18 @@ Bad: Text clipping, buttons growing on hover, controls changing size, mobile ove
 
 Better: Use stable dimensions, responsive constraints, wrapping rules, and screenshot checks at realistic viewport sizes.
 
+**Token drift**
+
+Bad: Adding hardcoded colors, spacing, radii, shadows, or custom controls in a project with established tokens and primitives.
+
+Better: Extend existing tokens or compose existing primitives. If an exception is necessary, keep it local and explain why.
+
+**Incomplete state surface**
+
+Bad: Designing only the happy path with static mock data.
+
+Better: Implement or at least account for loading, empty, error, disabled, focused, long-content, and mobile states.
+
 **Unverified polish**
 
 Bad: Shipping CSS changes without opening the page.
@@ -124,12 +172,12 @@ Better: Run the app, inspect desktop and mobile screenshots, test interactions, 
 When the user asks to review an existing frontend, lead with findings rather than praise. Prioritize:
 
 1. Broken behavior, inaccessible controls, unreadable contrast, layout overlap, and mobile failures
-2. Mismatches with existing design system or framework conventions
-3. Information hierarchy and workflow friction
+2. Mismatches with existing design system, token, accessibility, or framework conventions
+3. Information hierarchy, action hierarchy, and workflow friction
 4. Generic visual choices that weaken the product signal
-5. Missing states, assets, or verification
+5. Missing states, assets, content stress handling, or verification
 
-Reference files and line numbers when reviewing code. If screenshots are available, mention the viewport and visible issue.
+Classify issues as blocking, major, or minor when useful. Reference files and line numbers when reviewing code. If screenshots are available, mention the viewport and visible issue.
 
 ## Verification
 
@@ -147,9 +195,10 @@ Run only the commands that exist for the project. If the app needs a dev server,
 For visual QA:
 
 - Check at least one desktop and one mobile viewport.
+- Inspect browser console errors, page errors, failed requests, and obvious layout overflow when browser automation is available.
 - Confirm images, icons, fonts, gradients, canvas/WebGL, and videos render as intended.
 - Confirm controls have hover, focus, selected, disabled, and loading behavior when relevant.
-- Confirm text does not overlap, clip, or overflow its parent.
+- Confirm text does not overlap, clip, overflow its parent, or change control dimensions unexpectedly.
 - Scan the CSS for accidental one-note palette, excessive purple/blue gradients, beige/brown monotony, dark slate monotony, or decorative blobs.
 - For 3D/canvas/game surfaces, verify the canvas is nonblank, framed correctly, and interactive or animated.
 
