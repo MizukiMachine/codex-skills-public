@@ -1,5 +1,0 @@
-interface:
-  display_name: "Skill Creator Plus"
-  short_description: "高品質なスキルを作成"
-  icon_small: "./assets/skill-creator-small.svg"
-  icon_large: "./assets/skill-creator.png"
