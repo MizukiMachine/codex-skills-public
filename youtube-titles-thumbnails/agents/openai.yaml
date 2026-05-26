@@ -1,4 +1,0 @@
-interface:
-  display_name: "YouTube Titles & Thumbnails"
-  short_description: "YouTubeのタイトルとサムネ案を生成"
-  default_prompt: "$youtube-titles-thumbnails を使って、この動画のタイトル案とサムネイル案を作成してください。"
