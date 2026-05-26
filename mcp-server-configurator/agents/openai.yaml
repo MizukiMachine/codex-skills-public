@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCP Server Configurator"
+  short_description: "Codex MCP server configuration workflow"
+  default_prompt: "Use $mcp-server-configurator to convert MCP docs into a working Codex mcp_servers configuration."

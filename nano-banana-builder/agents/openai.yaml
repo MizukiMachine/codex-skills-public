@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nano Banana Builder"
+  short_description: "Gemini image app builder workflow"
+  default_prompt: "Use $nano-banana-builder to build a web app around Gemini Nano Banana image generation APIs."

@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow Visualizer"
-  short_description: "Explain systems as detailed ASCII flows"
-  default_prompt: "Use $flow-visualizer to explain how this system works as a detailed flow."
+  short_description: "システムを詳細なASCIIフローで説明"
+  default_prompt: "$flow-visualizer を使って、このシステムの仕組みを詳細なフローとして説明してください。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Animated Spritesheets"
+  short_description: "AI character animation spritesheet pipeline"
+  default_prompt: "Use $animated-spritesheets to turn a character reference into an animated spritesheet with normalized frames and review artifacts."

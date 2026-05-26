@@ -1,13 +1,13 @@
 ---
 name: skill-creator
-description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Codex's capabilities with specialized knowledge, workflows, or tool integrations.
+description: "効果的で高品質なCodexスキルを作成または更新するためのガイド。専門知識、ワークフロー、ツール連携でCodexの能力を拡張し、哲学からの設計、what/why/deliverables、事前分析、アンチパターン防止、バリエーション指針、検証、progressive disclosureを重視する。新規スキル作成、既存スキル更新、スキル品質改善、チェックリスト的なスキルを本番利用できる再利用可能ワークフローへ変える依頼で使う。"
 metadata:
-  short-description: Create or update a skill
+  short-description: "高品質なスキルを作成または更新"
 ---
 
 # Skill Creator
 
-This skill provides guidance for creating effective skills.
+This skill provides guidance for creating and updating high-quality, reusable skills.
 
 ## About Skills
 
@@ -52,6 +52,43 @@ You may use subagents during iteration to validate whether a skill works on real
 When using subagents for validation, treat that as an evaluation surface. The goal is to learn whether the skill generalizes, not whether another agent can reconstruct the answer from leaked context.
 
 Prefer raw artifacts such as example prompts, outputs, diffs, logs, or traces. Give the minimum task-local context needed to perform the validation. Avoid passing the intended answer, suspected bug, intended fix, or your prior conclusions unless the validation explicitly requires them.
+
+### Teach a Mental Model, Not Just a Checklist
+
+Strong skills tell Codex how to think in the domain, then give concrete procedures. Add a compact "philosophy", "mental model", or "operating model" section when the skill would otherwise become a checklist.
+
+Use this pattern for creative work, judgment-heavy analysis, game/graphics work, SEO/content strategy, codebase-aware generation, and any task where a generic template would produce mediocre output.
+
+Good mental-model sections include:
+
+- The domain's real goal, stated plainly
+- A priority hierarchy for tradeoffs
+- Questions to answer before acting
+- Invariants or contracts that prevent common bugs
+- Context-driven variation rules so outputs do not converge on one generic shape
+
+### Frame What, Why, and Deliverables
+
+Before adding detailed instructions, make the skill's value concrete:
+
+- **What it does**: The capability being added, in operational terms
+- **Why use it**: The recurring pain, quality gap, or task class it improves
+- **Deliverables**: The expected files, edits, reports, artifacts, or decisions produced
+
+This is most useful for production-oriented skills and for skills with scripts or generated assets. It keeps the skill grounded in outcomes rather than a loose pile of guidance.
+
+### Prefer Analysis Before Generation
+
+For skills that operate on a codebase, brand, document set, or existing artifact, make discovery the first workflow step. Tell Codex exactly what to inspect and what to extract before writing.
+
+Useful discovery targets include:
+
+- Existing framework, routes, schemas, components, assets, config, styles, and naming conventions
+- Current implementation state and missing pieces
+- Primary brand or domain signals that generated output must match
+- Repeated bugs or fragile assumptions that need calibration before implementation
+
+When discovery is mechanical, include `rg` searches, script commands, or a small analyzer script. When discovery is judgment-heavy, include the questions to answer and the expected output of the analysis.
 
 ### Anatomy of a Skill
 
@@ -146,79 +183,56 @@ Keep SKILL.md body to the essentials and under 500 lines to minimize context blo
 
 **Key principle:** When a skill supports multiple variations, frameworks, or options, keep only the core workflow and selection guidance in SKILL.md. Move variant-specific details (patterns, examples, configuration) into separate reference files.
 
-**Pattern 1: High-level guide with references**
+Use these patterns to keep SKILL.md small while making deeper material discoverable:
+
+- **High-level guide with references**: Put quick-start instructions in SKILL.md and link to focused reference files for advanced features.
+- **Domain-specific references**: Split large domains into files such as `references/finance.md`, `references/sales.md`, or `references/product.md` so Codex loads only the relevant domain.
+- **Variant-specific references**: Split by provider or framework such as `references/aws.md`, `references/gcp.md`, and `references/azure.md`.
+- **Conditional details**: Keep the common path in SKILL.md and link to specialized details such as tracked changes, redlining, schema internals, or advanced configuration.
+
+**Reference map with "Use When"**
+
+When a skill has several references, put a compact table near the top of SKILL.md:
 
 ```markdown
-# PDF Processing
+## Reference Files
 
-## Quick start
-
-Extract text with pdfplumber:
-[code example]
-
-## Advanced features
-
-- **Form filling**: See [FORMS.md](FORMS.md) for complete guide
-- **API reference**: See [REFERENCE.md](REFERENCE.md) for all methods
-- **Examples**: See [EXAMPLES.md](EXAMPLES.md) for common patterns
+| Topic | File | Use When |
+|-------|------|----------|
+| GLTF models | [gltf.md](references/gltf.md) | Loading, caching, cloning, animation |
+| Frameworks | [frameworks.md](references/frameworks.md) | Implementing in Next.js, Astro, React |
+| Audit checklist | [audit.md](references/audit.md) | Reviewing an existing project |
 ```
 
-Codex loads FORMS.md, REFERENCE.md, or EXAMPLES.md only when needed.
+This is better than burying reference links inside long prose because Codex can choose the right file without loading unrelated material.
 
-**Pattern 2: Domain-specific organization**
+**Calibration and troubleshooting contracts**
 
-For Skills with multiple domains, organize content by domain to avoid loading irrelevant context:
+For fragile technical domains, add a short contract section before implementation details. Examples include coordinate systems, units, file paths, schema ownership, output dimensions, security boundaries, or state-machine rules.
 
-```
-bigquery-skill/
-├── SKILL.md (overview and navigation)
-└── reference/
-    ├── finance.md (revenue, billing metrics)
-    ├── sales.md (opportunities, pipeline)
-    ├── product.md (API usage, features)
-    └── marketing.md (campaigns, attribution)
-```
-
-When a user asks about sales metrics, Codex only reads sales.md.
-
-Similarly, for skills supporting multiple frameworks or variants, organize by variant:
-
-```
-cloud-deploy/
-├── SKILL.md (workflow + provider selection)
-└── references/
-    ├── aws.md (AWS deployment patterns)
-    ├── gcp.md (GCP deployment patterns)
-    └── azure.md (Azure deployment patterns)
-```
-
-When the user chooses AWS, Codex only reads aws.md.
-
-**Pattern 3: Conditional details**
-
-Show basic content, link to advanced content:
+Pair the contract with a fast calibration pass and a troubleshooting map:
 
 ```markdown
-# DOCX Processing
+## Contract
+- World units:
+- Required output dimensions:
+- Naming convention:
 
-## Creating documents
+## Calibration
+1. Run one minimal case.
+2. Print or inspect the key invariants.
+3. Lock constants before implementing the full workflow.
 
-Use docx-js for new documents. See [DOCX-JS.md](DOCX-JS.md).
-
-## Editing documents
-
-For simple edits, modify the XML directly.
-
-**For tracked changes**: See [REDLINING.md](REDLINING.md)
-**For OOXML details**: See [OOXML.md](OOXML.md)
+## Troubleshooting
+- Symptom -> likely cause -> first fix to try
 ```
-
-Codex reads REDLINING.md or OOXML.md only when the user needs those features.
 
 **Important guidelines:**
 
 - **Avoid deeply nested references** - Keep references one level deep from SKILL.md. All reference files should link directly from SKILL.md.
 - **Structure longer reference files** - For files longer than 100 lines, include a table of contents at the top so Codex can see the full scope when previewing.
+- **Treat examples as learning resources** - Put annotated examples, before/after transformations, and pattern demonstrations in `references/` unless they are output assets or platform-supported example resources. Do not create a top-level `examples/` directory by default.
+- **Study high-performing patterns when improving quality** - Read `references/high-performing-skill-patterns.md` when creating a complex skill, upgrading a weak checklist-like skill, or importing lessons from another skill collection.
 
 ## Skill Creation Process
 
@@ -283,6 +297,16 @@ Example: When building a `big-query` skill to handle queries like "How many user
 
 To establish the skill's contents, analyze each concrete example to create a list of the reusable resources to include: scripts, references, and assets.
 
+Also identify the reusable reasoning structure:
+
+- **Mental model**: What concept keeps the agent oriented?
+- **Discovery workflow**: What must be inspected before acting?
+- **Decision rules**: What tradeoffs or priority order should guide choices?
+- **Contracts and invariants**: What must remain true to avoid subtle failures?
+- **Capabilities and deliverables**: What operations does the skill unlock, and what should it produce?
+- **Anti-patterns**: What common outputs should be blocked, and what should replace them?
+- **Variation guidance**: How should output change across contexts instead of collapsing into one template?
+
 ### Step 3: Initializing the Skill
 
 At this point, it is time to actually create the skill.
@@ -343,6 +367,23 @@ If you used `--examples`, delete any placeholder files that are not needed for t
 
 **Writing Guidelines:** Always use imperative/infinitive form.
 
+##### High-Performing SKILL.md Shape
+
+Use this shape when the skill is complex, creative, or codebase-aware. Delete sections that do not apply.
+
+1. **Purpose** - One or two sentences explaining the outcome.
+2. **Operating model** - A compact philosophy, mental model, priority hierarchy, or contract.
+3. **Before starting** - Questions or inspections required before writing output.
+4. **Workflow** - Ordered steps, including discovery before generation when relevant.
+5. **Reference files** - A "Topic / File / Use When" table for optional detailed material.
+6. **Capabilities and deliverables** - Key operations and concrete outputs the user should expect.
+7. **Patterns and examples** - Concrete templates, code snippets, command examples, or output shapes.
+8. **Anti-patterns** - Bad pattern, why it fails, and the better replacement.
+9. **Variation guidance** - How to adapt by framework, audience, asset type, page type, or risk level.
+10. **Verification** - Commands, previews, validators, screenshots, tests, or acceptance checks.
+
+Prefer this structure over generic "Overview / Guidelines / Resources" when the skill needs judgment. It produces skills that guide behavior, not just memory.
+
 ##### Frontmatter
 
 Write the YAML frontmatter with `name` and `description`:
@@ -352,12 +393,23 @@ Write the YAML frontmatter with `name` and `description`:
   - Include both what the Skill does and specific triggers/contexts for when to use it.
   - Include all "when to use" information here - Not in the body. The body is only loaded after triggering, so "When to Use This Skill" sections in the body are not helpful to Codex.
   - Example description for a `docx` skill: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. Use when Codex needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks"
+  - Include exact trigger phrases when they are common and helpful, but do not rely only on quoted examples.
 
-Do not include any other fields in YAML frontmatter.
+Keep frontmatter to `name` and `description` by default. Add runtime-supported fields such as `metadata`, `license`, or `allowed-tools` only when explicitly required by the skill platform or requested by the user. Do not copy unsupported fields from other skill ecosystems.
 
 ##### Body
 
 Write instructions for using the skill and its bundled resources.
+
+Good body content is procedural and discriminating:
+
+- Use tables for selection logic, reference maps, compatibility matrices, and priority tiers.
+- Use "before generating" or "before implementing" checks when context changes the correct answer.
+- Use anti-pattern blocks to stop predictable weak outputs. Include why the pattern fails and what to do instead.
+- Use variation guidance to prevent repetitive output. List dimensions that should change by context.
+- Use scripts for repeatable mechanics and examples for judgment-heavy choices.
+- Use verification steps that match the domain's failure modes.
+- Avoid overconstraining the agent with rigid templates when the domain needs judgment; define guardrails, quality bars, and adaptation rules instead.
 
 ### Step 5: Validate the Skill
 

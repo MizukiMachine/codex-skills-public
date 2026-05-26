@@ -1,4 +1,4 @@
 interface:
   display_name: "Phaser Gamedev"
-  short_description: "Build, debug, and optimize Phaser 2D games."
-  default_prompt: "Use this skill to work on Phaser scenes, assets, physics, tilemaps, UI, performance, or Phaser version migrations. First inspect the project version, assets, and scene architecture, then implement and verify in browser."
+  short_description: "Phaser 2Dゲームを構築・デバッグ・最適化"
+  default_prompt: "このスキルでPhaserのscene、asset、physics、tilemap、UI、performance、version migrationを扱ってください。まずプロジェクトのPhaser version、asset、scene architectureを確認し、その後に実装してブラウザで検証してください。"

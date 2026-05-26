@@ -1,8 +1,8 @@
 ---
 name: og-image-ai
-description: "Generate AI-illustrated Open Graph and social preview images with OpenAI GPT Image models plus deterministic Pillow text overlays. Use when Codex needs creative or thematic OG images, illustrated blog/article cards, product or landing social cards, batch generation from og-analysis.json, or an AI-generated visual alternative to the deterministic og-image-creator pipeline."
+description: "OpenAI GPT ImageモデルによるAIイラストと、Pillowによる決定的なテキスト合成を組み合わせて、Open Graph画像やSNSプレビュー画像を生成する。創造的/テーマ性のあるOG画像、イラスト入りブログ/記事カード、製品/ランディングページのSNSカード、`og-analysis.json` からのバッチ生成、または決定的な `og-image-creator` パイプラインのAI生成版が必要なときに使う。"
 metadata:
-  short-description: AI-illustrated OG images
+  short-description: "AIイラストのOG画像を生成"
 ---
 
 # OG Image AI

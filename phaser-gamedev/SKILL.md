@@ -1,6 +1,6 @@
 ---
 name: phaser-gamedev
-description: "Build, debug, optimize, and migrate 2D browser games using Phaser 3 or Phaser 4. Use when Codex works on Phaser scenes, game config, spritesheets, animations, input, Arcade or Matter physics, Tiled tilemaps, UI panels and nine-slice, performance, asset pipelines, or Phaser 3 to 4 compatibility."
+description: "Phaser 3またはPhaser 4の2Dブラウザゲームを構築、デバッグ、最適化、移行する。Phaser scene、game config、spritesheet、animation、input、Arcade/Matter physics、Tiled tilemap、UI panel、nine-slice、performance、asset pipeline、Phaser 3/4互換性を扱うときに使う。"
 ---
 
 # Phaser Game Development

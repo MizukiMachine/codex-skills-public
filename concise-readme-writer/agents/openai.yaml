@@ -1,0 +1,4 @@
+interface:
+  display_name: "Concise README Writer"
+  short_description: "仕様と構成に集中したREADMEを作成します"
+  default_prompt: "Use $concise-readme-writer to rewrite this project README into a compact overview focused on product behavior and architecture."

@@ -1,4 +1,4 @@
 interface:
   display_name: "GCommit"
-  short_description: "Create safe grouped Git commits"
-  default_prompt: "Use $gcommit to review the working tree, create a branch, and commit changes safely."
+  short_description: "安全な単位でGitコミットを作成"
+  default_prompt: "$gcommit を使って作業ツリーを確認し、ブランチを作成して安全にコミットしてください。"

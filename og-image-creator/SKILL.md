@@ -1,6 +1,6 @@
 ---
 name: og-image-creator
-description: "Generate, review, and integrate branded Open Graph and social preview images for web projects. Use when Codex is asked to create OG images, generate social cards, add og:image or twitter:image metadata, audit social sharing images, or build a repeatable route-aware OG image pipeline for Next.js, Astro, React/Gatsby, static HTML, blogs, documentation, product pages, or landing pages."
+description: "Webプロジェクト向けに、ブランドに合ったOpen Graph画像とSNSプレビュー画像を生成、レビュー、統合する。OG画像、SNSカード、`og:image` や `twitter:image` metadataの追加、ソーシャル共有画像の監査、Next.js/Astro/React/Gatsby/static HTML/blog/docs/product/landing page向けのルート対応OG画像パイプライン作成を求められたときに使う。"
 ---
 
 # OG Image Creator

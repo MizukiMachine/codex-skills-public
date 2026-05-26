@@ -1,0 +1,4 @@
+interface:
+  display_name: "Capture"
+  short_description: "Capture task prompts plans and learnings"
+  default_prompt: "Use $capture to save the session prompts, plans, and learnings into their canonical locations."

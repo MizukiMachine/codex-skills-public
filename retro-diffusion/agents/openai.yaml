@@ -1,0 +1,4 @@
+interface:
+  display_name: "Retro Diffusion"
+  short_description: "Retro Diffusion pixel art generation workflow"
+  default_prompt: "Use $retro-diffusion to create pixel-art images, spritesheets, or animation experiments via Retro Diffusion."

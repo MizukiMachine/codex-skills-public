@@ -1,4 +1,4 @@
 interface:
   display_name: "OG Image Creator"
-  short_description: "Generate branded Open Graph images"
-  default_prompt: "Use $og-image-creator to generate branded Open Graph images for this web project."
+  short_description: "ブランドに合うOpen Graph画像を生成"
+  default_prompt: "$og-image-creator を使って、このWebプロジェクトのブランドに合うOpen Graph画像を生成してください。"

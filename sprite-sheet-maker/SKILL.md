@@ -1,6 +1,6 @@
 ---
 name: sprite-sheet-maker
-description: Combine directories of frame PNG images into game-ready sprite sheet PNGs. Use when Codex needs to pack animation frames, numbered sprite frames, pixel-art frames, character action frames, or 2D game asset sequences into a sprite sheet, especially 16-frame folders that should become 4x4 sheets.
+description: "フレームPNG画像のディレクトリを、ゲーム用スプライトシートPNGにまとめる。アニメーションフレーム、番号付きスプライトフレーム、ピクセルアートフレーム、キャラクターアクションフレーム、2Dゲーム用アセット列をスプライトシートへパックする必要があるときに使う。特に16フレームのフォルダを4x4シートにする場合に使う。"
 ---
 
 # Sprite Sheet Maker

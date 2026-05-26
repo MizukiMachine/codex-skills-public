@@ -1,6 +1,6 @@
 ---
 name: blender-mcp-sprite-renderer
-description: Render Mixamo or FBX character animations into game-ready 2D sprite PNG sequences through Blender MCP, but always ask the user to choose or confirm image resolution first, then capture rules, before importing/rendering. Use when the user asks Codex to use Blender/Blender MCP to capture, render, batch export, align, normalize, preview, or re-render side-view animation frames for games, especially 1024x1024 transparent PNG sprites with consistent character size, first-frame anchor, camera framing, left/right views, loop clips, or one-shot action clips.
+description: "Blender MCPでMixamoまたはFBXのキャラクターアニメーションを、ゲーム用2DスプライトPNGシーケンスとしてレンダリングする。ただしインポート/レンダリング前に、必ず画像解像度の選択または確認とキャプチャ規則の確認を行う。CodexにBlender/Blender MCPでゲーム用の横視点アニメーションフレームをキャプチャ、レンダリング、一括書き出し、整列、正規化、プレビュー、再レンダリングさせる依頼で使う。特に1024x1024透明PNG、一定のキャラクターサイズ、初期フレームアンカー、カメラ構図、左右向き、ループ/単発アクションに対応する。"
 ---
 
 # Blender MCP Sprite Renderer

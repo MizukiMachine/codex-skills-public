@@ -1,0 +1,8 @@
+X API Builder assets placeholder.
+
+Keep this folder for reusable project artifacts when needed, for example:
+- OpenAPI-derived request templates.
+- Environment variable templates for auth setup.
+- Retry policy config snippets.
+
+No default assets are required for this skill.

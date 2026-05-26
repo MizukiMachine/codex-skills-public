@@ -1,8 +1,8 @@
 ---
 name: favicon-generator
-description: Generate polished favicon, app icon, browser tab icon, site icon, and PWA icon suites. Use when users need new favicons, replacement favicons, framework icon metadata, or review of an existing project's favicon identity. Includes a Python CLI, browser preview studio, layered effects guidance, templates, Lucide icons, letter monograms, and emoji mode.
+description: "洗練されたfavicon、アプリアイコン、ブラウザタブアイコン、サイトアイコン、PWAアイコン一式を生成する。新規favicon、差し替え用favicon、フレームワークのアイコンmetadata、既存プロジェクトのfaviconアイデンティティレビューが必要なときに使う。Python CLI、ブラウザプレビュー、レイヤー効果ガイド、テンプレート、Lucideアイコン、文字モノグラム、絵文字モードを含む。"
 metadata:
-  short-description: Generate polished favicon suites
+  short-description: "favicon一式を生成"
 ---
 
 # Favicon Generator

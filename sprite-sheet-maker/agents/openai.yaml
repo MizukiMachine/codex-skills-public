@@ -1,4 +1,4 @@
 interface:
   display_name: "Sprite Sheet Maker"
   short_description: "連番PNGフレームをゲーム用スプライトシートに結合"
-  default_prompt: "Use $sprite-sheet-maker to combine a directory of frame PNGs into a game-ready sprite sheet."
+  default_prompt: "$sprite-sheet-maker を使って、フレームPNGのディレクトリをゲーム用スプライトシートに結合してください。"

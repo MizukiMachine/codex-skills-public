@@ -1,6 +1,6 @@
 ---
 name: gmerge
-description: "Merge the current source branch into develop using git merge --no-ff. Use when the user asks to merge a branch, merge into develop, git merge, マージして, developにマージ, or ブランチをマージ. Block direct merges into main or master."
+description: "現在の作業元ブランチを `git merge --no-ff` で `develop` にマージする。ブランチのマージ、developへのマージ、git merge、マージして、developにマージ、ブランチをマージなどを求められたときに使う。mainまたはmasterへの直接マージはブロックする。"
 ---
 
 # Git Merge Skill

@@ -1,0 +1,4 @@
+interface:
+  display_name: "GPT Image 1.5"
+  short_description: "OpenAI GPT Image 1.5 generation workflow"
+  default_prompt: "Use $gpt-image-1-5 to generate images with OpenAI GPT Image 1.5 and production-ready prompt parameters."

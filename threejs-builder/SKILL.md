@@ -1,6 +1,6 @@
 ---
 name: threejs-builder
-description: Build, debug, polish, or review Three.js and WebGL web experiences, including 3D scenes, product viewers, GLTF/GLB model loading, animation mixers, OrbitControls, lighting/materials, post-processing, shaders, responsive renderers, and simple 3D games. Use when Codex needs to create or modify Three.js code, diagnose blank canvases or broken imports, fix model scale/orientation/anchors, add 3D interaction, or verify a canvas-based web app visually.
+description: "Three.jsとWebGLのWeb体験を構築、デバッグ、改善、レビューする。3D scene、product viewer、GLTF/GLB model loading、animation mixer、OrbitControls、lighting/material、post-processing、shader、responsive renderer、シンプルな3Dゲームを含む。Three.jsコードの作成/修正、空白canvasや壊れたimportの診断、model scale/orientation/anchorの修正、3D interaction追加、canvasベースWebアプリの視覚検証が必要なときに使う。"
 ---
 
 # Three.js Builder

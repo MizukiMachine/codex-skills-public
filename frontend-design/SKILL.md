@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Build, redesign, review, or polish production frontend interfaces with codebase-aware visual design, design-system adherence, accessibility, interaction states, responsive layout, and browser screenshot QA. Use when Codex works on web components, pages, dashboards, SaaS tools, landing pages, apps, design-system UI, visual QA, or UI code review, especially when the user asks for high-quality design, UI improvement, frontend implementation, or to avoid generic AI-looking aesthetics.
+description: "本番向けフロントエンドUIを、コードベースに沿った視覚設計、デザインシステム遵守、アクセシビリティ、インタラクション状態、レスポンシブレイアウト、ブラウザスクリーンショットQAまで含めて構築、再設計、レビュー、改善する。Webコンポーネント、ページ、ダッシュボード、SaaSツール、ランディングページ、アプリ、デザインシステムUI、視覚QA、UIコードレビューを扱うときに使う。特に高品質なデザイン、UI改善、フロントエンド実装、汎用的なAIっぽい見た目の回避、タイポグラフィ設計、テーマ固定、単一デザイン軸の改善を求められた場合に使う。"
 ---
 
 # Frontend Design
@@ -11,7 +11,7 @@ Use this skill to produce working frontend code that feels intentionally designe
 
 ## Operating Model
 
-Great frontend design comes from context, hierarchy, and implementation integrity.
+Great frontend design comes from context, hierarchy, concept, and implementation integrity.
 
 Prioritize:
 
@@ -19,7 +19,7 @@ Prioritize:
 2. Existing framework, design system, and code conventions
 3. Clear visual hierarchy and information density suited to the domain
 4. Responsive stability, accessibility, and interaction states
-5. Distinctive details that support the concept without breaking usability
+5. A distinctive aesthetic concept, typography, and theme that support the task
 6. Browser verification with real screenshots or smoke tests
 
 Before acting, answer:
@@ -27,7 +27,7 @@ Before acting, answer:
 - What is the user trying to accomplish on this screen?
 - Is this an operational tool, marketing surface, portfolio, game, creative app, or content site?
 - What framework, UI library, routing model, assets, fonts, icons, and design tokens already exist?
-- Which one visual idea should make this interface feel specific to the product?
+- Which one visual idea, typographic identity, or themed interaction should make this interface feel specific to the product?
 - What states must be designed: loading, empty, error, disabled, hover, active, selected, focused, mobile?
 
 Ask at most one to three questions only when missing constraints would materially change the result.
@@ -39,6 +39,7 @@ Ask at most one to three questions only when missing constraints would materiall
 - Keep scope bounded to the requested surface. Do not replace the framework, router, styling system, or UI library unless the existing stack cannot reasonably support the task.
 - Design toward WCAG 2.2 AA where feasible: semantic structure, labels, keyboard flow, visible focus, contrast, target size, error identification, and reduced-motion behavior.
 - Translate inspiration into local principles. Do not copy a proprietary brand, product UI, or external asset set unless the user owns it or explicitly provided it for reuse.
+- When the user asks for a targeted refinement such as typography, motion, density, palette, or spacing, isolate that dimension and preserve unrelated structure unless there is a direct conflict.
 
 ## Discovery First
 
@@ -87,6 +88,43 @@ For a greenfield page or app, choose the simplest stack already implied by the w
 | Portfolio, editorial, culture | Strong typography, art direction, image rhythm, intentional whitespace |
 | Game or playful experience | More animation, custom assets, immediate playable or interactive surface |
 
+## Aesthetic Direction
+
+Choose a specific visual concept instead of a generic "modern" look. The concept can be quiet or loud, but it must be deliberate and appropriate to the surface.
+
+Use strong directions when the product can support them:
+
+- **Brutally minimal**: sparse structure, precise spacing, strong type contrast, few effects
+- **Editorial or magazine-like**: expressive display type, image rhythm, asymmetric pacing
+- **Industrial or technical**: exposed grids, utility color, monospaced accents, dense controls
+- **Luxury or refined**: restrained palette, high-quality imagery, subtle motion, careful proportion
+- **Playful or toy-like**: saturated accents, tactile controls, bouncy feedback, custom assets
+- **Retro-futuristic, solarpunk, cyberpunk, art deco, Memphis, or brutalist**: use only when it fits the product or the user asks for it
+
+Theme-locking rule: when the user names an aesthetic, lock color, typography, layout rhythm, texture, motion, and component detailing to that theme. Match implementation complexity to the concept: maximal directions need richer layers and motion; refined minimal directions need stricter spacing, contrast, and restraint.
+
+## Typography And Theme
+
+- Treat typography as a core design system, not an afterthought. Choose display, body, numeric, and code styles deliberately.
+- Reuse existing fonts when the project already has a brand or performance budget. For greenfield work, avoid defaulting to Inter, Roboto, Arial, or system fonts unless the product calls for utilitarian neutrality.
+- Pair fonts for contrast when useful: serif with geometric sans, display with restrained body, or mono accents with a readable UI face.
+- Use strong weight and scale contrast for heroes, editorial surfaces, and brand moments; use compact, stable type scales for dashboards, editors, and operational tools.
+- Load fonts through the project's established mechanism. Avoid adding remote font dependencies when offline use, privacy, or performance constraints make that a poor tradeoff.
+- Build the theme with variables or tokens. Color, radius, shadow, type scale, focus, disabled state, and motion should be reusable rather than scattered one-offs.
+- Pull palette inspiration from the domain, product materials, imagery, or named aesthetic. Use dominant roles plus sharp accents; avoid timid evenly distributed palettes.
+
+## Targeted Refinement
+
+When the user asks to improve one dimension, keep the edit narrowly focused:
+
+| Request | Preserve | Change |
+|---------|----------|--------|
+| Better typography | Layout, palette, components | Font choice, scale, weight, line-height, measure, hierarchy |
+| Better color/theme | Layout, type hierarchy, workflow | Tokens, semantic roles, contrast, accents, surfaces |
+| Better motion | Layout, palette, information architecture | Timing, easing, entrance, hover/focus, state transitions |
+| More premium/playful/minimal/etc. | Core workflow and accessibility | Aesthetic tokens, imagery, texture, rhythm, detailing |
+| Fix responsive polish | Visual identity and behavior | Constraints, wrapping, breakpoints, overflow, touch targets |
+
 ## Interaction Rules
 
 - Make the common path obvious. Each screen should make the next action clear without competing primary buttons.
@@ -127,9 +165,27 @@ Before calling the work done, confirm:
 
 **Generic AI aesthetic**
 
-Bad: Purple-blue gradients, glass cards, floating blobs, same rounded cards, generic Inter/Roboto/system typography, stock-like copy, and no domain signal.
+Bad: Purple-blue gradients, glass cards, floating blobs, same rounded cards, generic Inter/Roboto/system typography, stock-like copy, predictable layouts, and no domain signal.
 
 Better: Extract the product context first, then pick a specific visual concept and implement it through layout, typography, assets, interaction states, and copy density.
+
+**Theme as decoration**
+
+Bad: Naming an aesthetic but changing only colors while leaving default layout, type, motion, and component shapes untouched.
+
+Better: Lock the theme across palette, typography, spacing rhythm, imagery, texture, motion, and control details.
+
+**Uncontrolled maximalism**
+
+Bad: Adding many effects, patterns, overlaps, custom cursors, and animations that compete with the task.
+
+Better: Choose one or two high-impact expressive moves and keep interaction, readability, and performance intact.
+
+**Over-broad refinement**
+
+Bad: Rebuilding the whole page when the user only asked for better typography, color, motion, or mobile polish.
+
+Better: Isolate the requested design dimension, adjust it deeply, and leave unrelated structure alone.
 
 **Decorative dashboard**
 

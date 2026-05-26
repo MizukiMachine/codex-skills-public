@@ -1,0 +1,4 @@
+interface:
+  display_name: "Love2D Gamedev"
+  short_description: "Love2D game development and iOS packaging"
+  default_prompt: "Use $love2d-gamedev to implement Love2D gameplay or package a Love2D project for iOS."
