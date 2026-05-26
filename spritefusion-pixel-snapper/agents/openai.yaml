@@ -1,4 +1,0 @@
-interface:
-  display_name: "SpriteFusion Pixel Snapper"
-  short_description: "Sprite Fusionで画像をピクセルアート化し寸法も検証"
-  default_prompt: "$spritefusion-pixel-snapper を使って、画像をピクセルアートPNGに変換してください。出力モードが曖昧な場合は、最終変換の前にSprite Fusionのgrid-snapping、fixed-canvasのアニメーションフレーム、比較サンプルのどれを優先するか確認してください。"

@@ -4,7 +4,7 @@ Repository: https://github.com/Hugo-Dz/spritefusion-pixel-snapper
 
 Verified against upstream commit `9f1ccdf0496d0eb2e6b343b6385f4cb42cf36a36` on 2026-05-19.
 
-The bundled wrapper uses this verified commit as its default `--ref` for reproducible behavior. Pass `--ref main` to run against the current upstream branch, or `--ref none` to leave a manually managed checkout unchanged.
+The bundled `scripts/spritefusion_snapper.py` wrapper uses this verified commit as its default `--ref` for reproducible behavior. Pass `--ref main` to run against the current upstream branch, or `--ref none` to leave a manually managed checkout unchanged.
 
 Official online version: https://spritefusion.com/pixel-snapper
 

@@ -1,133 +1,192 @@
 ---
 name: pixel-snapper
-description: "Recover the true low-resolution pixel grid from upscaled or AI-generated fake pixel art PNGs. Use for snap-to-grid cleanup, native-resolution sprite assets, palette-quantized game art, and known-layout spritesheets. Bundles uv Python scripts for pixel-grid recovery."
-metadata:
-  short-description: "Recover native pixel grids from fake pixel art."
+description: "Pixel-art PNG cleanup and conversion: recover hidden native pixel grids from upscaled or AI-generated fake pixel art; run Sprite Fusion grid snapping; convert frame batches with fixed-canvas pixelation; quantize palettes; verify dimensions, path parity, RGB color counts, and alpha preservation. Use for pixelate, dot-art, pixel-snap, fake pixel art cleanup, AI pixel art cleanup, known-layout spritesheets, animation frame batches, fixed frame size, and game-ready pixel assets."
 ---
 
 # Pixel Snapper
 
-Recover the underlying low-resolution pixel grid from images that *look* like pixel art but are stored at a much higher resolution with anti-aliased or smudged edges. Common case: a 1024×1024 AI-generated character that conceptually has ~100×100 chunky pixels.
+## Purpose
 
-This skill bundles a self-contained Python script (`scripts/pixel_snapper.py`) for grid recovery. It runs through uv with no project install required.
+Turn raster images that look like pixel art into usable pixel-art assets. Use the right path for the asset: recover a hidden low-resolution grid, run Sprite Fusion's grid snapper, or preserve a fixed animation canvas while pixelating and quantizing frames.
 
-It also includes `scripts/pixel_snapper_sheet.py`, a known-layout spritesheet helper that crops frames first, snaps each frame independently, and reassembles the sheet.
+## Operating Model
 
-## Philosophy: Discover, Don't Resize
+Pixel-art cleanup is not one operation. Choose the workflow by the output contract:
 
-A naive "downscale" (Lanczos, bilinear, nearest) just averages neighboring pixels and produces blur or aliasing. Pixel-snapping is fundamentally different: the algorithm *discovers* where the conceptual pixel boundaries already exist in the input and snaps to them. The output resolution is **a property of the input**, not a parameter you set.
+| Need | Use | Output Size |
+|------|-----|-------------|
+| Recover the native grid from upscaled or AI-faked pixel art | `scripts/pixel_snapper.py` | Discovered from the source |
+| Recover frames from a sheet with known rows/columns | `scripts/pixel_snapper_sheet.py` | Discovered per frame, then reassembled |
+| Use Hugo-Dz/Sprite Fusion grid snapping on a single image, tile, map, texture, or sample | `scripts/spritefusion_snapper.py` | Derived by upstream; padded to source aspect by default |
+| Convert animation frames while keeping one canvas size and stable character scale | `scripts/fixed_canvas_pixelate.py` | Explicit `--size N` or `--size WxH` |
+| Validate batch dimensions, visible RGB palette, and alpha behavior | `scripts/inspect_png_batch.py` | Report/fail based on invariants |
 
-**Before running, ask**:
-- Is this actually pixel art that's been upscaled or AI-faked, or is it a real photograph / continuous-tone illustration? (Pixel-snapping only makes sense for the former.)
-- What palette complexity does the input have? Bright cartoony art tolerates `--k-colors 256`; pre-quantized retro palettes may benefit from a much smaller `k` (16, 32, 64).
-- Do you want the native snapped output, or a nearest-neighbour upscale for inspection? You almost always want both.
-- Are the conceptual pixels actually square, or did the source apply non-uniform scaling? The snapper assumes one shared cell pitch for both axes.
+Prioritize:
 
-**Core principles**:
-1. **Output resolution is discovered**, not specified. The snapper detects the cell pitch from edge profiles and resamples accordingly. Don't fight this.
-2. **`k_colors` is the only user-facing knob.** Twelve other internal tunables exist (peak thresholds, walker windows, fallback segments) but you should only touch them by editing the `Config` dataclass.
-3. **Always inspect output visually.** Dimensions are a sanity check, not a quality check. A snapper run can produce a "correct" 50×50 output that's actually missing detail — you only see this by eye.
-4. **Original concept stays the source of truth.** Snapped output is a derivative; keep the source PNG so you can re-snap with different `k_colors` later.
+1. Correct asset contract: native-grid discovery for exploratory cleanup, fixed canvas for game animation.
+2. Visual readability: smallest palette that preserves the design.
+3. Alpha integrity: preserve soft alpha unless the user explicitly asks for hard-edged cutouts.
+4. Reproducibility: keep originals and write experiments to new output paths before promoting assets.
 
-## When to Use
+## Reference Files
 
-Trigger this skill when the user:
-- has AI-generated "pixel art" (gpt-image, retro-diffusion, etc.) and wants a cleaner, smaller, palette-quantized version
-- needs to convert a high-res mockup into a true pixel-art asset for a spritesheet or tilemap
-- wants to recover the underlying grid of an upscaled retro asset
-- mentions "snap to pixel grid", "fake pixel art", or "downsample to native res"
+| Topic | File | Use When |
+|-------|------|----------|
+| Native grid recovery algorithm | [algorithm.md](references/algorithm.md) | Debugging hidden-grid recovery or changing internal tunables |
+| Native grid examples | [usage-examples.md](references/usage-examples.md) | Running sweeps, upscales, and known-layout sheet recovery |
+| Sprite Fusion upstream | [spritefusion-upstream.md](references/spritefusion-upstream.md) | Needing exact upstream CLI, verified commit, or WASM details |
 
-Skip this skill for:
-- photographs, continuous-tone illustrations, or vector art (no underlying grid to recover)
-- already-native pixel art (the snapper would just round-trip it, possibly losing detail)
-- spritesheet *layout* recovery where rows/columns are unknown (use an asset-probing workflow first; `pixel_snapper_sheet.py` expects known `--cols` and `--rows`)
+## Before Starting
 
-## Quick Start
+Answer these before final conversion:
 
-The script is self-contained via PEP 723 inline metadata (numpy + pillow). No `pip install` needed:
+- Is the input fake/upscaled pixel art, already-native pixel art, a continuous-tone image, or a game animation batch?
+- Is output size allowed to be discovered, or must every frame have a fixed size and stable in-game scale?
+- Is this a single image, a folder of PNG frames, or a spritesheet with known rows/columns?
+- What color count is desired? For AI native-grid recovery, start near `256`; for strict retro cleanup compare `8`, `16`, and `32`.
+- Does the source use soft alpha? If yes, preserve alpha levels by default.
 
-```bash
-uv run .agents/skills/pixel-snapper/scripts/pixel_snapper.py input.png output.png --k-colors 256
+Ask a short tradeoff question before a final batch conversion when the mode is unclear:
+
+```text
+Which tradeoff should I optimize?
+1. Native/Sprite Fusion grid-snap: prioritize visual grid cleanup; output dimensions may vary by image.
+2. Fixed-canvas animation output: keep every frame the same size with stable character scale.
+3. Build comparison samples from representative frames first.
 ```
 
-Or, after `chmod +x`, the shebang `#!/usr/bin/env -S uv run --script` lets you call it directly:
-
-```bash
-.agents/skills/pixel-snapper/scripts/pixel_snapper.py input.png output.png --k-colors 256
-```
-
-uv installs deps on first run and caches them. Output is one snapped PNG at the discovered native resolution.
-
-For inspection, follow up with an integer-multiple nearest-neighbour upscale via ffmpeg:
-
-```bash
-ffmpeg -y -i snapped.png -vf "scale=iw*8:ih*8:flags=neighbor" snapped-x8.png
-```
-
-See `references/usage-examples.md` for batch processing and verification recipes.
-
-For a known-layout spritesheet, snap frames independently:
-
-```bash
-uv run .agents/skills/pixel-snapper/scripts/pixel_snapper_sheet.py \
-  sheet.png sheet-snapped.png --cols 6 --rows 1 --k-colors 256
-```
+Proceed without asking when the user supplied the mode, output path, size/color requirements, or when the task is a single image where discovered output dimensions are clearly acceptable.
 
 ## Workflow
 
-1. **Identify the source.** Confirm the input genuinely has a pixel-art design buried in it — not a photograph or continuous painting.
-2. **Pick `k_colors`.** Start with 256 for AI renders (vibrant palettes). For quantized retro art, try 16, 32, 64 in ascending order until detail is preserved without keeping noise.
-3. **Run the snapper.** The script prints output dimensions; sanity-check those against your expectation (e.g. a "32×32 sprite" should snap near 32×32, not 5×5 or 800×800).
-4. **Inspect the upscale.** `iw*8` nearest-neighbour gives a viewable size while preserving the recovered pixels exactly.
-5. **Iterate if needed.** If the output looks wrong, the most common fixes are:
-   - Different `k_colors` (try halving or doubling)
-   - The input has non-square cells (snapper picks the smaller pitch — may need pre-resize)
-   - Step-detection failed (output is exactly 64×64 → fallback fired; input may not have detectable pixel structure)
-6. **Save outputs to `experiments/`**, never directly into `public/assets/`. Snapping is exploratory; promote to assets only after visual approval.
+1. Classify the asset and output contract. Do not run grid-derived batch output as final animation frames unless varying dimensions and offsets are acceptable.
+2. Record source facts: file count, PNG dimensions, rows/columns for known sheets, visible alpha behavior, and intended output path.
+3. Choose the script:
+   - Hidden grid from fake/upscaled pixel art: `pixel_snapper.py`.
+   - Known-layout sheet: `pixel_snapper_sheet.py`.
+   - Sprite Fusion grid cleanup where grid-derived output is acceptable: `spritefusion_snapper.py`.
+   - Fixed-size frame batch: `fixed_canvas_pixelate.py`.
+4. Choose palette size. For unknown style, create representative samples rather than guessing.
+5. Calibrate on one or a few representative frames before a full batch.
+6. Run final conversion into a new output path. Avoid overwriting source assets.
+7. Verify with checks matched to the chosen workflow, then compare visually against the source.
 
-## Common Pitfalls and Anti-Patterns to Avoid
+## Commands
 
-WARNING: DO NOT treat pixel snapping as a mandatory cleanup step for every generated asset. Use it only when the input has a recoverable pixel grid.
+Recover a hidden native grid from an AI or upscaled pixel-art PNG:
 
-❌ **Anti-pattern: treating snapper as a generic downscaler**
-Why bad: The algorithm assumes the input has a hidden pixel grid. On a photograph it produces a low-color, low-resolution mess that looks like neither the input nor good pixel art.
-Better: Use this only for upscaled / AI-faked pixel art. For continuous images, use Lanczos or bicubic downscaling.
+```bash
+uv run "<skill>/scripts/pixel_snapper.py" "input.png" "output.png" --k-colors 256
+```
 
-❌ **Anti-pattern: using default `k_colors=16` on vibrant AI renders**
-Why bad: 16 colors is fine for retro-style inputs but crushes detail on AI renders that may have hundreds of meaningful colors.
-Better: Default to 256 for AI sources. Drop `k_colors` only if the output looks too noisy.
+Recover a known-layout spritesheet:
 
-❌ **Anti-pattern: trusting dimensions as the only quality check**
-Why bad: A snapped 100×100 output can be missing limbs, fingers, or weapon edges and the dimensions look fine.
-Better: Always view the nearest-neighbour upscale and compare side-by-side with the source.
+```bash
+uv run "<skill>/scripts/pixel_snapper_sheet.py" \
+  "sheet.png" "sheet-snapped.png" --cols 4 --rows 4 --k-colors 256
+```
 
-❌ **Anti-pattern: trying to set output resolution**
-Why bad: There's no `--width` or `--height` flag, by design. Output resolution is discovered.
-Better: If you need a specific output size, snap first (recover native), then nearest-neighbour upscale to a multiple. Don't snap-and-resize in one step.
+Run Sprite Fusion grid snapping on one image:
 
-❌ **Anti-pattern: running on already-snapped outputs**
-Why bad: Re-snapping just round-trips through k-means again and loses data.
-Better: Always snap from the original source PNG. Keep snapped outputs as terminal artifacts.
+```bash
+python3 "<skill>/scripts/spritefusion_snapper.py" \
+  --input "input.png" --output "output.png" --colors 16
+```
 
-❌ **Anti-pattern: dropping snapped output straight into `public/assets/`**
-Why bad: Snapping is a creative process — first run is rarely the keeper. Premature promotion makes iteration harder.
-Better: Save to `experiments/<timestamp>-pixel-snapper-<subject>/`. Promote only after review.
+Override Sprite Fusion grid size only after auto-detection fails:
 
-## Variation Guidance
+```bash
+python3 "<skill>/scripts/spritefusion_snapper.py" \
+  --input "input.png" --output "output.png" --colors 16 --pixel-size 8
+```
 
-**IMPORTANT**: Don't run the snapper with the same parameters on every input.
+Generate fixed-canvas animation frames:
 
-- **`k_colors` should match palette complexity.** A retro pixel art file with a 16-color NES-style palette doesn't need 256; an AI render with smooth shading might lose definition at 16. Pick by input.
-- **Inspect at multiple zoom levels.** Native (e.g. 100×100) for grid sanity, x8 for visual review, x16 if you need to debug specific pixels.
-- **Source vs. style.** A logo, a character sprite, and a tile may all be "pixel art" but want different `k_colors` (logos: low; character: medium; tile: high).
-- **Adapt sheet handling to the input.** Single sprites, known-layout sheets, and unknown-layout sheets need different workflows; do not force them through the same command.
-- **Don't chain snapper runs.** One run per source PNG. If results are bad, change `k_colors` and re-run from source.
+```bash
+python3 "<skill>/scripts/fixed_canvas_pixelate.py" \
+  --input-dir "input_frames" --output-dir "output_frames" --size 512 --colors 16
+```
 
-## References
+Verify a fixed-frame output batch:
 
-- `references/algorithm.md` — detailed pipeline walkthrough (quantize → profile → step-size → walk → resample)
-- `references/usage-examples.md` — concrete invocation patterns and inspection recipes
+```bash
+python3 "<skill>/scripts/inspect_png_batch.py" \
+  --root "output_frames" \
+  --source-root "input_frames" \
+  --require-single-size \
+  --max-visible-rgb 16
+```
 
-## Remember
+## Animation Frame Contract
 
-The snapper does one thing well: it recovers a hidden pixel grid. It's not a general-purpose image downscaler, not an asset cleaner, not a palette converter for arbitrary art. When the input fits — upscaled or AI-faked pixel art — it produces output that a human pixel artist would have drawn in the first place. When the input doesn't fit, no parameter tuning will save you; reach for a different tool.
+For character animations, frame sequences, action folders, or spritesheet-derived frames:
+
+- Source frame count must match output frame count.
+- Relative paths should match unless the user requested a new structure.
+- Required output frame dimensions must be known before final batch conversion.
+- All final frame PNGs must have the same dimensions when used as fixed-frame animation assets.
+- Character scale must come from the original source canvas, not per-image visible bounds.
+- Do not crop to visible pixels unless the user accepts anchor/offset handling.
+- Preserve soft alpha by default; use hard alpha only when requested.
+- Validate visible RGB colors separately from RGBA values because one RGB color can appear at many alpha levels.
+
+If the user asks for "low-resolution pixel art" and game-ready animation frames, prefer fixed-canvas pixelation over raw grid snapping unless the engine has deliberate per-frame offsets and anchors.
+
+## Verification
+
+For single-image native or Sprite Fusion output:
+
+- Check that the output dimensions are plausible, not just nonzero.
+- Inspect a nearest-neighbor upscale at `x8` or `x16`.
+- Compare source and output side by side.
+- Re-run from the original source when changing color count or grid parameters.
+
+For frame batches:
+
+- Run `inspect_png_batch.py` with `--require-single-size` when fixed frames are required.
+- Confirm source/output file count and relative path parity.
+- Confirm visible RGB count is at or below the requested palette size.
+- Confirm soft alpha was not collapsed to one opaque alpha value unless requested.
+
+## Anti-Patterns
+
+**Treating pixel snapping as a generic downscaler**
+
+Bad: Run a hidden-grid snapper on a photograph, painting, or smooth illustration.
+
+Better: Use pixel snapping only when a grid-like pixel-art structure exists. Use normal resizing for continuous-tone images.
+
+**Trying to set native-grid output resolution**
+
+Bad: Ask `pixel_snapper.py` for a specific width/height.
+
+Better: Snap first to recover the native grid, then nearest-neighbor upscale to the needed multiple.
+
+**Shipping raw grid-derived output as animation frames**
+
+Bad: Batch Sprite Fusion outputs and assume equal frame dimensions.
+
+Better: Calibrate, inspect dimensions, and use fixed-canvas pixelation when frame size and character scale must remain stable.
+
+**Flattening alpha during palette cleanup**
+
+Bad: Convert soft transparent edges into opaque black or hard halos.
+
+Better: Preserve alpha, and inspect visible RGB counts separately from alpha levels.
+
+**Re-snapping derivative outputs**
+
+Bad: Run snapper output through another snapper pass.
+
+Better: Keep the original source and re-run one workflow from that source with adjusted settings.
+
+## Troubleshooting
+
+| Symptom | Likely Cause | First Fix |
+|---------|--------------|-----------|
+| Native output is exactly `64x64` | Hidden-grid detection fell back | Try different `--k-colors`; reject if no real grid exists |
+| Output is tiny or missing detail | Palette collapsed too much signal | Increase color count |
+| Output is too noisy or close to source size | Too many colors preserved edge noise | Decrease color count |
+| Sprite Fusion output aspect changed | Upstream generated unequal grid counts | Keep default aspect padding; avoid `--no-preserve-aspect` |
+| Animation frames vary in size | Grid-derived output was used for fixed-frame assets | Regenerate with `fixed_canvas_pixelate.py` |
+| Output has dark halos | Alpha was flattened or palette used near-transparent RGB | Regenerate while preserving alpha; inspect alpha levels |

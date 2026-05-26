@@ -14,28 +14,28 @@ from pathlib import Path
 from unittest import mock
 
 
-SCRIPT_PATH = Path(__file__).with_name("pixel_snapper.py")
+SCRIPT_PATH = Path(__file__).with_name("spritefusion_snapper.py")
 
-spec = importlib.util.spec_from_file_location("pixel_snapper", SCRIPT_PATH)
+spec = importlib.util.spec_from_file_location("spritefusion_snapper", SCRIPT_PATH)
 assert spec and spec.loader
-pixel_snapper = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(pixel_snapper)
+spritefusion_snapper = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(spritefusion_snapper)
 
 
 class PixelSnapperWrapperTests(unittest.TestCase):
     def test_aspect_canvas_preserves_square_sources(self) -> None:
         self.assertEqual(
-            pixel_snapper.aspect_canvas_for_output(64, 64, 24, 25),
+            spritefusion_snapper.aspect_canvas_for_output(64, 64, 24, 25),
             (25, 25),
         )
         self.assertEqual(
-            pixel_snapper.aspect_canvas_for_output(64, 64, 25, 24),
+            spritefusion_snapper.aspect_canvas_for_output(64, 64, 25, 24),
             (25, 25),
         )
 
     def test_aspect_canvas_preserves_wide_sources(self) -> None:
         self.assertEqual(
-            pixel_snapper.aspect_canvas_for_output(1920, 1080, 31, 18),
+            spritefusion_snapper.aspect_canvas_for_output(1920, 1080, 31, 18),
             (32, 18),
         )
 
@@ -49,7 +49,7 @@ class PixelSnapperWrapperTests(unittest.TestCase):
 
         for (source_width, source_height, output_width, output_height), expected in cases:
             with self.subTest(case=(source_width, source_height, output_width, output_height)):
-                target_width, target_height = pixel_snapper.aspect_canvas_for_output(
+                target_width, target_height = spritefusion_snapper.aspect_canvas_for_output(
                     source_width,
                     source_height,
                     output_width,
@@ -69,13 +69,13 @@ class PixelSnapperWrapperTests(unittest.TestCase):
             red = bytes([255, 0, 0, 255])
             transparent = bytes([0, 0, 0, 0])
 
-            pixel_snapper.write_rgba_png(input_path, 10, 10, [red * 10 for _ in range(10)])
-            pixel_snapper.write_rgba_png(output_path, 2, 3, [red * 2 for _ in range(3)])
+            spritefusion_snapper.write_rgba_png(input_path, 10, 10, [red * 10 for _ in range(10)])
+            spritefusion_snapper.write_rgba_png(output_path, 2, 3, [red * 2 for _ in range(3)])
 
             with contextlib.redirect_stdout(io.StringIO()):
-                changed = pixel_snapper.preserve_output_aspect(input_path, output_path)
+                changed = spritefusion_snapper.preserve_output_aspect(input_path, output_path)
 
-            width, height, rows = pixel_snapper.decode_rgba_png(output_path)
+            width, height, rows = spritefusion_snapper.decode_rgba_png(output_path)
             self.assertTrue(changed)
             self.assertEqual((width, height), (3, 3))
             self.assertEqual(rows, [red * 2 + transparent for _ in range(3)])
@@ -87,12 +87,12 @@ class PixelSnapperWrapperTests(unittest.TestCase):
             output_path = root / "output.png"
             red = bytes([255, 0, 0, 255])
 
-            pixel_snapper.write_rgba_png(input_path, 10, 10, [red * 10 for _ in range(10)])
-            pixel_snapper.write_rgba_png(output_path, 3, 3, [red * 3 for _ in range(3)])
+            spritefusion_snapper.write_rgba_png(input_path, 10, 10, [red * 10 for _ in range(10)])
+            spritefusion_snapper.write_rgba_png(output_path, 3, 3, [red * 3 for _ in range(3)])
 
-            changed = pixel_snapper.preserve_output_aspect(input_path, output_path)
+            changed = spritefusion_snapper.preserve_output_aspect(input_path, output_path)
 
-            width, height = pixel_snapper.read_image_dimensions(output_path)
+            width, height = spritefusion_snapper.read_image_dimensions(output_path)
             self.assertFalse(changed)
             self.assertEqual((width, height), (3, 3))
 
@@ -103,20 +103,20 @@ class PixelSnapperWrapperTests(unittest.TestCase):
             colors=8,
             pixel_size=None,
             repo=None,
-            repo_url=pixel_snapper.REPO_URL,
+            repo_url=spritefusion_snapper.REPO_URL,
             ref="none",
             dry_run=False,
             debug=False,
             preserve_aspect=True,
         )
 
-        with mock.patch.object(pixel_snapper, "parse_args", return_value=args):
-            with mock.patch.object(pixel_snapper, "ensure_repo", return_value=Path("/repo")):
-                with mock.patch.object(pixel_snapper, "build_command", return_value=["cargo"]):
-                    with mock.patch.object(pixel_snapper, "require_executable"):
-                        with mock.patch.object(pixel_snapper.subprocess, "run"):
+        with mock.patch.object(spritefusion_snapper, "parse_args", return_value=args):
+            with mock.patch.object(spritefusion_snapper, "ensure_repo", return_value=Path("/repo")):
+                with mock.patch.object(spritefusion_snapper, "build_command", return_value=["cargo"]):
+                    with mock.patch.object(spritefusion_snapper, "require_executable"):
+                        with mock.patch.object(spritefusion_snapper.subprocess, "run"):
                             with mock.patch.object(
-                                pixel_snapper,
+                                spritefusion_snapper,
                                 "preserve_output_aspect",
                                 side_effect=ValueError("unsupported image format"),
                             ):
@@ -125,7 +125,7 @@ class PixelSnapperWrapperTests(unittest.TestCase):
                                         SystemExit,
                                         "Failed to preserve output aspect ratio",
                                     ):
-                                        pixel_snapper.main()
+                                        spritefusion_snapper.main()
 
     def test_build_command_uses_upstream_cli_order(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -139,7 +139,7 @@ class PixelSnapperWrapperTests(unittest.TestCase):
                 debug=False,
             )
 
-            command = pixel_snapper.build_command(args, root / "repo")
+            command = spritefusion_snapper.build_command(args, root / "repo")
 
         self.assertEqual(
             command,
@@ -171,7 +171,7 @@ class PixelSnapperWrapperTests(unittest.TestCase):
                 debug=False,
             )
 
-            pixel_snapper.build_command(args, root / "repo")
+            spritefusion_snapper.build_command(args, root / "repo")
 
             self.assertFalse(output_dir.exists())
 
@@ -182,10 +182,10 @@ class PixelSnapperWrapperTests(unittest.TestCase):
             (repo / "partial-file").write_text("not a cargo checkout", encoding="utf-8")
 
             with self.assertRaisesRegex(SystemExit, "Cargo.toml is missing"):
-                pixel_snapper.ensure_repo(
+                spritefusion_snapper.ensure_repo(
                     repo,
-                    pixel_snapper.REPO_URL,
-                    pixel_snapper.VERIFIED_REF,
+                    spritefusion_snapper.REPO_URL,
+                    spritefusion_snapper.VERIFIED_REF,
                     dry_run=False,
                 )
 
@@ -195,10 +195,10 @@ class PixelSnapperWrapperTests(unittest.TestCase):
             repo.mkdir()
             (repo / "partial-file").write_text("not a cargo checkout", encoding="utf-8")
 
-            resolved = pixel_snapper.ensure_repo(
+            resolved = spritefusion_snapper.ensure_repo(
                 repo,
-                pixel_snapper.REPO_URL,
-                pixel_snapper.VERIFIED_REF,
+                spritefusion_snapper.REPO_URL,
+                spritefusion_snapper.VERIFIED_REF,
                 dry_run=True,
             )
 
@@ -211,14 +211,14 @@ class PixelSnapperWrapperTests(unittest.TestCase):
             (repo / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
 
             completed = subprocess.CompletedProcess(args=[], returncode=0)
-            with mock.patch.object(pixel_snapper.shutil, "which", return_value="/usr/bin/git"):
+            with mock.patch.object(spritefusion_snapper.shutil, "which", return_value="/usr/bin/git"):
                 with mock.patch.object(
-                    pixel_snapper.subprocess, "run", return_value=completed
+                    spritefusion_snapper.subprocess, "run", return_value=completed
                 ) as run:
-                    pixel_snapper.ensure_repo(
+                    spritefusion_snapper.ensure_repo(
                         repo,
-                        pixel_snapper.REPO_URL,
-                        pixel_snapper.VERIFIED_REF,
+                        spritefusion_snapper.REPO_URL,
+                        spritefusion_snapper.VERIFIED_REF,
                         dry_run=False,
                     )
 
@@ -230,7 +230,7 @@ class PixelSnapperWrapperTests(unittest.TestCase):
                     str(repo.resolve()),
                     "checkout",
                     "--quiet",
-                    pixel_snapper.VERIFIED_REF,
+                    spritefusion_snapper.VERIFIED_REF,
                 ],
                 calls,
             )
@@ -241,10 +241,10 @@ class PixelSnapperWrapperTests(unittest.TestCase):
             repo.mkdir()
             (repo / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
 
-            with mock.patch.object(pixel_snapper.subprocess, "run") as run:
-                pixel_snapper.ensure_repo(
+            with mock.patch.object(spritefusion_snapper.subprocess, "run") as run:
+                spritefusion_snapper.ensure_repo(
                     repo,
-                    pixel_snapper.REPO_URL,
+                    spritefusion_snapper.REPO_URL,
                     "none",
                     dry_run=False,
                 )
