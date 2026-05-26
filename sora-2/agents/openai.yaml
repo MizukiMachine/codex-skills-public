@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sora 2"
+  short_description: "OpenAI Sora 2 video generation workflow"
+  default_prompt: "Use $sora-2 to plan prompts and run OpenAI Sora 2 video generation jobs through the API."
