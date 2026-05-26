@@ -1,0 +1,4 @@
+interface:
+  display_name: "fal.ai Media"
+  short_description: "fal.ai media generation and experiment workflow"
+  default_prompt: "Use $fal-ai-media to run fal.ai image or video generation experiments with queue handling and cost logs."
