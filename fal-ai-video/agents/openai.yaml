@@ -1,0 +1,4 @@
+interface:
+  display_name: "fal.ai Video"
+  short_description: "fal.ai video generation and comparison workflow"
+  default_prompt: "Use $fal-ai-video to run fal.ai image-to-video generation, compare models, and track outputs and costs."
