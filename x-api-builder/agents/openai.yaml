@@ -1,0 +1,4 @@
+interface:
+  display_name: "X API Builder"
+  short_description: "Production X API integration workflow"
+  default_prompt: "Use $x-api-builder to build production X API integrations with correct auth, scopes, fields, and rate limits."
