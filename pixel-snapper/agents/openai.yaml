@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pixel Snapper"
+  short_description: "Pixel art grid recovery and cleanup"
+  default_prompt: "Use $pixel-snapper to recover native pixel grids from upscaled or AI-generated pixel art."
