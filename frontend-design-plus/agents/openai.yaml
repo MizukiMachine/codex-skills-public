@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Design Plus"
+  short_description: "Advanced frontend design and theme control"
+  default_prompt: "Use $frontend-design-plus to build a polished frontend with strong typography, theme control, and responsive QA."
