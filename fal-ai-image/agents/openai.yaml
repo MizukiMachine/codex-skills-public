@@ -1,0 +1,4 @@
+interface:
+  display_name: "fal.ai Image"
+  short_description: "fal.ai image generation and editing workflow"
+  default_prompt: "Use $fal-ai-image to run fal.ai image generation or editing experiments with model and cost tracking."
