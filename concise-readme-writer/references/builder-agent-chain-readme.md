@@ -1,0 +1,45 @@
+# Few-Shot: Builder Agent Chain README
+
+Use this as an example of the intended README shape, density, and tone. This example is for a website-like app, so adapt headings such as `サイトの仕様と挙動` to `プロジェクトの仕様と挙動`, `ツールの仕様と挙動`, or `ゲームの仕様と挙動` when the project is not actually a website. Do not copy facts into unrelated projects.
+
+```markdown
+# Builder Agent Chain
+
+## アプリ概要
+
+- RSS の技術ニュースをもとに、エンジニア向けのプロダクト仮説や作ると面白そうなツール案を表示するサイト
+- 画面の中心は `作るもの提案` と `トレンド` の2つ
+- `作るもの提案` では、RSS 記事を根拠にしたプロダクト案、想定ユーザー、課題、差別化、関連ソースを確認できる
+- `トレンド` では、RSS から取得した技術記事、注目キーワード、記事要約、話題の継続状況を確認できる
+- 公開運用では、一般ユーザーは閲覧中心で使い、再取得や再生成などの操作は管理者だけが実行する
+
+## プロジェクトの仕様と挙動
+
+- RSS フィードを定期的に取得し、記事タイトル、URL、配信元、公開日時、概要をもとにトレンド情報を作る
+- 取得した RSS 記事は短時間キャッシュされ、同じフィードへの連続アクセスを抑える
+- 観測した記事は履歴として扱われ、新しい話題、急に増えている話題、継続している話題を判定する
+- トレンド情報はアイデア生成の根拠として使われ、LLM の一般知識だけで候補を作らない
+- RSS が取得できない場合は、新しい生成に進まず、既存キャッシュを維持する
+- アイデア候補はキャッシュされ、一覧、検索、カテゴリ、興味関心、並び替え、ページネーションで閲覧できる
+- アイデアには RSS 根拠や関連ソースが紐づき、詳細表示で参照できる
+- 公開モードでは、キャッシュ済みデータの閲覧を優先し、生成や更新には管理者トークンが必要になる
+- 起動時ウォームアップと定期更新により、管理者が常時操作しなくてもデータを更新できる
+- フロントエンドは通常 `/api` を同一オリジンで呼び、別オリジン API を焼き込まない構成を基本にする
+
+## 構成
+
+- `frontend/`: React + Vite SPA
+- `backend/`: Express API、`/api`、`/health`、本番時の `frontend/dist` 配信
+- `ai-engine/`: RSS 取得、トレンド分析、LLM クライアント、プロンプト管理
+- `Dockerfile`: backend、frontend、ai-engine をまとめた本番コンテナ
+
+```text
+Browser -> Express backend -> frontend/dist
+                         -> /api -> ai-engine
+```
+
+## 関連ドキュメント
+
+- 開発手順: [docs/development.md](docs/development.md)
+- デプロイ手順: [docs/deployment.md](docs/deployment.md)
+```
