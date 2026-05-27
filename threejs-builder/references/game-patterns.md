@@ -1,6 +1,6 @@
 # Three.js Game Patterns
 
-Use this reference for 3D browser games, character animation switching, fixed cameras, object pools, time scaling, and update loops.
+Use this reference for 3D browser games, character animation switching, fixed cameras, object pools, time scaling, DOM HUD sync, and update loops.
 
 ## Game Loop
 
@@ -43,6 +43,8 @@ renderer.setAnimationLoop(gameLoop);
 ```
 
 Keep real-time scoring/timers separate from slowed game-time motion unless the design says otherwise.
+
+If a non-Three game engine already owns timing, use that loop instead of adding a second continuous `setAnimationLoop`. In that architecture, the game loop advances state, synchronizes the Three.js scene and DOM HUD, and calls a single `renderFrame()`.
 
 ## Terminal State Latch
 
@@ -138,6 +140,17 @@ function setupSideCamera(width, height) {
 
 Use OrbitControls for debugging only when they are not part of gameplay.
 
+## DOM HUD And Spatial Feedback
+
+Keep gameplay state authoritative in the game model, then project it into two presentation layers:
+
+- Three.js scene: world objects, ghost positions, valid/invalid placement cues, contact markers, depth/layer cues, particles, and spatial effects.
+- DOM HUD: score, timers, inventory, queue/preview, settings, pause/game-over dialogs, forms, long labels, keybinds, and accessible buttons.
+
+Use stable data attributes or component props for HUD synchronization. Render compact previews with SVG or canvas when they need crisp 2D readability; render them in Three.js only when perspective, lighting, or occlusion is part of the gameplay information.
+
+For pause, game-over, debug, or inspection modes, gate alternate cameras and free-look controls behind explicit state. Reset camera offsets and input capture when gameplay resumes so the play camera contract remains stable.
+
 ## Object Pool
 
 ```js
@@ -208,3 +221,5 @@ Use screen flash, camera shake, squash/stretch, or zoom pulse sparingly, and kee
 | Score multiplied by slow motion | Rewards change unexpectedly | Use real `dt` for score unless designed |
 | Blind partial animation matching | Death/attack clips play as idle | Exact names plus safe fallback aliases |
 | OrbitControls in gameplay | Player loses camera contract | Fixed/constrained camera |
+| DOM HUD and scene state sync independently | Stale counters, hidden controls, or mismatched previews | One state snapshot drives both scene updates and HUD updates |
+| Debug/free camera stays active after resume | Controls feel inverted or framing breaks | Gate inspection by state and reset offsets on resume |

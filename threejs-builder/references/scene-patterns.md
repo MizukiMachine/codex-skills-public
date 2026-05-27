@@ -95,6 +95,28 @@ material.dispose();
 
 Dispose textures, render targets, post-processing composers, and cloned model resources when ownership is clear.
 
+## Render Cadence Selection
+
+Choose one owner for rendering:
+
+| Cadence | Use When | Pattern |
+|---------|----------|---------|
+| Continuous `setAnimationLoop` | Viewer controls, auto-rotation, animation mixers, shaders, particles, WebXR | Update time-based state and render every frame |
+| App/game `requestAnimationFrame` owner | A game engine already owns timing, input, scoring, physics, or pause state | Advance game state in the engine loop and call the renderer once per tick or when state changes |
+| On-demand render | Turn-based tools, editors, configurators, mostly static scenes | Render after input, resize, asset load, or short effect updates |
+
+Avoid mixing multiple continuous loops unless their ownership is explicit. Short effects may use their own `requestAnimationFrame`, but they must cancel on dispose and render through the same renderer/camera contract.
+
+## Canvas Layout And DOM Overlays
+
+When the canvas shares the screen with DOM UI:
+
+- Size the renderer from the canvas parent or a measured host element, not from `window.innerWidth` unless the canvas is truly full-screen.
+- Update camera aspect/frustum after layout changes and after CSS changes that alter the host size.
+- Keep passive HUD layers from intercepting input with `pointer-events: none`; enable pointer events only on actual controls.
+- Prefer DOM for menus, forms, long text, toolbars, HUD labels, and accessibility. Prefer WebGL for spatial cues, highlights, markers, particles, and objects that must occlude correctly in the scene.
+- If panels reserve part of the viewport, adjust camera framing or scene host transforms deliberately and verify desktop/mobile screenshots.
+
 ## Lighting Choices
 
 | Goal | Pattern |
@@ -163,3 +185,4 @@ Shadows are expensive. Keep map sizes bounded and only enable cast/receive on ob
 5. Lit materials have lights; unlit debug material renders if lighting is suspect.
 6. Object was added to the scene and is not behind the camera or scaled to zero.
 7. Static GLTF/texture files are served over HTTP, not `file://`.
+8. DOM overlays are not hiding the scene or intercepting required pointer events.
