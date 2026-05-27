@@ -14,6 +14,7 @@ Write these constants or comments before scaling the implementation:
   - Ground/tile pieces: walkable top at `y = 0` (`maxY` anchor) when appropriate.
 - Units: define target heights or tile sizes in world units.
 - Color output: set `renderer.outputColorSpace = THREE.SRGBColorSpace`.
+- Screen composition: if DOM UI reserves space, decide whether camera framing, canvas host bounds, or a deliberate screen-space transform owns that offset. Keep world coordinates separate from layout compensation.
 - State transitions: one owner for terminal states and one-way latches such as `hasEnded`.
 
 ## Axis And Forward Rules
@@ -141,3 +142,4 @@ If left/right is inverted, check cross-product order and camera convention first
 | Red or flat planes | Texture color space, atlas tinting, or fallback mesh | Set sRGB output and inspect materials/network |
 | Game hangs near timeout | Multiple terminal paths or negative time | Clamp time and use one-way `hasEnded` latch |
 | Canvas drifts under UI | Mixed transforms or zero-size parent | Center with layout, resize from parent bounds |
+| Subject is hidden behind HUD | Camera framing ignores DOM safe zones | Reserve screen space or apply a deliberate composition offset and screenshot-check breakpoints |
