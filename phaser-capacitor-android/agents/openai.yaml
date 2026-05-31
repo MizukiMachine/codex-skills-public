@@ -1,0 +1,4 @@
+interface:
+  display_name: "Phaser Capacitor Android"
+  short_description: "Phaser Capacitor Android build, emulator, and ADB workflow"
+  default_prompt: "Use $phaser-capacitor-android to ship a Phaser game through Capacitor Android and debug asset sync, touch, audio, WebView, emulator, Gradle, or WSL2-to-Windows ADB issues."
