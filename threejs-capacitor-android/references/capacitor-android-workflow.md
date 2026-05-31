@@ -30,6 +30,8 @@ adb devices
 
 If `adb` is missing, add Android SDK `platform-tools` to PATH and ensure `ANDROID_HOME` or `ANDROID_SDK_ROOT` points at the SDK.
 
+If the project is in WSL2 but the emulator is on Windows, do not assume Linux `adb` can see the Windows emulator. Read `references/windows-wsl-emulator-workflow.md` and choose one device host deliberately.
+
 ## One-Time Setup
 
 From the project root:
@@ -105,6 +107,11 @@ Emulator:
 - Create an AVD in Android Studio Device Manager.
 - Use API 24+.
 - Prefer a recent Google APIs system image with hardware GL enabled.
+
+WSL2:
+- If WSL2 emulator GUI controls are unreliable, keep building in WSL and run/install with Windows `adb.exe`.
+- Convert WSL APK paths with `wslpath -w` before passing them to Windows tools.
+- Run PowerShell commands from `/mnt/c` or another Windows filesystem directory to avoid UNC-current-directory failures.
 
 ## Config Notes
 

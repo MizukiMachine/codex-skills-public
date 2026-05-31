@@ -1,8 +1,8 @@
 ---
 name: threejs-capacitor-android
-description: "Build and ship Three.js apps on Capacitor Android with Vite and Gradle: GLTF loading, assets_index animation UI, OrbitControls mouse/touch mappings, WebView lifecycle handling, and Android sync/run/signing troubleshooting."
+description: "Build and ship Three.js apps on Capacitor Android with Vite and Gradle: GLTF loading, assets_index animation UI, OrbitControls mouse/touch mappings, WebView lifecycle handling, Android sync/run/signing troubleshooting, and WSL2-to-Windows Android Emulator or ADB workflows."
 metadata:
-  short-description: "Three.js + Capacitor Android workflow"
+  short-description: "Three.js + Capacitor Android/ADB workflow"
 ---
 
 # Three.js Capacitor Android
@@ -18,6 +18,11 @@ Treat the project as two systems that must agree:
 - A web renderer runtime: Three.js + Vite + browser APIs
 - A native runtime wrapper: Capacitor Android + Android System WebView + Gradle
 
+When the development environment is split, treat host boundaries as a third contract:
+- Build host: where Node/Vite/Capacitor build and Gradle assemble run.
+- Device host: where `adb`, Android Studio, and the emulator/device connection live.
+- Path bridge: how artifacts move between hosts, such as `wslpath -w` for WSL2 to Windows.
+
 Most failures happen when their contract is implicit. Make build output, file paths, clip names, input mappings, lifecycle behavior, and signing choices explicit and testable.
 
 Before implementing or debugging, establish:
@@ -25,6 +30,7 @@ Before implementing or debugging, establish:
 - Assets: GLBs/JSON under `public/` and loaded with URL paths that work under `https://localhost`.
 - Animation contract: UI derives from `assets_index.json`; no hardcoded clip strings in event handlers.
 - Android toolchain: Node/Capacitor/Android Studio/SDK versions match the project's Capacitor major version; prefer Android Studio's bundled Gradle JDK unless the official docs for that version require otherwise.
+- Host split: if WSL2/Linux builds but Windows owns the emulator, use the Windows `adb.exe` deliberately and convert paths explicitly.
 - Input: desktop mouse and mobile touch mappings are both intentional.
 - Lifecycle: WebGL context loss, app pause/resume, and hardware back button have defined behavior.
 
@@ -40,6 +46,7 @@ Core priorities:
 | Topic | File | Use When |
 | --- | --- | --- |
 | Android workflow | [references/capacitor-android-workflow.md](references/capacitor-android-workflow.md) | Setup, build/sync/run, emulator/device, live reload, signing |
+| WSL2 + Windows Emulator | [references/windows-wsl-emulator-workflow.md](references/windows-wsl-emulator-workflow.md) | Project is in WSL2/Linux, Windows Android Studio/Emulator owns the GUI/device, or WSL emulator controls are unreliable |
 | Animation contract | [references/threejs-animation-index-pattern.md](references/threejs-animation-index-pattern.md) | GLTF/GLB animation UI, clip resolution, metadata-driven actions |
 | Gotchas | [references/gotchas.md](references/gotchas.md) | Browser works but Android fails, Gradle/JDK/SDK errors, touch/WebGL/back-button issues |
 
@@ -55,6 +62,12 @@ Core priorities:
    - `npx cap run android` or `npx cap open android`
 
 When possible, add project scripts so repeated commands cannot skip build or sync.
+
+For WSL2 projects with a Windows emulator, first decide whether the fastest path is:
+- Install a WSL-built APK with Windows `adb.exe`: best for testing existing web/native output.
+- Open the Android project in Windows Android Studio: best when editing native Gradle/manifest/plugin code or using Studio tooling.
+
+Do not default to debugging a flaky WSL2 emulator GUI when the user's goal is an Android app smoke test. Use the Windows emulator/device host instead.
 
 ## Implementation Guidelines
 
@@ -158,6 +171,11 @@ Better: use Android Studio's Gradle JDK, configure SDK paths, run `npx cap docto
 
 Why bad: device/emulator shows stale JS/CSS and debugging becomes misleading.
 Better: use scripts that always build before `cap sync` and `cap run`.
+
+**Mixing ADB hosts in WSL2**
+
+Why bad: Linux `adb` and Windows `adb.exe` may talk to different servers, so devices appear missing, offline, or inconsistent.
+Better: choose the device host first. If Windows owns the emulator, run Windows `adb.exe` from WSL and convert APK paths with `wslpath -w`.
 
 **Leaving control mappings implicit**
 
