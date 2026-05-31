@@ -189,6 +189,30 @@ Then:
 
 This prevents waiting rooms, cooldowns, stuns, and dead players from producing misleading sounds.
 
+### Hidden Tab Audio and Visual Bursts
+
+Phaser/Web Audio clients can make inactive-tab behavior look like a multiplayer bug: events arrive while the tab is hidden or unfocused, then SFX/VFX appear to fire late or in a burst when focus returns.
+
+For non-critical gameplay feedback, skip instead of queue:
+
+```ts
+function canPlayTransientFeedback() {
+  const doc = globalThis.document;
+  return !doc || (!doc.hidden && doc.hasFocus());
+}
+
+function playAcceptedHitFeedback(message: HitMessage) {
+  if (!canPlayTransientFeedback()) {
+    return;
+  }
+
+  scene.sound.play("hit");
+  spawnHitFlash(message.targetId);
+}
+```
+
+When focus returns, update sprites, UI, HP, winner/result banners, and phase from room state. Do not replay every missed `swing`, `hit`, `hurt`, or `defeat` effect unless the game has a deliberate replay system.
+
 ## Listener Cleanup
 
 Phaser scene restarts make duplicated listeners easy to create.
@@ -274,6 +298,7 @@ Before finishing a playable multiplayer scene, check:
 - lane/body guides are not always visible in production UI
 - waiting/countdown states do not play gameplay SFX for rejected inputs
 - accepted action feedback matches server acceptance, not raw keydown
+- inactive tabs/windows do not replay accumulated SFX/VFX when focus returns
 - local and remote entities use the same coordinate anchor contract
 - one-shot animations replay on repeated accepted actions
 
@@ -284,6 +309,7 @@ Before finishing a playable multiplayer scene, check:
 - Treating Arcade Physics positions as authoritative in a multiplayer game
 - Mixing local camera and UI state into Colyseus schema
 - Forgetting to destroy listeners on scene shutdown, causing duplicate message handling
+- Letting hidden-tab transient SFX/VFX accumulate and burst on focus return
 
 ## How This Adapts to Other Renderers
 

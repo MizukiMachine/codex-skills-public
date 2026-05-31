@@ -86,6 +86,10 @@ Better: validate input shapes before mutating authoritative state.
 Why bad: waiting rooms, cooldowns, stun, death, or disconnected states feel like actions were accepted when the server ignored them.
 Better: gate local feedback against authoritative phase/action state, or play action SFX from a server accepted-action broadcast.
 
+❌ **Queueing cosmetic events while the tab is inactive**
+Why bad: focus-return bursts of SFX/VFX can be mistaken for disconnect, latency, duplicate-hit, or volume bugs.
+Better: skip non-durable SFX/VFX while hidden or unfocused, then rebuild presentation from current authoritative state.
+
 ❌ **Applying damage at attack-start for an animation that hits later**
 Why bad: targets enter hurt before the weapon visually connects, and dodge/counterplay timing feels wrong.
 Better: set the action immediately, then resolve hit/damage/effect at a server-owned active frame/window after revalidating current phase, source, target, range/aim, and target state.

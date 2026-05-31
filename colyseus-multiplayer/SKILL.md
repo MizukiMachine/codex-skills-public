@@ -63,6 +63,7 @@ If the client is not Phaser-based, skip the Phaser reference and keep the render
 | How should the client react to state changes? | `Callbacks` with `listen`, `onAdd`, and `onRemove` | `references/client.md` |
 | How should players trigger actions? | `room.send(type, payload)` for intent, validated server-side | `references/client.md` |
 | When should action SFX/VFX play? | Usually after the room accepts the action or broadcasts the transient event | `references/architecture.md` and renderer reference if needed |
+| What if SFX/VFX play late or in bursts after focus returns? | Treat cosmetic feedback as droppable while inactive; do not replay hidden-tab effects as if they were durable state | `references/client.md` and renderer reference if needed |
 | How should combat timing line up with animation? | Start the action in schema, resolve hit/damage at the authoritative active frame/window | `references/architecture.md` |
 | How do we recover from disconnects? | `onDrop()` plus `allowReconnection()` and client reconnect flow | `references/architecture.md` and `references/client.md` |
 | How do we avoid bad multiplayer habits? | Use the anti-pattern checklist during design and review | `references/anti-patterns.md` |
@@ -166,6 +167,14 @@ If the client is not Phaser-based, skip the Phaser reference and keep the render
 - For melee or timed attacks, set the attack action immediately but resolve damage later at the server-owned active frame/window.
 - Clear pending attacks, casts, and delayed effects when a round resets, finishes, or a player leaves.
 
+### 11. Treat transient feedback as droppable cosmetics
+
+- Keep durable results in schema or authoritative messages; audio, hit flashes, screen shake, and particles do not need guaranteed replay after browser inactivity.
+- In browser clients, hidden or unfocused tabs can pause timers/audio and then resume in a misleading burst. Skip non-critical gameplay SFX/VFX while the document is hidden or unfocused instead of queueing them.
+- On visibility/focus return, rebuild presentation from current room state. Do not replay every missed transient event unless the product explicitly needs an event log.
+- When debugging delayed or bursty effects, log event type, room/session IDs, local player ID, phase, winner/result state, timestamp, document visibility/focus state, cue name, requested volume, and whether the effect was played or skipped.
+- Avoid per-tick logs for countdowns or movement unless sampling; log state transitions and accepted/rejected one-shot events instead.
+
 ## Deployment Playbook
 
 Use this shape by default for small web games:
@@ -243,6 +252,9 @@ Better: allow movement and optionally warmup attacks during `waiting` / `countdo
 
 ❌ **Writing replay checkpoints every tick at match end**: forcing the finalization path inside the full results loop will flood persistence and obscure the real bug.
 Better: capture one final forced checkpoint inside match-finalization and guard it explicitly.
+
+❌ **Replaying cosmetic events accumulated while a browser tab was inactive**: delayed audio/VFX bursts look like disconnect, latency, or volume bugs even when room state is correct.
+Better: drop non-durable SFX/VFX while inactive, then render the latest authoritative state when focus returns.
 
 **NEVER** let renderer convenience decide the trust boundary.
 **DO NOT** model your room around one engine's scene graph.
