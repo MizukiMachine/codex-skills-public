@@ -104,6 +104,68 @@ The important pattern is not the exact code. It is the boundary:
 
 When in doubt, ask whether the value must still exist after reconnect or whether a late joiner needs it. If yes, it usually belongs in schema state.
 
+## Accepted Actions And Timed Outcomes
+
+Many multiplayer bugs come from treating a button press as if the action already happened. Model action flow in three separate steps:
+
+1. **Intent**: the client requests `attack`, `jump`, `cast`, `dash`, `ready`, etc.
+2. **Acceptance**: the room validates phase, cooldown, stun/death state, resources, range preconditions, and ownership.
+3. **Outcome**: the room mutates durable state immediately or schedules a delayed authoritative result.
+
+Use this distinction for any genre, not only action games:
+
+| Situation | Recommended model |
+|-----------|-------------------|
+| Instant command, e.g. ready / emote | Accept and broadcast immediately |
+| Movement intent | Store input, simulate on the fixed room tick |
+| One-shot animation/action | Increment an action sequence or broadcast accepted action |
+| Attack/cast with windup or travel time | Set action/cooldown now, resolve hit/effect later |
+| Rejected input | Do not mutate schema; optionally send a targeted rejection reason |
+
+### Accepted Feedback Contract
+
+Client SFX/VFX should mean "the room accepted this action" unless it is deliberately local-only anticipation.
+
+Good:
+- gate local feedback against authoritative phase/action/cooldown state
+- play action feedback from an accepted `swing`, `cast`, `dash`, or `actionStarted` event
+- use targeted rejection messages for UI errors like "cooldown" or "not enough mana"
+
+Risky:
+- playing attack/jump/cast SFX directly on keydown while the room might reject it
+- letting waiting/countdown/dead/stunned states produce gameplay feedback
+- showing hit reactions before the authoritative hit/effect window resolves
+
+### Delayed Outcome Pattern
+
+For attacks, casts, projectiles, traps, or abilities with active frames, schedule pending outcomes in the room and revalidate when due.
+
+```ts
+interface PendingOutcome {
+  sourceId: string;
+  kind: "attack" | "spell" | "projectile";
+  resolveAtMs: number;
+}
+
+pendingOutcomes.push({
+  sourceId: player.id,
+  kind: "attack",
+  resolveAtMs: clockMs + activeFrameDelayMs
+});
+```
+
+When resolving, re-check current phase, source/target existence, alive state, invulnerability, dodge/block state, range, facing/aim, line of sight, resource validity, and any game-specific counterplay. Clear pending outcomes on round reset, match finish, entity removal, disconnect cleanup, and death when appropriate.
+
+### One-Shot Replay Contract
+
+If the same action can happen twice in a row, schema needs a way for clients to detect a new occurrence. Common options:
+
+- monotonically increasing `attackSeq`, `castSeq`, `hurtSeq`, etc.
+- accepted-action transient messages
+- event log with bounded retention
+
+Do not rely only on an `action` string changing from `idle` to `attack`; repeated accepted actions can otherwise fail to restart animation/audio or get overwritten by movement state.
+
 ## Schema Modeling Patterns
 
 ### Prefer stable keys
@@ -124,6 +186,19 @@ Bad schema fields:
 ### Avoid over-fragmentation
 
 Do not turn every tiny local detail into its own networked field. State size and churn matter. Favor canonical facts over high-frequency presentation noise.
+
+## Coordinate And Body Contracts
+
+If the room simulates positions while a renderer displays sprites, meshes, UI components, or physics bodies, define one canonical coordinate meaning and keep it stable.
+
+Examples:
+- body center
+- feet/contact point
+- tile coordinate
+- lane/track/depth-zone point
+- map/world position in meters or pixels
+
+Then convert to renderer-specific origins at the edge. Avoid letting one client use sprite origin, another use collision center, and the server use a different hit point. That drift creates wrong movement bounds, bad hit perception, and hard-to-debug desyncs.
 
 ## Lifecycle Hooks
 
