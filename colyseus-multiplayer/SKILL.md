@@ -37,12 +37,12 @@ Read these before doing substantial work in the matching area:
 
 | When working on... | Read first |
 |--------------------|------------|
-| Room design, schema modeling, message boundaries, lifecycle hooks, or matchmaker usage | `references/architecture.md` |
+| Room design, schema modeling, message boundaries, action acceptance/timing, lifecycle hooks, or matchmaker usage | `references/architecture.md` |
 | TypeScript client wiring, `Callbacks`, join methods, messages, reconnection, or prediction | `references/client.md` |
 | Code review, design review, or "what should we stop doing?" questions | `references/anti-patterns.md` |
 | Production topology, Vercel frontend plus separate backend, env vars, auth transport, or rollout planning | `references/deployment.md` |
 | Picking or extending a renderer integration | `references/frameworks/README.md` |
-| Phaser scene integration, sprite/entity mapping, interpolation, or listener cleanup | `references/frameworks/phaser.md` |
+| Phaser scene integration, sprite/entity mapping, interpolation, accepted-input feedback, animation timing, or listener cleanup | `references/frameworks/phaser.md` |
 
 If the client is not Phaser-based, skip the Phaser reference and keep the renderer adapter thin. The core Colyseus model should survive a renderer swap.
 
@@ -62,6 +62,8 @@ If the client is not Phaser-based, skip the Phaser reference and keep the render
 | Where should this fact live? | Usually room schema state if reconnects or late joins need it | `references/architecture.md` |
 | How should the client react to state changes? | `Callbacks` with `listen`, `onAdd`, and `onRemove` | `references/client.md` |
 | How should players trigger actions? | `room.send(type, payload)` for intent, validated server-side | `references/client.md` |
+| When should action SFX/VFX play? | Usually after the room accepts the action or broadcasts the transient event | `references/architecture.md` and renderer reference if needed |
+| How should combat timing line up with animation? | Start the action in schema, resolve hit/damage at the authoritative active frame/window | `references/architecture.md` |
 | How do we recover from disconnects? | `onDrop()` plus `allowReconnection()` and client reconnect flow | `references/architecture.md` and `references/client.md` |
 | How do we avoid bad multiplayer habits? | Use the anti-pattern checklist during design and review | `references/anti-patterns.md` |
 | How do we host this with a Vercel frontend? | Separate static frontend and always-on realtime backend | `references/deployment.md` |
@@ -155,6 +157,14 @@ If the client is not Phaser-based, skip the Phaser reference and keep the render
   - contact point semantics
   - facing/direction semantics
 - If multiplayer uses simplified collision geometry instead of tile bodies, keep that geometry in sync with real level data or expect drift.
+
+### 10. Separate accepted actions from visual anticipation
+
+- Treat client input as a request, not a guarantee that an action happened.
+- For one-shot actions, use sequence counters or transient messages so clients can restart animations deliberately.
+- Gate local SFX/VFX against accepted room state, especially during `waiting`, `countdown`, cooldown, stun, death, or other non-controllable states.
+- For melee or timed attacks, set the attack action immediately but resolve damage later at the server-owned active frame/window.
+- Clear pending attacks, casts, and delayed effects when a round resets, finishes, or a player leaves.
 
 ## Deployment Playbook
 
