@@ -1,0 +1,4 @@
+interface:
+  display_name: "Phaser Capacitor iOS"
+  short_description: "Phaser Capacitor iOS build, simulator, and Xcode workflow"
+  default_prompt: "Use $phaser-capacitor-ios to ship a Phaser game through Capacitor iOS and debug asset sync, touch, audio, safe areas, WKWebView, Xcode, SPM, signing, or Phaser 4 renderer issues."
