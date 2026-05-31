@@ -1,62 +1,77 @@
 ---
 name: threejs-capacitor-ios
-description: "Build and ship Three.js apps on Capacitor iOS with Vite and Swift Package Manager: GLTF loading, assets_index animation UI, OrbitControls mouse/touch mappings, and iOS sync/run troubleshooting."
+description: "Build and ship Three.js apps on Capacitor iOS with Vite and Swift Package Manager: GLTF loading, assets_index animation UI, OrbitControls mouse/touch mappings, WKWebView lifecycle handling, and iOS sync/run/signing troubleshooting."
 metadata:
   short-description: "Three.js + Capacitor iOS workflow"
 ---
 
 # Three.js Capacitor iOS
 
-Build interactive Three.js apps that run in browser and ship in an iOS native shell via Capacitor.
-This skill focuses on the integration boundary where most breakage happens: web build output, animation contracts, controls, and native sync/run workflow.
+Build interactive Three.js apps that run in the browser and ship in an iOS native shell via Capacitor.
+Use this skill for the boundary where most breakage happens: Vite build output, static asset paths, animation metadata, controls, WKWebView lifecycle, Swift Package Manager, Xcode setup, sync/run, and signing.
 
-## Philosophy: Two Runtimes, One Contract
+For the Android target, use the `threejs-capacitor-android` skill. The web/Three.js layer is mostly shared; the native shell, lifecycle, package manager, and store build workflow differ.
+
+## Operating Model: Two Runtimes, One Contract
 
 Treat the project as two systems that must agree:
-- A web renderer runtime (Three.js + Vite)
-- A native runtime wrapper (Capacitor iOS)
+- A web renderer runtime: Three.js + Vite + browser APIs
+- A native runtime wrapper: Capacitor iOS + WKWebView + Xcode/SPM
 
-Most failures happen when their contract is implicit.
-Make file paths, animation names, build output, and iOS package manager choices explicit and testable.
+Most failures happen when their contract is implicit. Make build output, file paths, clip names, input mappings, lifecycle behavior, package manager choice, and signing choices explicit and testable.
 
-**Before implementing, ask:**
-- What is the exact web output directory (`dist` or `www`) and does Capacitor `webDir` match it?
-- Are animation names loaded from data (`assets_index.json`) instead of hardcoded strings?
-- Is iOS using SPM or CocoaPods, and are plugin dependencies compatible with that choice?
-- Are desktop and touch controls intentionally mapped, or left to defaults that may not match product UX?
+Before implementing or debugging, establish:
+- Web output: exact Vite output directory (`dist` or `www`) and matching Capacitor `webDir`.
+- Assets: GLBs/JSON under `public/` and loaded with URL paths that work under the iOS WebView origin.
+- Animation contract: UI derives from `assets_index.json`; no hardcoded clip strings in event handlers.
+- iOS toolchain: macOS, Node, Xcode, and Xcode Command Line Tools match the project's Capacitor major version.
+- Package manager: SPM or CocoaPods is chosen intentionally; do not mix assumptions.
+- Input: desktop mouse and mobile touch mappings are both intentional.
+- Lifecycle: WebGL context loss, app pause/resume, safe-area layout, and device/simulator debugging have defined behavior.
 
-**Core principles:**
-1. Contract-first data flow: UI and animation playback should derive from JSON metadata, not ad-hoc clip names in code.
-2. SPM-first iOS setup: on modern Capacitor, default to Swift Package Manager unless a specific plugin forces CocoaPods.
-3. Symmetric controls: define mouse and touch mappings together so desktop and mobile behavior stay aligned.
-4. Build-sync discipline: every native run depends on fresh web assets and sync.
-5. Fast diagnosis: prefer small runtime checks for paths, clip names, and action resolution before deep debugging.
+Core priorities:
+1. Contract-first data flow: metadata drives asset and animation selection.
+2. SPM-first iOS setup: on modern Capacitor, prefer Swift Package Manager unless a plugin or existing project forces CocoaPods.
+3. Symmetric controls: define mouse and touch mappings together.
+4. Build-sync discipline: native runs use freshly built and synced web assets.
+5. Fast diagnosis: add small runtime checks for missing assets, unresolved clips, and WebGL failures before deep native debugging.
+
+## Reference Files
+
+| Topic | File | Use When |
+| --- | --- | --- |
+| iOS workflow | [references/capacitor-ios-spm-workflow.md](references/capacitor-ios-spm-workflow.md) | Setup, build/sync/run, simulator/device, SPM migration, signing |
+| Animation contract | [references/threejs-animation-index-pattern.md](references/threejs-animation-index-pattern.md) | GLTF/GLB animation UI, clip resolution, metadata-driven actions |
+| Gotchas | [references/gotchas.md](references/gotchas.md) | Browser works but iOS fails, SPM/CocoaPods confusion, WKWebView/touch/WebGL issues |
 
 ## Quick Start Workflow
 
-1. Build the Three.js app with Vite (`npm run build`).
-2. Keep static assets under `public/` and load via absolute URLs (`/assets/...`).
-3. Configure Capacitor with `webDir: "dist"`.
-4. Add iOS platform with SPM (`npx cap add ios --packagemanager SPM`).
-5. Repeat day-to-day loop:
+1. Inspect `package.json`, `vite.config.*`, `capacitor.config.*`, `public/assets/**`, and existing `ios/` project shape.
+2. Build the Three.js app with the project-native command, usually `npm run build`.
+3. Configure Capacitor with `webDir` matching the build output, usually `"dist"`.
+4. Add iOS if missing: `npm install @capacitor/ios` then `npx cap add ios --packagemanager SPM`.
+5. Use the deterministic loop:
    - `npm run build`
    - `npx cap sync ios`
    - `npx cap run ios` or `npx cap open ios`
 
-For command-level details, see `references/capacitor-ios-spm-workflow.md`.
+When possible, add project scripts so repeated commands cannot skip build or sync.
 
 ## Implementation Guidelines
 
 ### 1) Project Shape
 
-Prefer this shape for minimal ambiguity:
+Prefer this shape:
 - `index.html` and `src/*` for app code
-- `public/assets/...` for GLBs and JSON contracts
-- `capacitor.config.ts` with `webDir: "dist"`
+- `public/assets/...` for GLBs, textures, and JSON contracts
+- `capacitor.config.ts` with `webDir: "dist"` for Vite defaults
+- `ios/App/` generated by Capacitor, not hand-recreated ad hoc
 
-If using Vite, keep all runtime fetches compatible with both browser and WKWebView:
+Keep runtime fetches compatible with both desktop browser and WKWebView:
 - Good: `fetch('/assets/assets_index.json')`
-- Avoid: filesystem paths or environment-specific base URLs unless intentionally configured.
+- Avoid: filesystem paths, `file://` assumptions, or environment-specific hostnames unless live reload is intentionally configured.
+
+iOS bundled assets are served inside WKWebView by Capacitor. Absolute `/assets/...` URLs resolve correctly for files copied from `public/assets` into the built web output.
 
 ### 2) Animation Contract via `assets_index.json`
 
@@ -65,15 +80,15 @@ Use one source of truth:
 - Animation source URL
 - `animations[]` entries with:
   - stable app id (`idle`, `walk`, `run`)
-  - `sourceClipName` (exact `AnimationClip.name`)
-  - loop mode and defaults
+  - `sourceClipName` matching the exact `AnimationClip.name`
+  - loop mode and transition defaults
 
 Runtime pattern:
-1. Load index JSON
-2. Load skeleton GLB and animation GLB
-3. Resolve each UI button to a clip by `sourceClipName`
-4. Build `AnimationAction` map keyed by app id
-5. Play default action from index
+1. Load index JSON.
+2. Load skeleton GLB and animation GLB.
+3. Resolve each UI control to a clip by `sourceClipName`.
+4. Build an `AnimationAction` map keyed by app id.
+5. Play the default action from the index.
 
 See `references/threejs-animation-index-pattern.md`.
 
@@ -88,70 +103,94 @@ Use `OrbitControls` and set mappings explicitly:
   - one-finger = rotate
   - two-finger = dolly + pan
 
-If product requires vertical-only pan, constrain target/camera translation after `controls.update()` each frame.
-Do not silently change rotate/zoom semantics when adding this constraint.
+Set `canvas.style.touchAction = 'none'` and ensure the page cannot scroll behind the canvas unless the app intentionally mixes 3D and document scrolling.
+
+If the product requires vertical-only pan or other constrained motion, apply the constraint after `controls.update()` each frame. Do not silently change rotate/zoom semantics while adding the constraint.
+
+Account for iOS safe areas when placing controls near edges. Prefer CSS `env(safe-area-inset-*)` for overlays that sit near the notch, home indicator, or rounded corners.
 
 ### 4) Performance and Stability Guardrails
 
-- Cap pixel ratio: `Math.min(devicePixelRatio, 2)`.
-- Reuse mixer/actions; do not recreate per click.
-- On resize, always update camera aspect, projection, and renderer size.
+- Cap pixel ratio: `Math.min(window.devicePixelRatio, 2)`; iPhones and iPads often have high DPR.
+- Reuse mixers/actions/materials; do not recreate them per click.
+- On resize and orientation change, update camera aspect, projection matrix, and renderer size.
 - Keep animation switching with fade transitions from metadata defaults.
+- Handle `webglcontextlost` and `webglcontextrestored`; iOS may reclaim graphics resources under memory pressure or backgrounding.
+- Pause the render loop on Capacitor `pause`; resume intentionally on `resume`.
+- Dispose geometry, materials, textures, controls, and renderers when replacing scenes or leaving a view.
 
 ### 5) Capacitor iOS Integration
 
-Use SPM by default with Capacitor 8+.
-For existing CocoaPods projects, migrate intentionally (assistant or recreate iOS platform).
+Use the official Capacitor docs for the project's major version as the source of truth. For current Capacitor 8-era projects, expect:
+- Node 22+
+- macOS for local iOS builds
+- Xcode 26+
+- Xcode Command Line Tools
+- iOS 15+ support
+- Swift Package Manager as the preferred dependency manager
 
-After native-side changes or plugin changes, run `npx cap sync ios` again.
+Verify with:
+- `node --version`
+- `xcode-select -p`
+- `npx cap doctor`
+- Xcode build and package resolution
+
+After native-side config changes, plugin changes, or web asset changes, run `npx cap sync ios` again.
+
+Live reload is development-only. If using `server.url`, use a reachable LAN host and only keep it in development config; remove it before release builds.
+
+Release builds require Apple Developer signing, bundle id, capabilities, and archive/export choices in Xcode or CI.
 
 ## Anti-Patterns to Avoid
 
-❌ **Hardcoding clip names in UI handlers**
-Why bad: a renamed clip in GLB silently breaks buttons.
+**Hardcoding clip names in UI handlers**
+
+Why bad: a renamed clip in a GLB silently breaks buttons.
 Better: map buttons from `assets_index.json` and resolve clip names once at startup.
 
-❌ **Mixing SPM and CocoaPods assumptions**
+**Mixing SPM and CocoaPods assumptions**
+
 Why bad: dependency drift and broken Xcode project expectations.
-Better: choose one package manager per project; for modern setups prefer SPM.
+Better: choose one package manager per project; for modern setups prefer SPM unless a plugin forces CocoaPods.
 
-❌ **Running iOS without rebuilding web assets**
-Why bad: simulator shows stale JS/CSS and debugging becomes misleading.
-Better: use scripts that always build before `cap sync`/`cap run`.
+**Running iOS without rebuilding web assets**
 
-❌ **Leaving control mappings implicit**
-Why bad: desktop and mobile interaction diverge from UX requirements.
-Better: set `mouseButtons` and `touches` explicitly in code.
+Why bad: simulator/device shows stale JS/CSS and debugging becomes misleading.
+Better: use scripts that always build before `cap sync` and `cap run`.
 
-❌ **Debugging native first for web contract errors**
-Why bad: wastes time in Xcode when issue is usually missing JSON keys, bad paths, or unresolved clips.
-Better: add startup assertions/logs for index shape and clip resolution.
+**Treating iOS as desktop Safari**
+
+Why bad: WKWebView has different lifecycle, memory pressure, safe-area, and remote debugging behavior.
+Better: test on simulator or device, inspect the WebView, and handle pause/resume/context loss.
+
+**Leaving control mappings implicit**
+
+Why bad: desktop and mobile interaction diverge from UX requirements, and iOS may interpret gestures as page behavior.
+Better: set `mouseButtons`, `touches`, and `touch-action: none` explicitly.
+
+**Shipping a development server config**
+
+Why bad: `server.url` points the app at a dev machine or remote web bundle and changes release security/performance behavior.
+Better: remove `server.url` for production and ship built assets unless the project has an intentional live-update architecture.
 
 ## Variation Guidance
 
-**IMPORTANT**: Do not produce identical viewers by default.
-Adjust implementation to the product intent:
-- Character showcase: richer lighting, slower camera damping, emphasis on idle loop.
-- Gameplay prototype: fast transitions, state-driven animation switching, minimal UI chrome.
-- Asset QA tool: diagnostics overlay, clip length/track info, missing-clip warnings surfaced clearly.
+Do not produce identical viewers by default. Adjust implementation to the product intent:
+- Character showcase: richer lighting, slower damping, polished default idle loop.
+- Gameplay prototype: fast transitions, state-driven animation switching, minimal chrome.
+- Asset QA tool: diagnostics overlay, clip length/track info, missing-clip warnings.
+- Product configurator: constrained camera, touch-friendly hotspots, asset preloading and progress states.
 
-Vary at least these dimensions intentionally:
-- Visual style (lighting/background/floor treatment)
-- Input tuning (damping/zoom/pan speeds)
-- Animation UX (buttons, keyboard shortcuts, auto-play strategy)
+Vary these dimensions intentionally:
+- Lighting/background/floor treatment
+- Input tuning and camera constraints
+- Animation UX, shortcuts, and auto-play strategy
+- Diagnostics visibility and error surface
+- Safe-area-aware placement of mobile controls
 
-Avoid converging on a single generic "orbit + three buttons" output when context calls for more.
-
-## Resource Map
-
-- `references/capacitor-ios-spm-workflow.md`
-  - canonical iOS setup, migration, and run commands
-- `references/threejs-animation-index-pattern.md`
-  - index contract and runtime loading pattern
-- `references/gotchas.md`
-  - high-frequency integration failures and fixes
+Avoid converging on a generic "orbit camera plus three buttons" output when the project context calls for something more specific.
 
 ## Remember
 
 Three.js + Capacitor iOS succeeds when contracts are explicit and workflows are disciplined.
-Build a clear metadata contract, map controls intentionally, prefer SPM on modern Capacitor, and keep build/sync/run deterministic.
+Build a metadata contract, map controls intentionally, align the Xcode/SPM toolchain, handle mobile WKWebView lifecycle, and keep build/sync/run deterministic.

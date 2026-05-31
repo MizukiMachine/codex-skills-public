@@ -1,0 +1,226 @@
+# Capacitor Android Workflow for Three.js Apps
+
+Use this when setting up, running, debugging, or signing a Three.js app inside Capacitor Android.
+
+## Toolchain Calibration
+
+Capacitor Android builds with Gradle and the Android SDK. No macOS is required; it works on Windows, Linux, WSL2, and macOS.
+
+Verify the project's Capacitor major version first:
+
+```bash
+npm ls @capacitor/core @capacitor/cli @capacitor/android
+```
+
+Then compare against the official Capacitor environment setup docs for that major version. For current Capacitor 8-era projects, the important defaults are:
+- Node 22+
+- Android Studio with Android SDK
+- Android SDK platform API 24+
+- Android Studio's bundled Gradle JDK for most local workflows
+
+Do not hardcode a JDK version from memory. If `JAVA_HOME` is needed, set it to the Gradle JDK path shown in Android Studio: Settings/Preferences > Build, Execution, Deployment > Build Tools > Gradle > Gradle JDK.
+
+Useful checks:
+
+```bash
+node --version
+npx cap doctor
+adb devices
+```
+
+If `adb` is missing, add Android SDK `platform-tools` to PATH and ensure `ANDROID_HOME` or `ANDROID_SDK_ROOT` points at the SDK.
+
+## One-Time Setup
+
+From the project root:
+
+```bash
+npm install @capacitor/core
+npm install -D @capacitor/cli
+npm install @capacitor/android
+```
+
+Initialize Capacitor if needed:
+
+```bash
+npx cap init
+```
+
+Add Android:
+
+```bash
+npm run build
+npx cap add android
+npx cap sync android
+```
+
+## Day-to-Day Loop
+
+```bash
+npm run build
+npx cap sync android
+npx cap run android
+```
+
+Or open Android Studio:
+
+```bash
+npx cap open android
+```
+
+`cap sync` copies built web assets into `android/app/src/main/assets/public/` and updates native dependencies. `cap run` builds, installs, and launches on a connected device or emulator.
+
+Prefer adding scripts that encode the sequence:
+
+```json
+{
+  "scripts": {
+    "android:sync": "npm run build && npx cap sync android",
+    "android:run": "npm run build && npx cap sync android && npx cap run android",
+    "android:open": "npm run build && npx cap sync android && npx cap open android"
+  }
+}
+```
+
+## Device and Emulator
+
+List targets:
+
+```bash
+npx cap run android --list
+```
+
+Run a specific target:
+
+```bash
+npx cap run android --target <DEVICE_ID>
+```
+
+Physical device:
+- Enable Developer options and USB debugging.
+- Accept the RSA prompt.
+- Confirm with `adb devices`.
+
+Emulator:
+- Create an AVD in Android Studio Device Manager.
+- Use API 24+.
+- Prefer a recent Google APIs system image with hardware GL enabled.
+
+## Config Notes
+
+Typical Vite config:
+
+```typescript
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.example.app',
+  appName: 'My Three App',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https'
+  }
+};
+
+export default config;
+```
+
+Notes:
+- `appId` becomes the Gradle `applicationId`.
+- `webDir` must contain the built `index.html`.
+- `server.androidScheme` defaults to `https`; keep it unless a route strategy forces a change.
+- Do not rely on `file://` paths. Bundled assets are served from a local WebView origin.
+
+## Live Reload
+
+Live reload is only for development.
+
+Use a reachable host:
+- Physical device: your dev machine LAN IP.
+- Android emulator: often `10.0.2.2` for the host machine.
+
+Example:
+
+```typescript
+server: {
+  url: 'http://10.0.2.2:5173',
+  cleartext: true
+}
+```
+
+Run Vite with host binding:
+
+```bash
+npm run dev -- --host 0.0.0.0
+npx cap run android
+```
+
+Remove `server.url` before production builds unless the app intentionally uses a remote update system. Shipping `server.url` accidentally is a common release bug.
+
+## WebView Debugging
+
+For physical devices:
+1. Enable USB debugging.
+2. Connect the device.
+3. Open desktop Chrome to `chrome://inspect`.
+4. Inspect the WebView console, network failures, and WebGL errors.
+
+For Android Studio:
+- Use Logcat for native Gradle/plugin/lifecycle issues.
+- Use Chrome WebView inspect for JS, asset path, and WebGL issues.
+
+## Signing a Release
+
+Debug builds auto-sign. Release builds need a project-owned keystore.
+
+Generate one:
+
+```bash
+keytool -genkey -v -keystore my-release.jks -keyalg RSA \
+  -keysize 2048 -validity 10000 -alias my-app
+```
+
+Store secrets outside git. A common pattern is `android/keystore.properties` with:
+
+```properties
+storeFile=../my-release.jks
+storePassword=****
+keyAlias=my-app
+keyPassword=****
+```
+
+Wire it in `android/app/build.gradle`:
+
+```gradle
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file("keystore.properties")
+if (keystoreFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystoreFile))
+}
+
+android {
+    signingConfigs {
+        release {
+            storeFile file(keystoreProps['storeFile'])
+            storePassword keystoreProps['storePassword']
+            keyAlias keystoreProps['keyAlias']
+            keyPassword keystoreProps['keyPassword']
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+```
+
+Build:
+
+```bash
+cd android
+./gradlew bundleRelease
+./gradlew assembleRelease
+```
+
+Use Android Studio or official Android/Capacitor docs as source of truth for permissions, target SDK, Play Store requirements, and signing policy.

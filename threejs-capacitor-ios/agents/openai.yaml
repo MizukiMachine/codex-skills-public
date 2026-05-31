@@ -1,4 +1,4 @@
 interface:
   display_name: "Three.js Capacitor iOS"
   short_description: "Three.js Capacitor iOS build workflow"
-  default_prompt: "Use $threejs-capacitor-ios to ship a Three.js app through Capacitor iOS and debug build or asset sync issues."
+  default_prompt: "Use $threejs-capacitor-ios to ship a Three.js app through Capacitor iOS and debug SPM, asset sync, WKWebView, or signing issues."
