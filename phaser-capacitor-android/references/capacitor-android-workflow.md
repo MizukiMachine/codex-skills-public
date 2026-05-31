@@ -1,6 +1,6 @@
-# Capacitor Android Workflow for Three.js Apps
+# Capacitor Android Workflow for Phaser Games
 
-Use this when setting up, running, debugging, or signing a Three.js app inside Capacitor Android.
+Use this when setting up, running, debugging, or signing a Phaser game inside Capacitor Android.
 
 ## Toolchain Calibration
 
@@ -12,13 +12,7 @@ Verify the project's Capacitor major version first:
 npm ls @capacitor/core @capacitor/cli @capacitor/android
 ```
 
-Then compare against the official Capacitor environment setup docs for that major version. For current Capacitor 8-era projects, the important defaults are:
-- Node 22+
-- Android Studio with Android SDK
-- Android SDK platform API 24+
-- Android Studio's bundled Gradle JDK for most local workflows
-
-Do not hardcode a JDK version from memory. If `JAVA_HOME` is needed, set it to the Gradle JDK path shown in Android Studio: Settings/Preferences > Build, Execution, Deployment > Build Tools > Gradle > Gradle JDK.
+Then compare against the official Capacitor environment setup docs for that major version. Do not hardcode a JDK, Node, SDK, or target SDK version from memory. Prefer Android Studio's configured Gradle JDK unless the official docs or project policy require otherwise.
 
 Useful checks:
 
@@ -28,7 +22,7 @@ npx cap doctor
 adb devices
 ```
 
-If `adb` is missing, add Android SDK `platform-tools` to PATH and ensure `ANDROID_HOME` or `ANDROID_SDK_ROOT` points at the SDK.
+If `adb` is missing, add Android SDK `platform-tools` to `PATH` and ensure `ANDROID_HOME` or `ANDROID_SDK_ROOT` points at the SDK.
 
 If the project is in WSL2 but the emulator is on Windows, do not assume Linux `adb` can see the Windows emulator. Read `references/windows-wsl-emulator-workflow.md` and choose one device host deliberately.
 
@@ -105,8 +99,8 @@ Physical device:
 
 Emulator:
 - Create an AVD in Android Studio Device Manager.
-- Use API 24+.
-- Prefer a recent Google APIs system image with hardware GL enabled.
+- Use an Android platform supported by the project's Capacitor version.
+- Prefer a recent Google APIs system image with hardware graphics enabled.
 
 WSL2:
 - If WSL2 emulator GUI controls are unreliable, keep building in WSL and run/install with Windows `adb.exe`.
@@ -115,14 +109,14 @@ WSL2:
 
 ## Config Notes
 
-Typical Vite config:
+Typical Vite + Capacitor config:
 
 ```typescript
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.example.app',
-  appName: 'My Three App',
+  appId: 'com.example.game',
+  appName: 'My Phaser Game',
   webDir: 'dist',
   server: {
     androidScheme: 'https'
@@ -135,8 +129,9 @@ export default config;
 Notes:
 - `appId` becomes the Gradle `applicationId`.
 - `webDir` must contain the built `index.html`.
-- `server.androidScheme` defaults to `https`; keep it unless a route strategy forces a change.
-- Do not rely on `file://` paths. Bundled assets are served from a local WebView origin.
+- Capacitor serves bundled assets from a local WebView origin.
+- Do not rely on `file://` paths.
+- Keep `server.androidScheme` at the project default unless routing requires a change.
 
 ## Live Reload
 
@@ -170,11 +165,19 @@ For physical devices:
 1. Enable USB debugging.
 2. Connect the device.
 3. Open desktop Chrome to `chrome://inspect`.
-4. Inspect the WebView console, network failures, and WebGL errors.
+4. Inspect the WebView console, network failures, loader errors, audio policy errors, and WebGL errors.
 
 For Android Studio:
 - Use Logcat for native Gradle/plugin/lifecycle issues.
-- Use Chrome WebView inspect for JS, asset path, and WebGL issues.
+- Use Chrome WebView inspect for JavaScript, asset path, WebGL, and Phaser loader issues.
+
+Add runtime breadcrumbs for Phaser failures:
+
+```ts
+this.load.on('loaderror', (file: Phaser.Loader.File) => {
+  console.error('Phaser load failed', file.key, file.src);
+});
+```
 
 ## Signing a Release
 
@@ -184,7 +187,7 @@ Generate one:
 
 ```bash
 keytool -genkey -v -keystore my-release.jks -keyalg RSA \
-  -keysize 2048 -validity 10000 -alias my-app
+  -keysize 2048 -validity 10000 -alias my-game
 ```
 
 Store secrets outside git. A common pattern is `android/keystore.properties` with:
@@ -192,37 +195,11 @@ Store secrets outside git. A common pattern is `android/keystore.properties` wit
 ```properties
 storeFile=../my-release.jks
 storePassword=****
-keyAlias=my-app
+keyAlias=my-game
 keyPassword=****
 ```
 
-Wire it in `android/app/build.gradle`:
-
-```gradle
-def keystoreProps = new Properties()
-def keystoreFile = rootProject.file("keystore.properties")
-if (keystoreFile.exists()) {
-    keystoreProps.load(new FileInputStream(keystoreFile))
-}
-
-android {
-    signingConfigs {
-        release {
-            storeFile file(keystoreProps['storeFile'])
-            storePassword keystoreProps['storePassword']
-            keyAlias keystoreProps['keyAlias']
-            keyPassword keystoreProps['keyPassword']
-        }
-    }
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-        }
-    }
-}
-```
-
-Build:
+Wire it in `android/app/build.gradle` using the project's existing Gradle style, then build with:
 
 ```bash
 cd android
@@ -230,4 +207,4 @@ cd android
 ./gradlew assembleRelease
 ```
 
-Use Android Studio or official Android/Capacitor docs as source of truth for permissions, target SDK, Play Store requirements, and signing policy.
+Use Android Studio, official Android docs, or official Capacitor docs as source of truth for permissions, target SDK, Play Store requirements, and signing policy.

@@ -166,6 +166,53 @@ room.send("applyDamage", { targetId, amount: 50 });
 
 The scene can still do client-side anticipation. It just should not decide the final answer.
 
+## Accepted Input And Feedback
+
+See `references/architecture.md` for the renderer-agnostic accepted-action model. In Phaser, the usual mistake is playing SFX or restarting sprites directly from keyboard events. Avoid playing action SFX/VFX merely because a key was pressed. First check whether the local room state says the player can act, or play the feedback only after the server broadcasts that the action was accepted.
+
+Useful gate:
+
+```ts
+function canSendAction(room: Room, player: PlayerState) {
+  return room.state.phase === "playing" &&
+    player.connected &&
+    (player.action === "idle" || player.action === "run");
+}
+```
+
+Then:
+
+- send `attack`, `jump`, `dash`, or lane-change only when the gate passes
+- play local movement/jump SFX only for accepted local requests
+- play attack SFX from an accepted `swing` / `cast` / `actionStarted` message
+- keep rematch, cancel, menu, and chat inputs separate from gameplay-action gates
+
+This prevents waiting rooms, cooldowns, stuns, and dead players from producing misleading sounds.
+
+### Hidden Tab Audio and Visual Bursts
+
+Phaser/Web Audio clients can make inactive-tab behavior look like a multiplayer bug: events arrive while the tab is hidden or unfocused, then SFX/VFX appear to fire late or in a burst when focus returns.
+
+For non-critical gameplay feedback, skip instead of queue:
+
+```ts
+function canPlayTransientFeedback() {
+  const doc = globalThis.document;
+  return !doc || (!doc.hidden && doc.hasFocus());
+}
+
+function playAcceptedHitFeedback(message: HitMessage) {
+  if (!canPlayTransientFeedback()) {
+    return;
+  }
+
+  scene.sound.play("hit");
+  spawnHitFlash(message.targetId);
+}
+```
+
+When focus returns, update sprites, UI, HP, winner/result banners, and phase from room state. Do not replay every missed `swing`, `hit`, `hurt`, or `defeat` effect unless the game has a deliberate replay system.
+
 ## Listener Cleanup
 
 Phaser scene restarts make duplicated listeners easy to create.
@@ -191,6 +238,70 @@ Examples:
 
 Do not network every frame of an animation unless the gameplay genuinely depends on exact frame identity.
 
+### One-Shot Animation Restart
+
+For attacks, jumps, hurt reactions, deaths, or casts that may reuse the same action name, consume the room-level one-shot replay contract with a monotonically increasing sequence field or transient event.
+
+```ts
+player.attackSeq += 1;
+player.action = "attack";
+```
+
+Client-side:
+
+```ts
+if (state.action === "attack" && state.attackSeq !== lastAttackSeq) {
+  sprite.play("attack", true);
+  lastAttackSeq = state.attackSeq;
+}
+```
+
+Do not rely only on `action === "attack"` changing, because repeated attacks can otherwise fail to restart or get overwritten by idle/run state.
+
+### Combat Timing And Active Frames
+
+The room should own delayed hit/effect resolution. Phaser should render the accepted action immediately and then react when the later authoritative outcome arrives.
+
+Server pattern:
+
+```ts
+player.action = "attack";
+pendingOutcomes.push({
+  attackerId: player.id,
+  resolveAtMs: clockMs + hitDelayMs
+});
+```
+
+At outcome time, the client should not guess damage. It should wait for schema HP changes or accepted transient messages such as `hit`, `blocked`, `parried`, or `missed`.
+
+### Anchor And Coordinate Contract
+
+See `references/architecture.md` for the canonical coordinate contract. If the existing single-player game uses feet, contact, tile, lane, or depth anchors, use the same contract for multiplayer. Store canonical body points in schema and convert to sprite origin positions in Phaser.
+
+Good:
+- schema `x/y` = lane point, feet point, or body center; documented once
+- Phaser computes sprite position from sprite metadata/anchor
+- depth and scale use the same lane/depth rules as single-player
+
+Bad:
+- schema `x/y` sometimes means sprite origin, sometimes collision center
+- server ranges use lane points while Phaser draws from visual centers without conversion
+
+When porting an existing single-player Phaser game, inspect its helper functions for lane/anchor conversion before inventing multiplayer coordinates.
+
+## Debug And Production Presentation
+
+Temporary debug overlays are useful while calibrating multiplayer bodies and lanes, but keep them behind a debug flag.
+
+Before finishing a playable multiplayer scene, check:
+
+- lane/body guides are not always visible in production UI
+- waiting/countdown states do not play gameplay SFX for rejected inputs
+- accepted action feedback matches server acceptance, not raw keydown
+- inactive tabs/windows do not replay accumulated SFX/VFX when focus returns
+- local and remote entities use the same coordinate anchor contract
+- one-shot animations replay on repeated accepted actions
+
 ## Phaser-Specific Anti-Patterns
 
 - Recreating every sprite on each `onStateChange` instead of incrementally updating registries
@@ -198,6 +309,7 @@ Do not network every frame of an animation unless the gameplay genuinely depends
 - Treating Arcade Physics positions as authoritative in a multiplayer game
 - Mixing local camera and UI state into Colyseus schema
 - Forgetting to destroy listeners on scene shutdown, causing duplicate message handling
+- Letting hidden-tab transient SFX/VFX accumulate and burst on focus return
 
 ## How This Adapts to Other Renderers
 

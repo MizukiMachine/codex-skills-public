@@ -82,6 +82,18 @@ Better: delay the event until after the relevant patch when ordering matters.
 Why bad: malformed payloads become runtime room bugs.
 Better: validate input shapes before mutating authoritative state.
 
+❌ **Playing client SFX for rejected gameplay inputs**
+Why bad: waiting rooms, cooldowns, stun, death, or disconnected states feel like actions were accepted when the server ignored them.
+Better: gate local feedback against authoritative phase/action state, or play action SFX from a server accepted-action broadcast.
+
+❌ **Queueing cosmetic events while the tab is inactive**
+Why bad: focus-return bursts of SFX/VFX can be mistaken for disconnect, latency, duplicate-hit, or volume bugs.
+Better: skip non-durable SFX/VFX while hidden or unfocused, then rebuild presentation from current authoritative state.
+
+❌ **Applying damage at attack-start for an animation that hits later**
+Why bad: targets enter hurt before the weapon visually connects, and dodge/counterplay timing feels wrong.
+Better: set the action immediately, then resolve hit/damage/effect at a server-owned active frame/window after revalidating current phase, source, target, range/aim, and target state.
+
 ## Client Wiring
 
 ❌ **Hardcoding `localhost` or `ws://` into production paths**
@@ -91,6 +103,14 @@ Better: use environment variables and secure transport in production.
 ❌ **Binding renderer object lifecycle directly to broad `onStateChange` refreshes**
 Why bad: full rebuilds are noisy and leak renderer concerns into networking design.
 Better: use entity lifecycle callbacks and a renderer-side registry.
+
+❌ **Treating renderer coordinates as the server coordinate contract by accident**
+Why bad: visual anchors, sprite origins, collision centers, body centers, tile points, and contact points drift apart, causing wrong movement ranges and hit perception.
+Better: document one canonical coordinate meaning in schema and convert to renderer-specific sprite positions at the edge.
+
+❌ **Shipping debug guides as normal gameplay visuals**
+Why bad: collision guides, lanes/tracks, nav grids, hit boxes, and calibration overlays leak into player-facing scenes.
+Better: gate overlays behind debug flags and verify production/waiting screens with screenshots.
 
 ## Ops and Deployment
 

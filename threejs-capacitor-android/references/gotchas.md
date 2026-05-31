@@ -92,6 +92,20 @@ Fix:
 - try a different USB cable/port if the device appears as charging-only
 - for emulators, ensure the AVD uses API 24+ and hardware GL
 
+## WSL2 Emulator GUI Controls Do Not Respond
+
+Common causes:
+- emulator UI/tool window integration is unreliable under the WSL2 display stack
+- Linux `adb` and Windows `adb.exe` are checking different ADB servers
+- Windows commands are being launched from a WSL UNC current directory
+
+Fix:
+- keep the build in WSL if it already works
+- run the emulator on Windows through Android Studio Device Manager or Windows `emulator.exe`
+- install the WSL-built APK with Windows `adb.exe`
+- convert APK paths with `wslpath -w`
+- use `/mnt/c` as the working directory for PowerShell or `cmd.exe` calls from WSL
+
 ## WebGL Is Slow or Janky on High-DPI Android
 
 Common causes:
