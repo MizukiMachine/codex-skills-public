@@ -1,20 +1,62 @@
-# Capacitor iOS SPM Workflow (Three.js Apps)
+# Capacitor iOS SPM Workflow for Three.js Apps
+
+Use this when setting up, running, debugging, migrating, or signing a Three.js app inside Capacitor iOS.
+
+## Toolchain Calibration
+
+Capacitor iOS requires Apple's iOS toolchain for local builds.
+
+Verify the project's Capacitor major version first:
+
+```bash
+npm ls @capacitor/core @capacitor/cli @capacitor/ios
+```
+
+Then compare against the official Capacitor environment setup docs for that major version. For current Capacitor 8-era projects, the important defaults are:
+- Node 22+
+- macOS for local iOS builds
+- Xcode 26+
+- Xcode Command Line Tools
+- iOS 15+ support
+- Swift Package Manager as the preferred iOS dependency manager
+
+Useful checks:
+
+```bash
+node --version
+xcode-select -p
+npx cap doctor
+```
+
+Install Command Line Tools if missing:
+
+```bash
+xcode-select --install
+```
 
 ## Why SPM
 
-Capacitor 8 supports and promotes Swift Package Manager for iOS dependency management.
-Use SPM unless you have a plugin that explicitly requires CocoaPods.
+Swift Package Manager is the preferred iOS dependency manager in modern Capacitor. Use SPM unless an existing project or plugin explicitly requires CocoaPods.
 
-## One-time Setup
+Do not edit Capacitor-generated SPM package internals such as `CapApp-SPM` manually. The Capacitor CLI can rewrite them during sync.
 
-From repo root:
+## One-Time Setup
+
+From the project root:
 
 ```bash
-npm install @capacitor/core@latest
-npm install -D @capacitor/cli@latest @capacitor/ios@latest
+npm install @capacitor/core
+npm install -D @capacitor/cli
+npm install @capacitor/ios
 ```
 
-If adding iOS for the first time:
+Initialize Capacitor if needed:
+
+```bash
+npx cap init
+```
+
+Add iOS with SPM:
 
 ```bash
 npm run build
@@ -22,7 +64,9 @@ npx cap add ios --packagemanager SPM
 npx cap sync ios
 ```
 
-## Day-to-day Loop
+The CLI accepts `--packagemanager SPM` for SPM and `--packagemanager Cocoapods` when CocoaPods is explicitly needed.
+
+## Day-to-Day Loop
 
 ```bash
 npm run build
@@ -36,7 +80,19 @@ Or open Xcode:
 npx cap open ios
 ```
 
-## Simulator Tips
+Prefer adding scripts that encode the sequence:
+
+```json
+{
+  "scripts": {
+    "ios:sync": "npm run build && npx cap sync ios",
+    "ios:run": "npm run build && npx cap sync ios && npx cap run ios",
+    "ios:open": "npm run build && npx cap sync ios && npx cap open ios"
+  }
+}
+```
+
+## Simulator and Device
 
 List targets:
 
@@ -44,41 +100,104 @@ List targets:
 npx cap run ios --list
 ```
 
-Run specific simulator:
+Run a specific target:
 
 ```bash
 npx cap run ios --target <TARGET_ID>
 ```
 
+Simulator:
+- Use Xcode's Devices and Simulators UI when target availability is unclear.
+- If simulator state is stale, erase content/settings before debugging app logic.
+
+Physical device:
+- Requires Apple Developer signing.
+- Trust the developer certificate on device if prompted.
+- Wireless devices must be paired and visible to Xcode/Finder before `npx cap run ios --list` can see them.
+
 ## Migrating from CocoaPods to SPM
 
 Two practical options:
-1. Recreate iOS platform with SPM template (`npx cap add ios --packagemanager SPM`) after backing up/removing old `ios/`.
-2. Use migration helper:
+
+1. Recreate the iOS platform with the SPM template after backing up any manual native changes:
+
+```bash
+npm run build
+rm -rf ios
+npx cap add ios --packagemanager SPM
+npx cap sync ios
+```
+
+Only remove `ios/` when you have confirmed native changes are disposable or backed up.
+
+2. Use the migration helper:
 
 ```bash
 npx cap spm-migration-assistant
 ```
 
-Then reopen iOS project and verify package dependencies were added.
+Then run `npx cap open ios` and verify the local `CapApp-SPM` package is added in Xcode Package Dependencies. The migration tool may warn about plugins that cannot be represented as SPM packages.
 
-## Validation
+## Config Notes
 
-Use doctor for dependency sanity:
+Typical Vite config:
 
-```bash
-npx cap doctor
+```typescript
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.example.app',
+  appName: 'My Three App',
+  webDir: 'dist'
+};
+
+export default config;
 ```
 
-Look for:
-- matching `@capacitor/*` versions
-- iOS status healthy
-- sync writing `Package.swift` for plugins
+Notes:
+- `appId` becomes the iOS bundle identifier unless changed in Xcode.
+- `webDir` must contain the built `index.html`.
+- Do not rely on `file://` paths. Bundled assets are served inside WKWebView by Capacitor.
 
-## iOS Configuration Notes
+## Live Reload
 
-For app permissions and capabilities:
-- edit `ios/App/App/Info.plist`
-- configure Signing & Capabilities in Xcode
+Live reload is only for development.
 
-Use official iOS configuration docs as source of truth.
+Use a reachable LAN host:
+
+```typescript
+server: {
+  url: 'http://192.168.1.50:5173'
+}
+```
+
+Run Vite with host binding:
+
+```bash
+npm run dev -- --host 0.0.0.0
+npx cap run ios
+```
+
+Remove `server.url` before production builds unless the app intentionally uses a remote update system. Shipping `server.url` accidentally is a common release bug.
+
+## WKWebView Debugging
+
+For simulator/device WebView issues:
+- Enable Safari Develop menu on macOS.
+- Use Safari > Develop > Simulator or device > app WebView.
+- Inspect console, network failures, asset paths, and WebGL errors.
+
+Use Xcode logs for native build, signing, package resolution, and plugin issues.
+
+## Signing and Release
+
+For release builds:
+- Set the bundle identifier.
+- Select a team in Xcode Signing & Capabilities.
+- Add required capabilities.
+- Fill `Info.plist` permission usage strings when plugins require them.
+- Archive from Xcode or CI.
+
+For App Store submission, follow Apple's current requirements for privacy manifest, signing, provisioning, archive/export, and TestFlight/App Store Connect.
+
+Use official iOS configuration and App Store deployment docs as source of truth for permissions and signing policy.

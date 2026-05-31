@@ -1,0 +1,4 @@
+interface:
+  display_name: "Three.js Capacitor Android"
+  short_description: "Three.js Capacitor Android build workflow"
+  default_prompt: "Use $threejs-capacitor-android to ship a Three.js app through Capacitor Android and debug Gradle, asset sync, or WebView issues."

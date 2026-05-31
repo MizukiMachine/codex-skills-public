@@ -67,7 +67,7 @@ Example:
    - register UI control by stable `id`
 7. Start `defaults.defaultAnimationId`.
 
-Keep `.glb`, textures, and JSON under `public/assets/` so Vite copies them verbatim into `dist/` and Capacitor ships them in the iOS app bundle.
+Keep `.glb`, textures, and JSON under `public/assets/` so Vite copies them verbatim into `dist/` and Capacitor ships them in the APK/AAB assets.
 
 ## Required Assertions
 
