@@ -1,0 +1,4 @@
+interface:
+  display_name: "Information Boundary Multi-Agent Design"
+  short_description: "情報境界つきLLMエージェント設計・RAG権限制御・漏洩検証"
+  default_prompt: "Use $information-boundary-multi-agent-design to design an LLM app where agents, users, tools, and documents have different visibility and permission boundaries."
