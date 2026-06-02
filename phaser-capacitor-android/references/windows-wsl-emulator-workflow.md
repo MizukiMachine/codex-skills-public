@@ -1,6 +1,8 @@
 # WSL2 Project with Windows Android Emulator
 
-Use this when the Phaser project lives in WSL2/Linux but Android Studio, `adb.exe`, or the emulator should run on Windows. This is common when a WSL2 emulator boots but its side toolbar, rotation, home, back, or power controls are unreliable.
+Use this when the Phaser project lives in WSL2/Linux but Android Studio, `adb.exe`, or the emulator should run on Windows. This is common when a WSL2 emulator boots but its side toolbar, rotation, home, back, or power controls are unreliable, or when the user's actual Android toolchain is Windows native.
+
+Default posture: Windows is the device host. Build and sync the web/native project in WSL, then use Windows native Android Studio/Emulator/`adb.exe` deliberately. Do not let `npx cap run android` or `npx cap open android` from WSL choose the Android Studio, SDK, or ADB host implicitly.
 
 ## Decision Rule
 
@@ -8,14 +10,16 @@ Prefer the WSL-built APK plus Windows `adb.exe` when:
 - the APK already builds in WSL
 - the goal is to run or smoke-test the game
 - the changes are mostly TypeScript, Phaser scenes, CSS, assets, tilemaps, Capacitor config, or Android manifest values already synced
-- Windows Android Studio/Gradle setup is unknown or would add friction
+- Windows Android Studio/Gradle setup is unnecessary for the current check
 
-Prefer Windows Android Studio when:
+Prefer Windows native Android Studio when:
 - the user needs Gradle sync UI, Logcat, profilers, Device Manager, signing UI, or manifest/resource editors
 - native Android code or Gradle files are the main work
 - the project will be maintained primarily from Windows
 
-Avoid opening a WSL UNC path in Windows tools as the first move unless the user explicitly wants that workflow. UNC paths can be slower, and some command-line tools start in `\\wsl.localhost\...`, which `cmd.exe` does not support as a current directory.
+Avoid opening a WSL UNC path in Windows tools as the first move unless the user explicitly wants that workflow. UNC paths can be slower, and some command-line tools start in `\\wsl.localhost\...`, which `cmd.exe` does not support as a current directory. For long native Android work, prefer a Windows filesystem clone. For short inspection, explicitly launch Windows `studio64.exe` with `wslpath -w "$PWD/android"`.
+
+Do not recommend plain `npx cap run android` or `npx cap open android` as the WSL2 default. Those commands may open WSL-side Android Studio or talk to Linux `adb`, which is the wrong host when Windows owns the emulator.
 
 ## Discovery Checklist
 
@@ -38,6 +42,43 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$paths = @("$env:LOC
 ```
 
 If Windows SDK tools are not on `PATH`, use the default full paths. Do not assume `PATH` is configured.
+
+## Recommended WSL-to-Windows Smoke Test
+
+Use this shape for game/frontend changes:
+
+```bash
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+cd ..
+
+ADB_WIN=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$env:LOCALAPPDATA + "\Android\Sdk\platform-tools\adb.exe"' | tr -d '\r')
+ADB=$(wslpath -u "$ADB_WIN")
+APK_WIN=$(wslpath -w "$PWD/android/app/build/outputs/apk/debug/app-debug.apk")
+
+"$ADB" devices -l
+"$ADB" -s emulator-5554 install -r "$APK_WIN"
+"$ADB" -s emulator-5554 shell am start -n com.example.game/.MainActivity
+```
+
+Prefer adding project scripts that encode this workflow, for example:
+
+```json
+{
+  "scripts": {
+    "android:apk": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "android:install:windows": "npm run android:apk && node scripts/install-android-windows-adb.mjs",
+    "android:studio:windows": "node scripts/open-android-studio-windows.mjs"
+  }
+}
+```
+
+The exact script names should match the project. The important contract is:
+- WSL builds/syncs/APK-produces.
+- Windows `adb.exe` installs and launches.
+- Windows `studio64.exe` is used explicitly when Android Studio is needed.
 
 ## Windows ADB From WSL
 
@@ -71,6 +112,22 @@ Use one ADB host consistently. If device state looks stale, restart the Windows 
 "$ADB" start-server
 "$ADB" devices -l
 ```
+
+## Windows Native Android Studio From WSL
+
+Use Windows Android Studio explicitly when native Android UI tools are needed:
+
+```bash
+STUDIO_WIN=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '$p="$env:ProgramFiles\Android\Android Studio\bin\studio64.exe"; if (Test-Path $p) { $p } else { (Get-Command studio64.exe).Source }' | tr -d '\r')
+ANDROID_PROJECT_WIN=$(wslpath -w "$PWD/android")
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+  "Start-Process -FilePath '$STUDIO_WIN' -ArgumentList @('$ANDROID_PROJECT_WIN')"
+```
+
+Run the PowerShell process from a Windows filesystem working directory such as `/mnt/c` if shell startup complains about UNC paths.
+
+If Android Studio opens but Gradle/SDK state is confusing, stop and clarify whether the project should be maintained from WSL or from a Windows clone. Do not silently switch between both.
 
 ## Launch or Inspect the Windows Emulator
 
@@ -128,3 +185,11 @@ Wait for boot completion. First boot after creating an AVD can take several minu
 **Android Studio cannot comfortably open the WSL project**
 
 Use the APK install path for app smoke tests. If native editing is needed, consider cloning or copying the repo into the Windows filesystem and keeping WSL/Windows workflows clearly separated.
+
+**`npx cap open android` opened the wrong Android Studio**
+
+Close that instance. Use Windows `studio64.exe` explicitly as described above, or skip Android Studio and install the WSL-built APK with Windows `adb.exe`.
+
+**`npx cap run android` shows a target picker but launches through the wrong host**
+
+Cancel it. Build/sync in WSL, assemble the debug APK, then install with Windows `adb.exe`. Use `"$ADB" devices -l` to choose the real Windows emulator target.

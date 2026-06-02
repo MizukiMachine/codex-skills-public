@@ -32,7 +32,7 @@ Before implementing or debugging, establish:
 - Audio: first-gesture unlock behavior and background pause/resume rules are defined.
 - Lifecycle: WebView pause/resume, WebGL context loss, hardware back button, and scene cleanup have product rules.
 - Android toolchain: Capacitor, Android Studio, SDK, Gradle JDK, and `adb` match the project's Capacitor major version.
-- Host split: if WSL2/Linux builds but Windows owns the emulator, use Windows `adb.exe` deliberately and convert paths explicitly.
+- Host split: if WSL2/Linux builds but Windows owns Android Studio, the emulator, or `adb.exe`, treat Windows as the device host. Do not let `npx cap run android` or `npx cap open android` choose WSL-side Android Studio/ADB implicitly. Build/sync in WSL, then install with Windows `adb.exe`, or explicitly open Windows native Android Studio.
 
 Core priorities:
 1. Contract-first game boot: scene list, loader keys, asset paths, and scale behavior are discoverable and stable.
@@ -58,18 +58,18 @@ Core priorities:
 3. Build the Phaser app with the project-native command, usually `npm run build`.
 4. Configure Capacitor with `webDir` matching the build output, usually `"dist"`.
 5. Add Android if missing: install `@capacitor/android`, then run `npx cap add android`.
-6. Use the deterministic loop:
+6. For a native Linux/macOS/Windows project, use the deterministic loop:
    - `npm run build`
    - `npx cap sync android`
    - `npx cap run android` or `npx cap open android`
 
 When possible, add project scripts so repeated commands cannot skip build or sync.
 
-For WSL2 projects with a Windows emulator, first decide whether the fastest path is:
-- Install a WSL-built APK with Windows `adb.exe`: best for testing existing web/native output.
-- Open the Android project in Windows Android Studio: best when editing native Gradle, manifest, plugin code, signing, or store build settings.
+For WSL2 projects with Windows Android Studio or a Windows emulator, do not use the plain `cap run/open` loop as the default. First choose the device host deliberately:
+- Install a WSL-built APK with Windows `adb.exe`: best for smoke-testing TypeScript, Phaser scenes, CSS, assets, Capacitor config, or Android output that already syncs.
+- Open the Android project in Windows native Android Studio: best when editing native Gradle, manifest, plugin code, signing, Logcat, profilers, or resource editors.
 
-Do not default to debugging a flaky WSL2 emulator GUI when the user's goal is an Android app smoke test. Use the Windows emulator/device host instead.
+Do not default to debugging a flaky WSL2 emulator GUI, WSL-side Android Studio, or Linux `adb` when the user's goal is an Android app smoke test. Use the Windows emulator/device host instead and convert WSL paths with `wslpath -w` when passing APKs or project paths to Windows tools.
 
 ## Implementation Guidelines
 
@@ -157,6 +157,12 @@ Verify with:
 
 After native-side config changes, plugin changes, permissions, signing changes, or web asset changes, run `npx cap sync android` again.
 
+For WSL2 projects where Windows owns Android Studio/Emulator:
+- Prefer scripts such as `android:cloud:apk` or `android:debug:apk` that build in WSL with `npx cap sync android` plus `./gradlew assembleDebug`.
+- Install and launch with Windows `adb.exe` using a Windows-converted APK path, for example `wslpath -w android/app/build/outputs/apk/debug/app-debug.apk`.
+- If Android Studio is needed, explicitly launch Windows `studio64.exe` with a Windows-converted project path. Do not rely on `npx cap open android` from WSL unless the user explicitly wants the WSL/UNC workflow.
+- Keep one ADB host per session. Mixing Linux `adb` and Windows `adb.exe` is a common source of missing, duplicate, or offline devices.
+
 Live reload is development-only. If using `server.url`, use a reachable LAN/emulator host and `server.cleartext: true` only when required. Remove `server.url` before release builds.
 
 Release builds need a project-owned keystore. Debug builds auto-sign.
@@ -202,6 +208,11 @@ Better: remove `server.url` for production and ship built assets unless the proj
 
 Why bad: Linux `adb` and Windows `adb.exe` may talk to different servers, so devices appear missing, offline, or inconsistent.
 Better: choose the device host first. If Windows owns the emulator, run Windows `adb.exe` from WSL and convert APK paths with `wslpath -w`.
+
+**Opening WSL-side Android Studio by accident**
+
+Why bad: `npx cap open android` from WSL can open or target the wrong Android Studio/SDK/ADB path, leaving the real Windows emulator disconnected from the build workflow.
+Better: for smoke tests, build the APK in WSL and install with Windows `adb.exe`; for native Android editing, explicitly launch Windows `studio64.exe` or work from a Windows filesystem clone.
 
 **Starting with shaders, filters, or GPU layers**
 
