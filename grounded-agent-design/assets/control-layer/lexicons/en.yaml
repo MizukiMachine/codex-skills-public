@@ -1,0 +1,61 @@
+# 英語の検出語彙（cue words）。
+# ここを書き換えるだけで、コードを触らずに検閲の「引っかけ語」を調整できます。
+# 書式: 「キー名:」の下に「  - 値」を並べるだけ。スペースを含む語は " " で囲みます。
+# 大文字小文字は無視して照合されるので、小文字で書けば十分です。
+
+# actionCues: 「誰かが“行動した”」ことを示す動詞。
+#   例: 「Xが言った」「Yが報告した」。事実に無い行動を作り出す捏造(invented_reference)の検出に使う。
+actionCues:
+  - said
+  - claimed
+  - told
+  - argued
+  - "pointed out"
+  - mentioned
+  - reacted
+  - voted
+  - reported
+  - admitted
+
+# stanceCues: はっきりした立場・結論を示す言い回し。
+#   「ちゃんと意見を述べているか」の判定に使う。
+stanceCues:
+  - "i think"
+  - "i believe"
+  - "i suspect"
+  - "i trust"
+  - "vote for"
+  - "my pick"
+  - "i'd choose"
+  - "i propose"
+  - "i'll commit"
+  - "the answer is"
+  - "i recommend"
+
+# fillerCues: 中身のない先送り・様子見の言い回し。
+#   前進が必要な場面でこれだけだと「埋め草(passive_filler)」として弾く。
+fillerCues:
+  - "wait and see"
+  - "let me see"
+  - "hard to say"
+  - "we'll find out"
+  - "let's hear"
+  - "for now i'll hold"
+  - "no strong opinion"
+  - "time will tell"
+
+# substanceCues: 前向きで具体的な一手を示す言葉（提案・基準・問い）。
+#   「fillerが無い」だけでなく「積極的な中身がある」ことを要求するために使う。
+substanceCues:
+  - "i propose"
+  - proposal
+  - criterion
+  - criteria
+  - "let's decide"
+  - "my question"
+  - "i'll ask"
+  - "i suggest"
+  - "let's set"
+  - "i'd start by"
+  - "we should decide"
+  - "here's the rule"
