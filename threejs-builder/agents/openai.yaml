@@ -1,4 +1,4 @@
 interface:
   display_name: "Three.js Builder"
-  short_description: "Three.jsシーンとゲームを構築・検証"
+  short_description: "Three.jsシーンとWebGL体験の構築・検証"
   default_prompt: "$threejs-builder を使って、レスポンシブなレンダリングと視覚検証を備えた洗練されたThree.js Webシーンを作成してください。"

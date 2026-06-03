@@ -1,4 +1,4 @@
 interface:
   display_name: "OG Image Creator"
-  short_description: "ブランドに合うOpen Graph画像を生成"
+  short_description: "ブランドに合うOpen Graph画像の生成・統合手順"
   default_prompt: "$og-image-creator を使って、このWebプロジェクトのブランドに合うOpen Graph画像を生成してください。"

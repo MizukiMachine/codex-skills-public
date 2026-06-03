@@ -1,4 +1,4 @@
 interface:
   display_name: "Playwright Testing"
-  short_description: "Frontend testing and Playwright workflow"
-  default_prompt: "Use $playwright-testing to plan, implement, or debug frontend tests with Playwright and related tooling."
+  short_description: "Playwright中心のフロントエンドテストワークフロー"
+  default_prompt: "$playwright-testing を使って、Playwrightと関連ツールでフロントエンドテストを計画・実装・デバッグしてください。"

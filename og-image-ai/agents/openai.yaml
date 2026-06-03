@@ -1,4 +1,4 @@
 interface:
   display_name: "OG Image AI"
-  short_description: "AIイラスト入りOGカードを生成"
+  short_description: "AIイラスト入りOpen Graphカード生成ワークフロー"
   default_prompt: "$og-image-ai を使って、このWebプロジェクトのAIイラスト入りOpen Graph画像を生成してください。"

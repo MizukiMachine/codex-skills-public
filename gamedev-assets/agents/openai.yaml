@@ -1,4 +1,4 @@
 interface:
   display_name: "Gamedev Assets"
-  short_description: "2D game asset pipeline and tilemap tools"
-  default_prompt: "Use $gamedev-assets to audit 2D game assets, sprite sheets, tilemaps, manifests, and derived review artifacts."
+  short_description: "2Dゲームアセットパイプラインとタイルマップツール"
+  default_prompt: "$gamedev-assets を使って、2Dゲームアセット、sprite sheet、tilemap、manifest、派生成果物を監査してください。"

@@ -1,4 +1,4 @@
 interface:
   display_name: "Aseprite Inference"
-  short_description: "Infer Aseprite timelines and metadata"
-  default_prompt: "Use $aseprite-inference to inspect an Aseprite file, infer timeline metadata, and produce engine-ready JSON."
+  short_description: "Asepriteのtimelineとmetadataを推定"
+  default_prompt: "$aseprite-inference を使って、Asepriteファイルを調査し、timeline metadataを推定して、エンジン向けJSONを生成してください。"

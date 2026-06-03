@@ -1,4 +1,4 @@
 interface:
   display_name: "GMerge"
-  short_description: "ブランチをdevelopへ安全にマージ"
+  short_description: "現在の作業ブランチをdevelopへ安全にマージする手順"
   default_prompt: "$gmerge を使って、現在のブランチを --no-ff で develop にマージしてください。"
