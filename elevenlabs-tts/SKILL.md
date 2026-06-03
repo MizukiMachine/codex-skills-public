@@ -1,8 +1,8 @@
 ---
 name: elevenlabs-tts
-description: "Build and troubleshoot ElevenLabs text-to-speech integrations in Node/Python/web apps: auth, voice/model selection, streaming vs batch generation, latency, fallback handling, and secure API-key architecture."
+description: "Node/Python/WebアプリでのElevenLabs text-to-speech統合を構築・トラブルシュートする。認証、音声/モデル選択、streamingとbatch生成、レイテンシ、フォールバック処理、安全なAPIキー構成を扱う。"
 metadata:
-  short-description: "Pragmatic ElevenLabs TTS implementation framework."
+  short-description: "ElevenLabs TTS実装フレームワーク"
 ---
 
 # ElevenLabs TTS

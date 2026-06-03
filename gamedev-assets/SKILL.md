@@ -1,6 +1,6 @@
 ---
 name: gamedev-assets
-description: "Asset pipeline utilities for 2D game projects: validate an asset manifest against PNGs on disk, probe sprite sheets/tilesets to find non-empty grid frames, and report PNG dimensions; plus tilemap/tileset debugging and reconstruction workflows (render a tilemap against a reference image, generate debug overlays, overlay diffs, highlight mismatched tiles, and optionally brute-force autofill tiles). Use when adding/updating art, debugging missing/unused assets, auditing sprite sheets, building frame/size metadata, debugging tileset grids, or recreating a scene image from tilemaps."
+description: "2Dゲームプロジェクト向けのアセットパイプラインユーティリティ。ディスク上のPNGに対するアセットmanifest検証、スプライトシート/タイルセットから非空グリッドフレームの検出、PNG寸法レポート、さらにタイルマップ/タイルセットのデバッグと復元ワークフロー（参照画像に対するタイルマップ描画、デバッグオーバーレイ生成、差分オーバーレイ、ミスマッチタイルの強調、必要に応じたブルートフォース自動補完）を扱う。アート追加/更新、欠落・未使用アセットのデバッグ、スプライトシート監査、フレーム/サイズmetadata作成、タイルセットグリッドデバッグ、タイルマップからのシーン画像再現で使う。"
 ---
 
 # Gamedev Assets

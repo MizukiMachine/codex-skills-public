@@ -1,6 +1,6 @@
 ---
 name: concise-readme-writer
-description: "Create or rewrite compact project README files focused on product purpose, user-facing behavior, and architecture. Use when the user asks for a shorter README, a README format like the Builder Agent Chain example, app/tool/game/site overview docs, README cleanup, or moving development/deployment details out of the README into separate docs."
+description: "プロジェクトの目的、ユーザー向けの挙動、アーキテクチャに焦点を当てたコンパクトなREADMEを作成・書き換える。短いREADME、Builder Agent Chain例のようなREADME形式、アプリ/ツール/ゲーム/サイトの概要ドキュメント、README整理、開発・デプロイ詳細をREADMEから別docsへ移す依頼で使う。"
 ---
 
 # Concise README Writer

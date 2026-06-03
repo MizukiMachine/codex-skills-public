@@ -1,8 +1,8 @@
 ---
 name: phaser-capacitor-android
-description: "Build and ship Phaser 3/4 games on Capacitor Android with Vite and Gradle: Phaser config, scene lifecycle, asset loading, scale/orientation, touch controls, audio unlock, WebView pause/resume/back-button behavior, Android sync/run/signing, and WSL2-to-Windows emulator or ADB workflows."
+description: "ViteとGradleを使ったCapacitor Android上のPhaser 3/4ゲームを構築・出荷する。Phaser設定、sceneライフサイクル、アセット読み込み、scale/orientation、タッチ操作、音声アンロック、WebViewのpause/resume/back-button挙動、Android sync/run/signing、WSL2からWindowsエミュレータまたはADBを扱う。"
 metadata:
-  short-description: "Phaser + Capacitor Android/ADB workflow"
+  short-description: "Phaser + Capacitor Android/ADB ワークフロー"
 ---
 
 # Phaser Capacitor Android

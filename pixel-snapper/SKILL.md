@@ -1,6 +1,6 @@
 ---
 name: pixel-snapper
-description: "Pixel-art PNG cleanup and conversion: recover hidden native pixel grids from upscaled or AI-generated fake pixel art; run Sprite Fusion grid snapping; convert frame batches with fixed-canvas pixelation; quantize palettes; verify dimensions, path parity, RGB color counts, and alpha preservation. Use for pixelate, dot-art, pixel-snap, fake pixel art cleanup, AI pixel art cleanup, known-layout spritesheets, animation frame batches, fixed frame size, and game-ready pixel assets."
+description: "ピクセルアートPNGのクリーンアップと変換を行う。アップスケール画像やAI生成の擬似ピクセルアートから隠れたネイティブピクセルグリッドを復元し、Sprite Fusionのグリッドスナップ、固定キャンバスでのフレーム一括ピクセル化、パレット量子化、寸法・パス対応・RGB色数・アルファ保持の検証を扱う。pixelate、dot-art、pixel-snap、擬似ピクセルアート整理、AIピクセルアート整理、既知レイアウトのスプライトシート、アニメーションフレーム一括処理、固定フレームサイズ、ゲーム用ピクセル素材が必要なときに使う。"
 ---
 
 # Pixel Snapper

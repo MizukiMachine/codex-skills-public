@@ -1,6 +1,6 @@
 ---
 name: "openai-docs"
-description: "Use when the user asks how to build with OpenAI products or APIs, asks about Codex itself or choosing Codex surfaces, needs up-to-date official documentation with citations, help choosing the latest model for a use case, or model upgrade and prompt-upgrade guidance; use OpenAI docs MCP tools for non-Codex docs questions, use the Codex manual helper first for broad Codex self-knowledge, and restrict fallback browsing to official OpenAI domains."
+description: "ユーザーがOpenAI製品/APIの構築方法、Codex自体やCodex surfacesの選び方、引用付きの最新公式ドキュメント、ユースケースに合う最新モデル選定、モデルアップグレードやプロンプトアップグレードのguidanceを求めたときに使う。Codex以外のdocs質問ではOpenAI docs MCP toolsを使い、広範なCodex self-knowledgeには先にCodex manual helperを使い、fallback browsingは公式OpenAI domainsに限定する。"
 ---
 
 

@@ -1,6 +1,6 @@
 ---
 name: plugin-creator
-description: Create and scaffold plugin directories for Codex with a required `.codex-plugin/plugin.json`, optional plugin folders/files, valid manifest defaults, and personal-marketplace entries by default. Use when Codex needs to create a new personal plugin, add optional plugin structure, generate or update marketplace entries for plugin ordering and availability metadata, or update an existing local plugin during development with the CLI-driven cachebuster and reinstall flow.
+description: Codexプラグイン用ディレクトリを作成・scaffoldする。必須の `.codex-plugin/plugin.json`、任意のplugin folders/files、有効なmanifest defaults、デフォルトのpersonal-marketplace entriesを扱う。新しいpersonal pluginの作成、任意構造の追加、plugin ordering/availability metadata用marketplace entriesの生成・更新、CLI-driven cachebuster/reinstall flowでの既存ローカルプラグイン更新が必要なときに使う。
 ---
 
 # Plugin Creator
