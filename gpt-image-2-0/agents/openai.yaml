@@ -1,4 +1,4 @@
 interface:
   display_name: "GPT Image 2.0"
-  short_description: "OpenAI GPT Image 2 generation and editing"
-  default_prompt: "Use $gpt-image-2-0 to generate or edit images with OpenAI GPT Image 2 using precise output controls."
+  short_description: "OpenAI GPT Image 2の画像生成・編集ワークフロー"
+  default_prompt: "$gpt-image-2-0 を使って、OpenAI GPT Image 2で画像を生成または編集し、出力制御を正確に指定してください。"

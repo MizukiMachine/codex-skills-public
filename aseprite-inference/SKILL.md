@@ -1,8 +1,8 @@
 ---
 name: aseprite-inference
-description: "Infer structure/metadata from Aseprite files (.ase/.aseprite; common typo .aes): parse headers/frames/chunks (layers, cels, tags, slices, palettes, tilesets), compute durations/bounds, and generate JSON for engines/tools."
+description: "Asepriteファイル（.ase/.aseprite、よくあるtypo .aes）から構造とmetadataを推定する。ヘッダー、フレーム、チャンク（layers、cels、tags、slices、palettes、tilesets）を解析し、duration/boundsを計算して、エンジンやツール向けJSONを生成する。"
 metadata:
-  short-description: "Infer metadata from Aseprite files."
+  short-description: "Asepriteファイルからmetadataを推定"
 ---
 
 # Aseprite Inference

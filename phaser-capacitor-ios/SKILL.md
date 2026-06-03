@@ -1,8 +1,8 @@
 ---
 name: phaser-capacitor-ios
-description: "Build and ship Phaser 3/4 games on Capacitor iOS with Vite, Xcode, and Swift Package Manager: Phaser config, scene lifecycle, asset loading, scale/orientation, safe-area touch controls, audio unlock, WKWebView pause/resume behavior, iOS sync/run/signing, Safari WebView debugging, and Phaser 4 renderer issues."
+description: "Vite、Xcode、Swift Package Managerを使ったCapacitor iOS上のPhaser 3/4ゲームを構築・出荷する。Phaser設定、sceneライフサイクル、アセット読み込み、scale/orientation、safe-area対応のタッチ操作、音声アンロック、WKWebView pause/resume挙動、iOS sync/run/signing、Safari WebViewデバッグ、Phaser 4 renderer問題を扱う。"
 metadata:
-  short-description: "Phaser + Capacitor iOS workflow"
+  short-description: "Phaser + Capacitor iOS ワークフロー"
 ---
 
 # Phaser Capacitor iOS

@@ -1,4 +1,4 @@
 interface:
   display_name: "Colyseus Multiplayer"
-  short_description: "Authoritative Colyseus multiplayer workflow"
-  default_prompt: "Use $colyseus-multiplayer to design or debug an authoritative Colyseus multiplayer game workflow."
+  short_description: "authoritative Colyseusマルチプレイヤーワークフロー"
+  default_prompt: "$colyseus-multiplayer を使って、authoritativeなColyseusマルチプレイヤーゲームのワークフローを設計またはデバッグしてください。"

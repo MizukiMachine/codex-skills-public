@@ -1,4 +1,4 @@
 interface:
   display_name: "ElevenLabs TTS"
-  short_description: "ElevenLabs TTS integration workflow"
-  default_prompt: "Use $elevenlabs-tts to build or troubleshoot ElevenLabs text-to-speech integration with secure API handling."
+  short_description: "ElevenLabs TTS統合の実装とトラブルシュート"
+  default_prompt: "$elevenlabs-tts を使って、安全なAPI処理を備えたElevenLabs text-to-speech統合を構築またはトラブルシュートしてください。"

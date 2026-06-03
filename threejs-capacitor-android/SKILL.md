@@ -1,8 +1,8 @@
 ---
 name: threejs-capacitor-android
-description: "Build and ship Three.js apps on Capacitor Android with Vite and Gradle: GLTF loading, assets_index animation UI, OrbitControls mouse/touch mappings, WebView lifecycle handling, Android sync/run/signing troubleshooting, and WSL2-to-Windows Android Emulator or ADB workflows."
+description: "ViteとGradleを使ったCapacitor Android上のThree.jsアプリを構築・出荷する。GLTF読み込み、assets_indexアニメーションUI、OrbitControlsのマウス/タッチ割り当て、WebViewライフサイクル、Android sync/run/signingのトラブルシュート、WSL2からWindows Android EmulatorまたはADBを扱う。"
 metadata:
-  short-description: "Three.js + Capacitor Android/ADB workflow"
+  short-description: "Three.js + Capacitor Android/ADB ワークフロー"
 ---
 
 # Three.js Capacitor Android

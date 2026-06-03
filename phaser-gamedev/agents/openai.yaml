@@ -1,4 +1,4 @@
 interface:
   display_name: "Phaser Gamedev"
-  short_description: "Phaser 2Dゲームを構築・デバッグ・最適化"
-  default_prompt: "このスキルでPhaserのscene、asset、physics、tilemap、UI、performance、version migrationを扱ってください。まずプロジェクトのPhaser version、asset、scene architectureを確認し、その後に実装してブラウザで検証してください。"
+  short_description: "Phaser 2Dゲームの構築・デバッグ・最適化支援"
+  default_prompt: "$phaser-gamedev を使って、Phaserのscene、asset、physics、tilemap、UI、performance、version migrationを扱ってください。まずプロジェクトのPhaser version、asset、scene architectureを確認し、その後に実装してブラウザで検証してください。"

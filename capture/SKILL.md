@@ -1,6 +1,6 @@
 ---
 name: capture
-description: "Save session prompts, plans, and learnings to their canonical directories. Use when wrapping up a task, after planning, after completing work, or when the user says to save/capture/log the session."
+description: "セッションのプロンプト、計画、学びを標準ディレクトリに保存する。タスクのまとめ、計画後、作業完了後、ユーザーがsave/capture/logを求めたときに使う。"
 ---
 
 # Capture

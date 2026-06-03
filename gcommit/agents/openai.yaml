@@ -1,4 +1,4 @@
 interface:
   display_name: "GCommit"
-  short_description: "安全な単位でGitコミットを作成"
+  short_description: "安全な単位でブランチ作成とGitコミットを実行する手順"
   default_prompt: "$gcommit を使って作業ツリーを確認し、ブランチを作成して安全にコミットしてください。"

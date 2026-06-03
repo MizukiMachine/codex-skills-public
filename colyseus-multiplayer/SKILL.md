@@ -1,8 +1,8 @@
 ---
 name: colyseus-multiplayer
-description: "Build authoritative multiplayer games with Colyseus: room design, schema state sync, matchmaking, reconnects, auth, deployment, and browser-engine integration for Phaser, Three.js, PixiJS, React, or custom web clients."
+description: "Colyseusでauthoritative multiplayerゲームを構築する。room設計、schema state sync、matchmaking、reconnect、auth、deployment、Phaser/Three.js/PixiJS/ReactまたはカスタムWebクライアントとのブラウザエンジン統合を扱う。"
 metadata:
-  short-description: "Colyseus architecture, state sync, deployment, and engine integration."
+  short-description: "Colyseusの設計、状態同期、デプロイ、エンジン統合"
 ---
 
 # Colyseus Multiplayer

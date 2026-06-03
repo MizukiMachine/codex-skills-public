@@ -1,8 +1,8 @@
 ---
 name: gpt-image-1-5
-description: "Use OpenAI gpt-image-1.5 for image generation requests, prompt design, transparent-background assets, style-controlled illustrations, concept art, icons, and API-backed image creation via the Images API."
+description: "OpenAI gpt-image-1.5を使った画像生成リクエスト、プロンプト設計、透明背景アセット、スタイル制御イラスト、コンセプトアート、アイコン、Images API経由の画像生成で使う。"
 metadata:
-  short-description: "OpenAI GPT Image 1.5 generation + prompting + API wrapper."
+  short-description: "OpenAI GPT Image 1.5の生成、プロンプト、APIラッパー"
 ---
 
 # GPT Image 1.5

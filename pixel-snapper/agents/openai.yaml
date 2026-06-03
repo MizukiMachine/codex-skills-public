@@ -1,4 +1,4 @@
 interface:
   display_name: "Pixel Snapper"
-  short_description: "Pixel art cleanup and batch validation"
-  default_prompt: "Use $pixel-snapper to clean up pixel-art PNGs, choose the right grid recovery or fixed-canvas workflow, and verify dimensions, palette, and alpha."
+  short_description: "ピクセルアートPNGの整理・変換・一括検証ワークフロー"
+  default_prompt: "$pixel-snapper を使って、pixel-art PNGを整理し、適切なgrid recoveryまたはfixed-canvas workflowを選び、寸法・palette・alphaを検証してください。"

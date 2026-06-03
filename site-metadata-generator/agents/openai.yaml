@@ -1,4 +1,4 @@
 interface:
   display_name: "Site Metadata Generator"
-  short_description: "サイトのSEO metadataを生成"
+  short_description: "サイトSEO metadataの生成・監査・実装ワークフロー"
   default_prompt: "$site-metadata-generator を使って、このWebプロジェクトのSEO metadataを監査・実装してください。"

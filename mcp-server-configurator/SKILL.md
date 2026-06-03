@@ -1,8 +1,8 @@
 ---
 name: mcp-server-configurator
-description: "Turn an MCP server's docs/URL into a correct Codex `mcp_servers` entry (stdio or http), with safe auth + verification steps."
+description: "MCPサーバーのドキュメントやURLから、Codex用の正しい`mcp_servers`設定（stdioまたはhttp）を作成する。安全な認証設定と検証手順を含む。"
 metadata:
-  short-description: "Configure MCP servers for Codex."
+  short-description: "Codex向けMCPサーバー設定"
 ---
 
 # MCP Server Configurator

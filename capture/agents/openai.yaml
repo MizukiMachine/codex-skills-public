@@ -1,4 +1,4 @@
 interface:
   display_name: "Capture"
-  short_description: "Capture task prompts plans and learnings"
-  default_prompt: "Use $capture to save the session prompts, plans, and learnings into their canonical locations."
+  short_description: "セッションのプロンプト・計画・学びを標準場所へ保存"
+  default_prompt: "$capture を使って、セッションのプロンプト、計画、学びを標準の保存先に記録してください。"

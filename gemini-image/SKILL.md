@@ -1,8 +1,8 @@
 ---
 name: gemini-image
-description: "Use Google Gemini image models (Gemini 3 Pro Image, Gemini 3.1 Flash Image, Gemini 2.5 Flash Image / Nano Banana) for image generation, multi-turn editing, multi-image reference composition, character consistency, thinking-mode planning, and Google Search-grounded visuals via the Gemini API."
+description: "Google Gemini画像モデル（Gemini 3 Pro Image、Gemini 3.1 Flash Image、Gemini 2.5 Flash Image / Nano Banana）を使った画像生成、マルチターン編集、複数画像参照の合成、キャラクター一貫性、thinking-mode計画、Google検索でグラウンディングしたビジュアル生成をGemini API経由で行う。"
 metadata:
-  short-description: "Gemini image generation + editing via generateContent, prompting, and API wrapper."
+  short-description: "Gemini画像生成・編集、generateContent、プロンプト、APIラッパー"
 ---
 
 # Gemini Image
