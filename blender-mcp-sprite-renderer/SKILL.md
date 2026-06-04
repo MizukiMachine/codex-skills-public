@@ -5,11 +5,11 @@ description: "Blender MCPでMixamo/FBXキャラクターを2Dゲーム用スプ�
 
 # Blender MCP Sprite Renderer
 
-## Purpose
+## 目的
 
-Use Blender MCP to convert FBX character animation clips into aligned 2D game sprite sequences. The default target is side-scroller sprites: square transparent PNGs, left/right side views, 16 frames per clip, and stable per-character framing across all actions.
+Blender MCP を使い、FBX character animation clips を aligned 2D game sprite sequences に変換する。既定 target は side-scroller sprites: square transparent PNGs、left/right side views、clip ごと 16 frames、character ごとに all actions で stable framing。
 
-Prefer the bundled script for repeatability:
+repeatability のため同梱 script を優先する。
 
 ```text
 scripts/render_aligned_sprites.py
@@ -17,9 +17,9 @@ scripts/render_aligned_sprites.py
 
 ## Mandatory Preflight
 
-The first user-facing step after this skill is invoked must be an image resolution confirmation. Do not create job configs for execution, import FBX files into Blender, create Blender MCP jobs, or render anything until the user has chosen or confirmed the resolution.
+この skill が呼ばれた後の最初の user-facing step は、必ず image resolution confirmation にする。user が resolution を選択または確認するまで、executable job configs の作成、FBX import、Blender MCP jobs、rendering を行わない。
 
-Ask the resolution question with numbered options and an explicit recommended choice:
+resolution question は numbered options と recommended choice で聞く。
 
 ```text
 画像解像度を選んでください。これはPNGキャンバスのピクセル数です。キャラクターを大きく写すためのカメラ倍率や余白marginの変更とは別設定です。
@@ -30,7 +30,7 @@ Ask the resolution question with numbered options and an explicit recommended ch
 4. カスタム解像度を指定
 ```
 
-If the user already specified a resolution such as `1024x1024`, still ask for final confirmation before any job creation, FBX import, or rendering:
+user が `1024x1024` などを既に指定していても、job creation、FBX import、rendering 前に最終確認する。
 
 ```text
 指定解像度は 1024x1024 です。この解像度で開始してよいですか？
@@ -38,13 +38,11 @@ If the user already specified a resolution such as `1024x1024`, still ask for fi
 2. 解像度を変更する
 ```
 
-Treat resolution as the square output canvas size in pixels. Do not present higher resolution as a way to zoom the character in. If the user wants the character to appear larger or smaller within the frame, discuss camera framing, orthographic scale, or `margin` separately after the resolution is confirmed.
+resolution は square output canvas size in pixels として扱う。higher resolution を character zoom として説明しない。character を frame 内で大きく/小さくしたい場合は、resolution 確認後に camera framing、orthographic scale、`margin` を別設定として扱う。
 
-Do not start importing FBX files, creating job configs for execution, or rendering immediately when this skill is invoked. After the resolution is chosen or confirmed, ask the user what remaining capture rules to use, present numbered options, and wait for their answer.
+resolution 確認後、残りの capture rules を numbered options で聞き、回答を待つ。local filenames を inspect して better choices を提案するのはよいが、resolution と capture rules の承認前に executable job configs や import/render operations は作らない。
 
-It is acceptable to inspect local filenames to offer better choices, but do not create executable job configs or run Blender import/render operations until the user confirms the resolution and capture rules.
-
-If the user already gave detailed settings, still summarize them and ask for confirmation after the separate resolution confirmation:
+user が詳細設定を既に渡している場合も、resolution confirmation の後に設定を要約して確認する。
 
 ```text
 この設定で撮影を開始してよいですか？
@@ -52,9 +50,9 @@ If the user already gave detailed settings, still summarize them and ask for con
 2. 設定を変更する
 ```
 
-When the user's language is Japanese, ask the preflight questions in Japanese.
+user の言語が日本語なら preflight questions は日本語で行う。
 
-After the resolution is chosen or confirmed, use this concise setup questionnaire for the remaining capture rules unless the user already answered part of it:
+remaining capture rules の default questionnaire:
 
 ```text
 撮影ルールを選んでください。
@@ -86,83 +84,82 @@ After the resolution is chosen or confirmed, use this concise setup questionnair
    2. 現在のシーンをクリアしてよい
 ```
 
-After the user answers, restate the final config briefly and ask one final start confirmation before creating executable job configs, importing FBX files, or rendering. If the user chooses the recommended temporary-scene behavior, use the bundled script as-is; it creates temporary Blender scenes and restores the original scene when finished.
+user 回答後、final config を短く restate し、executable job configs、FBX import、rendering 前に final start confirmation を取る。recommended temporary-scene behavior では bundled script をそのまま使う。
 
 ## Required Behavior
 
-Default output contract:
+default output contract:
 
-- PNG with transparent background.
-- `1024 x 1024` square images unless the user explicitly confirms another resolution.
-- Resolution controls PNG canvas pixels only; it does not change camera zoom, character scale in frame, orthographic scale, or `margin`.
-- `16` output frames per animation unless the user specifies another count.
-- `right_view` and `left_view` directories for each clip.
-- Orthographic side camera, not perspective camera.
-- True character side view, not top-down, 3/4, front, or back view.
-- Same character group uses one shared camera center and one shared orthographic scale for all actions.
-- Do not fit camera per action; that causes game animation popping.
-- Align each imported FBX by its first-frame foot/ground anchor before measuring and rendering.
-- Treat `idle`, `walk`, `run`, and similar cyclic motions as loops: sample evenly and exclude the duplicated endpoint.
-- Treat `attack`, `slash`, `impact`, `hit`, `death`, `dying`, and similar actions as one-shot clips: sample from start through final pose, including both endpoints.
+- transparent background の PNG
+- user が別 resolution を明示確認しない限り `1024x1024`
+- resolution は PNG canvas pixels のみ。camera zoom、character scale、orthographic scale、`margin` は変えない
+- user 指定がなければ animation ごとに `16` frames
+- clip ごとに `right_view` / `left_view` directories
+- orthographic side camera。perspective、top-down、3/4、front/back ではない
+- same character group では all actions に one shared camera center / orthographic scale
+- action ごとに camera fit しない。game animation popping の原因になる
+- imported FBX は first-frame foot/ground anchor で align してから measure/render
+- `idle`、`walk`、`run` は loop として evenly sample、duplicated endpoint を除外
+- `attack`、`slash`、`impact`、`hit`、`death` は action として start/final pose を含める
 
-## Workflow
+## ワークフロー
 
-1. Ask the mandatory image resolution question and wait until the user chooses or confirms a resolution.
-2. Ask the remaining mandatory preflight questions and wait for the user's answers.
-3. Restate the final config, including resolution, transparent PNG, frame count, views, side axis, alignment, loop/action handling, and temporary-scene behavior. Ask for final start confirmation.
-4. Confirm Blender MCP is reachable. If it is not, start Blender with the local MCP addon/script, then retry.
-5. Identify FBX files and group them by character, not by action. Examples: all `Zombie *.fbx` in one group; all `Sword And Shield *.fbx` in another group.
-6. Classify each clip as `loop` or `action` according to the user's selected rule.
-7. Create a jobs JSON file following `references/job-config.md` only after the user has approved the resolution and capture rules.
-8. Run `scripts/render_aligned_sprites.py --jobs-file <jobs.json>` only after the user has approved the final start confirmation.
-9. Inspect at least one first frame from each group and one large-motion frame from each action.
-10. If the output is front/back instead of side view, ask whether to rerun with the alternate `side_axis` in the group config.
+1. mandatory resolution question を聞き、回答を待つ
+2. remaining preflight questions を聞き、回答を待つ
+3. resolution、PNG transparency、frame count、views、side axis、alignment、loop/action handling、temporary-scene behavior を含む final config を restate し、final start confirmation を取る
+4. Blender MCP が reachable か確認。不可なら local MCP addon/script 付きで Blender を起動して retry
+5. FBX files を identify し、action ではなく character で group 化する
+6. selected rule に従い clip を `loop` / `action` に分類
+7. user が承認した後だけ `references/job-config.md` に従い jobs JSON を作る
+8. final start confirmation 後だけ `scripts/render_aligned_sprites.py --jobs-file <jobs.json>` を実行
+9. group ごとに first frame と large-motion frame を少なくとも1枚 inspect
+10. front/back なら alternate `side_axis` で rerun するか確認
 
-## Preview/Test Output
+## Preview / Test Output
 
-If the user chooses "先に1枚だけテスト出力して確認する", do not render the full set first.
+user が "先に1枚だけテスト出力して確認する" を選んだ場合、full set を先に render しない。
 
-Use a temporary preview job:
+temporary preview job:
 
-- Use only one representative action per character group, preferably `idle` or `walk` if available.
-- Set `frames_per_clip` to `1`.
-- Keep the same `resolution`, `side_axis`, grouping, alignment, and output rules that would be used for the full run.
-- Write to an output directory ending in `_preview`.
-- Render both `right_view` and `left_view`.
-- Ask the user to confirm:
-  1. whether the view is truly from the character side,
-  2. whether `right_view` and `left_view` naming is acceptable,
-  3. whether the feet/ground position and character scale are acceptable.
+- character group ごとに representative action 1つ。可能なら `idle` または `walk`
+- `frames_per_clip = 1`
+- full run と同じ `resolution`、`side_axis`、grouping、alignment、output rules
+- output directory は `_preview` suffix
+- `right_view` と `left_view` の両方
 
-Only render the full sequence after the user approves the preview.
+確認項目:
+
+1. true side view か
+2. `right_view` / `left_view` naming が許容か
+3. feet/ground position と character scale が許容か
+
+full sequence は preview approval 後だけ。
 
 ## Alignment Rules
 
-For each character group:
+character group ごと:
 
-1. Import every FBX independently.
-2. For each FBX, evaluate its first action frame.
-3. Move the character so the first-frame foot center on the screen-horizontal axis is at `0`, and the first-frame ground/bottom `Z` is at `0`.
-4. Measure all frames of all actions after that anchor alignment.
-5. Compute one common bounding box for the whole character group.
-6. Use the common bounding box to set one orthographic camera scale and one camera target for every action in the group.
+1. 各 FBX を独立に import
+2. 各 FBX の first action frame を evaluate
+3. screen-horizontal axis の first-frame foot center を `0`、first-frame ground/bottom `Z` を `0` に move
+4. anchor alignment 後、全 actions の全 frames を measure
+5. character group 全体の common bounding box を compute
+6. common bounding box から all actions に one orthographic camera scale / target を使う
 
-This keeps `idle -> walk -> attack -> death` transitions visually stable in a game.
+これで `idle -> walk -> attack -> death` transitions が安定する。
 
 ## Side View Axis
 
-The script supports `side_axis` per character group:
+script は group ごとに `side_axis` を support する。
 
-- `X`: cameras are placed on `+X` and `-X`; screen horizontal is world `Y`; vertical is world `Z`.
-- `Y`: cameras are placed on `+Y` and `-Y`; screen horizontal is world `X`; vertical is world `Z`.
+- `X`: cameras on `+X` / `-X`; screen horizontal は world `Y`; vertical は world `Z`
+- `Y`: cameras on `+Y` / `-Y`; screen horizontal は world `X`; vertical は world `Z`
 
-Use `X` first for the Mixamo cases from this project. If the rendered result shows the character's front or back instead of the side, rerun the same jobs with `side_axis: "Y"`.
+この project の Mixamo cases ではまず `X` を試す。front/back なら同じ jobs を `side_axis: "Y"` で rerun する。
 
-Do not promise that `right_view` always means the anatomical right side of the character. It means the view rendered from the positive side of the selected `side_axis`. Confirm the naming with a preview when correctness matters for game logic or asset naming.
+`right_view` が anatomical right side を常に意味すると約束しない。選択された `side_axis` の positive side から render した view を意味する。game logic / asset naming で重要なら preview で確認する。
 
 ## Output Layout
-
-Use this directory structure:
 
 ```text
 output_dir/
@@ -171,22 +168,20 @@ output_dir/
       right_view/
         action_name_right_view_0001.png
         ...
-        action_name_right_view_0016.png
       left_view/
         action_name_left_view_0001.png
         ...
-        action_name_left_view_0016.png
 ```
 
-## Example User Request Mapping
+## Example Mapping
 
-If the user says:
+user request:
 
 ```text
 Use Blender MCP to render Zombie Idle, Zombie Walk, and Zombie Attack as game sprites.
 ```
 
-Build jobs like:
+jobs example:
 
 ```json
 {
@@ -206,10 +201,10 @@ Build jobs like:
 }
 ```
 
-Then run:
+run:
 
 ```powershell
 & "<python>" "<skill-dir>\scripts\render_aligned_sprites.py" --jobs-file "<jobs.json>"
 ```
 
-Use the workspace bundled Python when available.
+available なら workspace bundled Python を使う。

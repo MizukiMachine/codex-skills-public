@@ -5,11 +5,11 @@ description: "システムやコードパスの流れをASCIIフロー図で説�
 
 # Flow Visualizer
 
-Explain a system with a detailed vertical ASCII flow: processing steps, code-level anchors, commands, files, functions, exit codes, and short natural-language explanations.
+システムを縦方向の ASCII フローで説明する。処理ステップ、コード上の根拠、コマンド、ファイル、関数、終了コード、短い自然言語説明を含める。
 
-## Output Style
+## 出力スタイル
 
-Use this structure as the default:
+既定では次の形を使う。
 
 ```text
   Input or trigger
@@ -34,27 +34,27 @@ Use this structure as the default:
   Final output or observable result
 ```
 
-Use ASCII characters for boxes and arrows unless the user explicitly wants Unicode box drawing.
+ユーザーが Unicode 罫線を明示しない限り、箱と矢印には ASCII 文字を使う。
 
-## Explanation Rules
+## 説明ルール
 
-- Include programming-layer anchors: file paths, functions, classes, commands, exit codes, environment variables, routes, database tables, queues, jobs, and config files.
-- Keep the abstraction at the processing-unit level. Do not explain every line of code unless the user asks.
-- Explain what each step accomplishes and why it exists.
-- Use nested boxes for sub-flows when a step contains meaningful internal work.
-- Keep each step compact: usually 1-3 lines inside a box.
-- If the user asks about a repository, inspect the relevant files before drawing the flow.
-- If part of the flow is inferred rather than verified, label it as inferred.
+- ファイルパス、関数、クラス、コマンド、終了コード、環境変数、ルート、DB テーブル、キュー、ジョブ、設定ファイルなど、プログラム層の根拠を入れる
+- 抽象度は処理単位に保つ。ユーザーが求めない限り、行単位の説明にしない
+- 各ステップが何を達成し、なぜ存在するかを書く
+- ステップ内部に意味のある処理がある場合は nested box を使う
+- 各ステップは通常1-3行に収める
+- リポジトリについて聞かれた場合は、関連ファイルを読んでから図を書く
+- 推測した部分は inferred と明示する
 
-## Repository Workflow
+## リポジトリでの進め方
 
-1. Identify the entry point: command, route, handler, UI action, job, test runner, or public API.
-2. Trace the next calls using `rg`, manifests, imports, route definitions, and config files.
-3. Capture the main path first, then add important branches such as validation failure, retries, or error handling.
-4. Produce the ASCII flow.
-5. Add a short note after the diagram only when it clarifies assumptions, skipped branches, or source files.
+1. エントリポイントを特定する: コマンド、ルート、handler、UI action、job、test runner、public API
+2. `rg`、manifest、import、route 定義、config で次の呼び出しを追う
+3. 主要パスを先に押さえ、validation failure、retry、error handling など重要な分岐を追加する
+4. ASCII フローを出す
+5. 仮定、省略した分岐、根拠ファイルの説明が必要なときだけ、図の後に短いメモを添える
 
-## Example
+## 例
 
 ```text
 $ go test ./...

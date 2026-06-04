@@ -7,136 +7,113 @@ metadata:
 
 # GPT Image 1.5
 
-Use this skill when the user wants actual image generation with OpenAI `gpt-image-1.5`, or when the task requires strong prompting and parameter selection for that model.
+OpenAI `gpt-image-1.5` で実際に画像生成する場合、またはこの model に合わせた prompt と parameter selection が必要な場合に使う。
 
-## Philosophy: Translate Intent Into A Production Request
+## 考え方: 意図を production request へ翻訳する
 
-Image generation is not “write a pretty prompt and hope.” The job is to convert a vague art request into a concrete production request with the right subject, composition, style, constraints, and output settings.
+image generation は「きれいな prompt を書いて祈る」作業ではない。曖昧な art request を、subject、composition、style、constraints、output settings を持つ具体的な production request へ変換する。
 
-**Before generating, ask:**
-- What is the deliverable: concept art, icon, product render, marketing image, character sheet, UI element, or transparent asset?
-- What must stay stable: framing, palette, era, camera angle, background treatment, text, or brand details?
-- What should the file be optimized for: review, iteration speed, print quality, web use, or transparent cutout?
-- Is the user asking for a single image, or are they really asking for a system of related images?
+**生成前に確認すること:**
 
-**Core principles**:
-1. **Intent over adjective soup**: concrete composition and constraints beat long lists of style words.
-2. **Output settings are part of the prompt**: size, quality, format, and background materially change usefulness.
-3. **Truth over theater**: only claim an image was generated after running the API or receiving output.
+- deliverable は concept art、icon、product render、marketing image、character sheet、UI element、transparent asset のどれか
+- framing、palette、era、camera angle、background treatment、text、brand details など何を安定させるか
+- file は review、iteration speed、print quality、web use、transparent cutout のどれに最適化するか
+- single image か、related images の system か
 
-## Working With GPT Image 1.5
+**基本原則**
 
-OpenAI documents `gpt-image-1.5` as the latest GPT Image model with text and image input, and image and text output. The Images API supports `gpt-image-1.5` for generation, with `png`, `webp`, or `jpeg` output and documented size/quality/background controls. See `references/openai-gpt-image-1-5.md`.
+1. **adjective soup より intent**: 具体的な composition と constraints を優先する
+2. **output settings も prompt の一部**: size、quality、format、background は有用性を変える
+3. **生成事実を正直に扱う**: API 実行または output 受領後だけ generated と伝える
 
-### When To Use This Skill
+## GPT Image 1.5 の扱い
 
-- The user asks you to generate an image with OpenAI.
-- The user wants a prompt for `gpt-image-1.5`.
-- The user needs transparent-background assets, icons, concept art, product shots, or stylized illustrations.
-- The user needs a runnable API example or a wrapper script for the Images API.
+OpenAI は `gpt-image-1.5` を text/image input と image/text output を持つ GPT Image model としている。Images API は generation で `gpt-image-1.5`、`png` / `webp` / `jpeg` output、documented size/quality/background controls を support する。詳細は `references/openai-gpt-image-1-5.md` を読む。
 
-### Generation Workflow
+## 使う場面
 
-1. Clarify the target deliverable and output constraints from the user request.
-2. Write a prompt with these parts when relevant:
+- user が OpenAI で image generation を求める
+- `gpt-image-1.5` 用 prompt が必要
+- transparent-background assets、icons、concept art、product shots、stylized illustrations が必要
+- Images API の runnable example または wrapper script が必要
+
+## Generation Workflow
+
+1. target deliverable と output constraints を request から明確化する
+2. 必要に応じて prompt に次を含める
    - subject
    - composition
    - style/material/era
    - lighting/camera
    - important exclusions
    - file intent
-3. Choose API settings deliberately:
-   - `size`: `1024x1024`, `1024x1536`, `1536x1024`, or `auto`
-   - `quality`: `low`, `medium`, `high`, or `auto`
-   - `output_format`: `png`, `webp`, or `jpeg`
-   - `background`: use `transparent` only with `png` or `webp`
-4. If image generation is requested and `OPENAI_API_KEY` is available, use `scripts/gpt_image_generate.py`.
-5. Save outputs to a user-visible path and report exactly what was generated.
+3. API settings を意図して選ぶ
+   - `size`: `1024x1024`, `1024x1536`, `1536x1024`, `auto`
+   - `quality`: `low`, `medium`, `high`, `auto`
+   - `output_format`: `png`, `webp`, `jpeg`
+   - `background`: `transparent` は `png` または `webp` のみ
+4. generation requested で `OPENAI_API_KEY` がある場合は `scripts/gpt_image_generate.py` を使う
+5. outputs を user-visible path に保存し、何を生成したか正確に報告する
 
-### Prompt Construction
+## Prompt Construction
 
-Prefer compact, production-oriented prompts:
+compact な production-oriented prompts を優先する。
 
 ```text
 Create a side-view fantasy inn sign for a 2D platformer. Carved wood, brass brackets, hand-painted fox emblem, warm lantern glow, readable silhouette, transparent background, no mockup, no text, centered composition.
 ```
 
-For style-sensitive work, add one clear visual direction instead of five contradictory ones:
+style-sensitive work では矛盾する style を積まない。
 
 - good: `1990s SNES-era platformer prop with restrained palette and crisp pixel clusters`
 - bad: `hyper realistic painterly low poly anime cinematic pixel art watercolor`
 
-For iteration, change one axis at a time:
+iteration では silhouette、palette、camera/framing、surface detail、mood/lighting のように1軸ずつ変える。
 
-- silhouette
-- palette
-- camera/framing
-- surface detail
-- mood/lighting
+## Cookbook Prompting Pointers
 
-### OpenAI Cookbook Prompting Pointers
+OpenAI cookbook guidance に基づく補強:
 
-The OpenAI cookbook guidance for GPT Image 1.5 strengthens the prompt strategy above:
-
-- Start by setting the **intended use** clearly: concept art, screenshot, icon, edit, text-heavy graphic, product render, or transparent asset.
-- Keep prompt structure ordered and explicit:
+- intended use を明確にする: concept art、screenshot、icon、edit、text-heavy graphic、product render、transparent asset
+- prompt structure を ordered / explicit にする
   - subject
   - environment/background
   - composition / camera / framing
   - style / materials / era
   - lighting / color treatment
   - exact constraints and exclusions
-- Be specific about **placement and relationships**: where objects are, what is foreground vs background, what overlaps, what must remain visible.
-- For edits, state both:
-  - what must change
-  - what must stay unchanged
-- For text in images, treat wording as literal content:
-  - quote the exact text
-  - keep it short
-  - specify placement and typography expectations
-- For multiple reference images, label them in the prompt conceptually, for example `image 1 = character silhouette`, `image 2 = color palette`, `image 3 = environment mood`.
-- Iterate with **small controlled deltas** instead of rewriting the whole prompt every time.
-- If layout fidelity matters, describe the image more like a design spec than a mood board.
+- object の placement、foreground/background、overlap、visible constraints を具体化する
+- edits では change list と preserve list を両方書く
+- image 内 text は exact text を引用し、短くし、placement と typography expectations を書く
+- multiple reference images は `image 1 = character silhouette` のように role を label する
+- iteration は prompt 全体を書き換えず、小さな controlled deltas で行う
+- layout fidelity が重要なら mood board ではなく design spec として書く
 
-### Sprite Animation Consistency
+## Sprite Animation Consistency
 
-For low-resolution sprite animation edits, the model needs more than “same character” language. Tiny pixel characters drift easily in:
+low-resolution sprite animation edits では "same character" だけでは不足する。tiny pixel characters は frame-1 size、body orientation、outline thickness、face readability、costume silhouette が drift しやすい。
 
-- frame-1 size
-- body orientation
-- outline thickness
-- face readability
-- costume silhouette
+sprite-strip work の stricter pattern:
 
-For sprite-strip work, use this stricter pattern:
-
-1. Start from the **currently shipped in-game frame**, not an older concept export.
-2. Build a transparent **reference canvas** with that shipped frame upscaled and placed into the intended slot layout.
-3. Prefer one full-strip edit over frame-by-frame edits.
-4. If iterating, prefer a **small-delta retouch** of the best current strip rather than a full reinterpretation.
-5. In multi-image edits, label each image by role explicitly:
+1. older concept export ではなく **currently shipped in-game frame** から始める
+2. shipped frame を upscaled し、slot layout に配置した transparent **reference canvas** を作る
+3. frame-by-frame edits より one full-strip edit を優先する
+4. best current strip から small-delta retouch を優先し、full reinterpretation を避ける
+5. multi-image edits では role を明示する
    - `Image 1 = identity anchor`
    - `Image 2 = pose/layout/motion anchor`
-6. State both:
-   - **what must change**
-   - **what must stay unchanged**
-7. Repeat the preserve list aggressively for:
-   - side view
-   - head size
-   - silhouette family
-   - palette family
-   - outline thickness
-   - apparent scale
+6. what must change / what must stay unchanged を両方書く
+7. side view、head size、silhouette family、palette family、outline thickness、apparent scale を preserve list に繰り返す
 
-For states that should begin from idle, there are two different tools:
+idle から始まる state では2つの手段がある。
 
-- **Hard-lock on import**: good when gameplay must start from the exact shipped idle frame, but it can create a visible jump if the generated frame 2 does not match the locked frame 1 closely.
-- **Protected frame-1 edit**: stronger when you need visual continuity. Keep frame 1 immutable in the edit itself, ideally with masking, and allow GPT to change only later frames.
+- **Hard-lock on import**: gameplay が exact shipped idle frame から始まる必要があるとき有効。ただし generated frame 2 と合わないと jump が目立つ
+- **Protected frame-1 edit**: visual continuity が必要なとき強い。frame 1 を edit 内で immutable にし、後続 frame だけ変更させる
 
-Practical rule:
+practical rule:
 
-- If the problem is “the animation does not start from the real idle sprite,” hard-lock can help.
-- If the problem is “frame 1 and frame 2 feel like different characters,” hard-lock alone is not enough. Use a more surgical edit or a mask.
+- 問題が「real idle sprite から始まらない」なら hard-lock が役立つ
+- 問題が「frame 1 と frame 2 が別 character に見える」なら hard-lock だけでは不足。surgical edit または mask を使う
 
 Example structure:
 
@@ -150,9 +127,9 @@ Lighting/color: bright coastal blues with warm stone and wood tones.
 Constraints: visible pixels, limited palette, stepped shading, no glossy rendering, no collage, no poster framing.
 ```
 
-## Using The Bundled Script
+## 同梱 script
 
-Generate one or more images:
+生成:
 
 ```bash
 OPENAI_API_KEY=... \
@@ -168,58 +145,64 @@ Useful flags:
 - `--filename-prefix hero`
 - `--user some-trace-id`
 
-The script calls `POST /v1/images/generations`, decodes `b64_json`, and writes image files to disk.
+script は `POST /v1/images/generations` を呼び、`b64_json` を decode して files を書く。
 
-## Anti-Patterns To Avoid
+## 避けること
 
-❌ **Anti-pattern: claiming success before generation**
-Why bad: the user asked for images, not a hypothetical prompt.
-Better: run the script if credentials are available, or clearly say that API access is missing.
+**generation 前に成功したと言う**
 
-❌ **Anti-pattern: contradictory prompt stacks**
-Why bad: the model gets weaker guidance, not stronger guidance.
-Better: choose one subject, one composition, and one primary style direction.
+問題: user は hypothetical prompt ではなく actual image を求めている。
+改善: API を実行し output file を保存してから generated と伝える。未実行なら理由を明示する。
 
-❌ **Anti-pattern: transparent background with `jpeg`**
-Why bad: OpenAI documents transparency for `png` and `webp`, not `jpeg`.
-Better: use `png` or `webp` when transparency matters.
+**contradictory prompt stacks**
 
-❌ **Anti-pattern: pretending sprite sheets are guaranteed**
-Why bad: image models are better at generating single assets or illustrations than deterministic sheet layouts.
-Better: ask for one asset, one pose, or one state per call unless the user explicitly wants experimentation.
+問題: 複数の subject、composition、style direction が競合すると adherence が落ちる。
+改善: one subject、one composition、one primary style direction に整理する。
 
-❌ **Anti-pattern: defaulting every request to highest quality**
-Why bad: it slows iteration and can waste cost on early ideation.
-Better: use `low` or `medium` while exploring, then raise quality for final outputs.
+**`jpeg` で transparent background**
 
-❌ **Anti-pattern: treating “same character” as enough for tiny sprites**
-Why bad: the model may preserve the idea of the character while still changing scale, orientation, or silhouette.
-Better: restate exact invariants such as side view, head size, outline thickness, palette family, and apparent scale.
+問題: `jpeg` は alpha を持てない。
+改善: transparent assets では `png` または `webp` を使う。
 
-❌ **Anti-pattern: replacing frame 1 after the fact when the real problem is sequence mismatch**
-Why bad: a locked first frame can make the animation more jarring if frame 2 was generated as a different-looking character.
-Better: use hard-lock only when the generated strip already matches well, or move to a masked/protected frame-1 edit.
+**sprite sheets が保証されるふりをする**
 
-❌ **Anti-pattern: using repeated copies of the seed sprite as a stronger identity anchor by default**
-Why bad: for tiny sprite work, repeating the same seed across every slot can still drift into a bad reinterpretation instead of preserving the intended character.
-Better: test whether a single seeded slot or a surgical retouch of the current best strip produces better continuity.
+問題: model は deterministic sheet layouts より single assets / poses / states の方が得意。
+改善: sheet が必要なら review / cleanup / normalization 前提で扱い、保証しない。
+
+**常に highest quality にする**
+
+問題: early ideation で high quality を使うと cost と latency が増える。
+改善: early ideation は `low` / `medium`、final outputs で quality を上げる。
+
+**tiny sprites で "same character" を十分とみなす**
+
+問題: small sprites では identity が簡単に drift する。
+改善: side view、head size、outline thickness、palette family、apparent scale などの invariants を明記する。
+
+**sequence mismatch を frame 1 の後付け置換で直そうとする**
+
+問題: frame 2 以降が別 character なら、frame 1 だけ差し替えても motion sequence は合わない。
+改善: masked / protected frame-1 edit で continuity を保つか、sequence 全体を再生成する。
+
+**同じ seed sprite を複数 slot に並べるだけで identity anchor が強くなると仮定する**
+
+問題: duplicate slots は model focus を強めるとは限らず、layout や identity を歪めることがある。
+改善: single seeded slot や surgical retouch を試し、比較する。
 
 ## Variation Guidance
 
-**IMPORTANT**: Do not converge on one house style for every request.
+すべてを1つの house style にしない。
 
-- Vary prompt structure by asset type: prop prompts, character prompts, icons, and scene art need different emphasis.
-- Vary rendering direction based on the brief: painterly illustration, flat iconography, 3D render look, pixel-inspired concept, or UI-ready cutout.
-- Prefer context-fit over random variation. Reuse style only when the user is building a consistent set.
+- prop、character、icons、scene art で prompt structure を変える
+- painterly illustration、flat iconography、3D render look、pixel-inspired concept、UI-ready cutout など brief に合わせて rendering direction を変える
+- random variation より context-fit を優先する。consistent set を作る場合だけ style を再利用する
 
-## References
+## 参照
 
 - API/model notes: `references/openai-gpt-image-1-5.md`
 - Runnable generator: `scripts/gpt_image_generate.py`
 - OpenAI cookbook prompting guide: https://developers.openai.com/cookbook/examples/multimodal/image-gen-1.5-prompting_guide/
 
-## Remember
+## 覚えておくこと
 
-This skill should make image generation operational, not theoretical.
-
-Turn the request into a precise prompt, choose the settings intentionally, run the API when possible, and report the real output path back to the user.
+image generation を理論ではなく実務にする。request を precise prompt にし、settings を意図して選び、可能なら API を実行し、real output path を報告する。

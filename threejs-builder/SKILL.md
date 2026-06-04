@@ -5,80 +5,74 @@ description: "Three.js/WebGLのWeb体験を構築・デバッグ・改善する�
 
 # Three.js Builder
 
-## Purpose
+## 目的
 
-Use this skill to produce working, responsive Three.js experiences with correct imports, stable scene setup, calibrated 3D reference frames, and real browser verification. The output should be a usable scene, game, viewer, or fix, not a decorative code sample.
+correct imports、stable scene setup、calibrated 3D reference frames、real browser verification を伴う working / responsive Three.js experiences を作る。decorative code sample ではなく、usable scene、game、viewer、fix を出す。
 
-## Operating Model
+## 基本方針
 
-Three.js work is scene-graph work plus rendering verification. Every visible result depends on five contracts being correct: module loading, camera/framing, lighting/materials, object transforms, and canvas/layout integration.
+Three.js work は scene graph work と rendering verification。visible result は module loading、camera/framing、lighting/materials、object transforms、canvas/layout integration の5 contract に依存する。
 
-Prioritize:
+優先順位:
 
-1. A nonblank rendered canvas in the user's actual project/runtime
-2. Correct reference frames: axes, forward direction, anchors, units, and camera basis
-3. Project-native integration before standalone snippets
-4. Performance through reuse, capped pixel ratio, and bounded draw calls
-5. Correct ownership of render cadence, input routing, and DOM overlays
-6. Visual polish that fits the requested scene, game, or product viewer
+1. ユーザーの actual project/runtime で nonblank rendered canvas
+2. axes、forward direction、anchors、units、camera basis など correct reference frames
+3. standalone snippets より project-native integration
+4. reuse、capped pixel ratio、bounded draw calls による performance
+5. render cadence、input routing、DOM overlays の ownership
+6. scene、game、product viewer に合う visual polish
 
-Before acting, establish:
+作業前に確認すること:
 
-- Existing stack: npm/Vite/React/Next/static HTML, installed `three` version, asset paths, and available scripts
-- Scene purpose: showcase, product viewer, game, background, data visualization, or debugging/calibration
-- Asset constraints: procedural primitives, GLTF/GLB, textures/HDRs, animation clips, compression, and expected scale
-- UI integration: full-bleed canvas, embedded component, DOM HUD, toolbars, modals, labels, safe areas, and pointer/keyboard ownership
-- Verification target: dev server URL, static file, screenshots, interaction test, or build command
+- stack: npm/Vite/React/Next/static HTML、installed `three` version、asset paths、scripts
+- scene purpose: showcase、product viewer、game、background、data visualization、debugging/calibration
+- assets: procedural primitives、GLTF/GLB、textures/HDRs、animation clips、compression、expected scale
+- UI integration: full-bleed canvas、embedded component、DOM HUD、toolbars、modals、labels、safe areas、pointer/keyboard ownership
+- verification target: dev server URL、static file、screenshots、interaction test、build command
 
-## Reference Files
+## 参照ファイル
 
-Read only the files needed for the current task.
+必要な reference だけ読む。
 
 | Topic | File | Use When |
 |-------|------|----------|
-| Scene setup | [scene-patterns.md](references/scene-patterns.md) | Creating the renderer/camera/lights/materials, choosing imports, adding controls, or fixing a blank basic scene |
-| GLTF/GLB models | [gltf-loading-guide.md](references/gltf-loading-guide.md) | Loading models, caching/cloning, SkeletonUtils, animations, Draco/KTX2, normalization, or disposal |
-| Reference frames | [reference-frame-contract.md](references/reference-frame-contract.md) | Fixing orientation, anchors, scale, camera-relative movement, floating models, inverted controls, or color-space issues |
-| Game patterns | [game-patterns.md](references/game-patterns.md) | Building Three.js games, animation state machines, fixed cameras, object pools, time scaling, DOM HUD sync, and terminal states |
-| Advanced topics | [advanced-topics.md](references/advanced-topics.md) | Adding post-processing, shaders, raycasting, instancing, physics, labels, or performance diagnostics |
-| GLTF calibration helper | [install-gltf-calibration-helpers.py](scripts/install-gltf-calibration-helpers.py) | Installing the bundled helper into a project to visualize axes, bounds, forward direction, and model labels |
+| Scene setup | [scene-patterns.md](references/scene-patterns.md) | renderer/camera/lights/materials、imports、controls、blank scene fix |
+| GLTF/GLB models | [gltf-loading-guide.md](references/gltf-loading-guide.md) | loading、caching/cloning、SkeletonUtils、animations、Draco/KTX2、normalization、disposal |
+| Reference frames | [reference-frame-contract.md](references/reference-frame-contract.md) | orientation、anchors、scale、camera-relative movement、floating models、inverted controls、color-space |
+| Game patterns | [game-patterns.md](references/game-patterns.md) | games、state machines、fixed cameras、pools、time scaling、DOM HUD、terminal states |
+| Advanced topics | [advanced-topics.md](references/advanced-topics.md) | post-processing、shaders、raycasting、instancing、physics、labels、performance diagnostics |
+| GLTF calibration helper | [install-gltf-calibration-helpers.py](scripts/install-gltf-calibration-helpers.py) | axes、bounds、forward direction、model labels の helper install |
 
-## Workflow
+## ワークフロー
 
-1. Discover the project shape before editing.
-   - Use `rg --files | rg '(^|/)(package.json|vite|next|src|app|pages|components|public|assets|static|models|textures|index.html)'`.
-   - Inspect package scripts, Three.js imports, render loops, and UI layers with `rg -n "from ['\"]three|GLTFLoader|OrbitControls|WebGLRenderer|setAnimationLoop|requestAnimationFrame|ResizeObserver|pointer-events|data-role|HUD|ui-layer|scene-layer" .`.
-   - Prefer the installed `three` package and existing build tool. For standalone static HTML, use an import map and pin one Three.js version consistently for core and addons.
-
-2. Choose the smallest durable implementation path.
-   - Existing app: integrate in its component/module style, clean up renderer/listeners on unmount, and avoid global side effects.
-   - Static page: create a minimal `index.html` plus module code or inline module script.
-   - Game: define state, input, render cadence, camera convention, DOM HUD ownership, and terminal latches before adding effects.
-   - GLTF work: calibrate one model first, then scale to many models.
-
-3. Build the scene contract.
-   - Renderer: antialias only when needed, `setPixelRatio(Math.min(devicePixelRatio, 2))`, parent-based resize handling, and `outputColorSpace = THREE.SRGBColorSpace`.
-   - Camera: position, target, near/far planes, responsive aspect/frustum update, and composition offsets when DOM UI occupies screen space.
-   - Lighting/materials: enough illumination for non-Basic materials; preserve atlas texture color unless intentionally tinting.
-   - Scene graph: group related objects, reuse geometries/materials, and keep per-frame code to transforms/state updates.
-
-4. Implement interaction and animation.
-   - Use one render owner. Prefer `renderer.setAnimationLoop` for continuous animation, WebXR, or viewer controls; use a game engine `requestAnimationFrame` or on-demand `renderFrame()` path when state changes drive rendering.
-   - Use `THREE.Clock` and clamp large `dt` values for games.
-   - Update `OrbitControls` only when damping/auto-rotate requires it.
-   - Keep DOM HUD, menus, and form controls outside the WebGL scene when they need accessibility, localization, focus, or long text.
-   - Avoid object allocation, geometry creation, and loader calls inside the frame loop.
-
-5. Verify in a real browser.
-   - Run the repo's available `lint`, `typecheck`, `test`, and `build` scripts as relevant.
-   - Start the dev server when the app needs one, or a simple local server for static GLTF/CDN imports.
-   - Capture desktop and mobile screenshots for user-facing scenes.
-   - For canvas/WebGL work, confirm the canvas is nonblank, correctly framed, responsive, animated or interactive as requested, and free of console errors.
-   - When DOM overlays are present, verify they do not hide critical 3D content, pointer events reach the intended layer, and keyboard focus does not break gameplay or controls.
+1. 編集前に project shape を調べる
+   - `rg --files | rg '(^|/)(package.json|vite|next|src|app|pages|components|public|assets|static|models|textures|index.html)'`
+   - `rg -n "from ['\"]three|GLTFLoader|OrbitControls|WebGLRenderer|setAnimationLoop|requestAnimationFrame|ResizeObserver|pointer-events|data-role|HUD|ui-layer|scene-layer" .`
+   - installed `three` と existing build tool を優先する。static HTML では import map を使い、core/addons の version を揃える
+2. 最小で durable な implementation path を選ぶ
+   - existing app: component/module style に統合し、unmount で renderer/listeners を cleanup
+   - static page: minimal `index.html` + module code
+   - game: state、input、render cadence、camera convention、DOM HUD ownership、terminal latches を先に決める
+   - GLTF: まず1 model を calibrate する
+3. scene contract を作る
+   - renderer: `setPixelRatio(Math.min(devicePixelRatio, 2))`、parent-based resize、`outputColorSpace = THREE.SRGBColorSpace`
+   - camera: position、target、near/far、responsive aspect/frustum update、DOM UI による composition offsets
+   - lighting/materials: non-Basic materials に十分な light。意図しない tint を避ける
+   - scene graph: related objects を group、geometries/materials を reuse、frame loop は transforms/state updates に絞る
+4. interaction / animation を実装する
+   - render owner は1つ。continuous animation、WebXR、viewer controls では `renderer.setAnimationLoop` を優先
+   - games では `THREE.Clock` と large `dt` clamp
+   - `OrbitControls` は damping/auto-rotate 時だけ update
+   - accessibility、localization、focus、long text が必要な UI は DOM HUD にする
+   - frame loop 内で allocation、geometry creation、loader calls をしない
+5. real browser で検証する
+   - relevant scripts: lint、typecheck、test、build
+   - 必要なら dev server または simple local server を起動
+   - desktop/mobile screenshots
+   - canvas が nonblank、framed、responsive、animated/interactive、console errors なし
+   - DOM overlays が critical 3D content を隠さず、pointer/focus が正しい layer に届く
 
 ## Core Patterns
-
-Use modern ES modules:
 
 ```js
 import * as THREE from 'three';
@@ -86,7 +80,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 ```
 
-For CDN/static HTML, use an import map and keep every Three.js URL on the same version and CDN. The example is copyable; when a project already has a Three.js version, match that version instead of mixing versions:
+CDN/static HTML では import map を使い、Three.js URL の version と CDN を揃える。
 
 ```html
 <script type="importmap">
@@ -99,14 +93,12 @@ For CDN/static HTML, use an import map and keep every Three.js URL on the same v
 </script>
 ```
 
-For GLTF calibration, install the helper into the target project:
+GLTF calibration helper:
 
 ```bash
 python3 /home/mizuki2/.codex/skills/threejs-builder/scripts/install-gltf-calibration-helpers.py \
   --out ./gltf-calibration-helpers.mjs
 ```
-
-Then import it from the project module after normalization/yaw offsets:
 
 ```js
 import { attachGltfCalibrationHelpers } from './gltf-calibration-helpers.mjs';
@@ -120,71 +112,56 @@ attachGltfCalibrationHelpers({
 });
 ```
 
-## Anti-Patterns
+## 避けること
 
-**Blank-scene guessing**
+**blank-scene guessing**
 
-Why bad: Blank canvases usually come from import errors, camera/frustum mistakes, no lights, invisible materials, a zero-size canvas, or CORS/asset paths.
-
-Better: Check console errors, canvas size, camera target, light/material compatibility, and actual asset network paths before rewriting the scene.
+問題: blank canvas は import error、camera/frustum、lighting、material、zero-size canvas、CORS/asset path など原因が多い。
+改善: scene rewrite 前に console、canvas size、camera target、light/material compatibility、actual network paths を確認する。
 
 **GLTF offset roulette**
 
-Why bad: Random `position.y` fixes accumulate and break the next model or animation.
+問題: random `position.y` fixes は model や animation が変わるたびに崩れる。
+改善: asset class ごとに anchor rules を決め、wrapper 内で normalize し、bounds / forward direction helper で calibrate する。
 
-Better: Define anchor rules by asset class, normalize once into a wrapper, and calibrate bounds/forward direction with helpers.
+**per-frame allocation**
 
-**Per-frame allocation**
+問題: animation loop 内で geometries、materials、vectors、loaders、DOM nodes を作ると GC と frame drops を起こす。
+改善: reusable objects を先に allocate し、loop では transform や buffer attributes を mutate する。
 
-Why bad: Creating geometries, materials, vectors, loaders, or DOM nodes in the animation loop causes garbage collection and frame drops.
+**competing render loops**
 
-Better: Allocate reusable objects once and mutate transforms or buffer attributes in the loop.
-
-**Competing render loops**
-
-Why bad: Running `setAnimationLoop`, a game `requestAnimationFrame`, and ad hoc effect loops without ownership can double-render, desynchronize HUD state, or keep rendering after disposal.
-
-Better: Pick one continuous loop owner, or make the renderer event-driven with short owned rAF effects. Dispose or cancel every loop path.
+問題: `setAnimationLoop` と ad hoc rAF effects が競合すると double-render、HUD desync、disposed 後の render が起きる。
+改善: continuous loop owner を1つにし、event-driven rendering でも dispose / cancel を徹底する。
 
 **Canvas/HUD drift**
 
-Why bad: A correctly rendered scene can still be unusable when DOM panels cover the subject, pointer events are intercepted, or resize logic reads the wrong element.
+問題: scene が正しく render されても、DOM panels が subject を隠したり pointer events を奪ったりすると usable ではない。
+改善: canvas layout、camera composition、safe zones、z-index、pointer rules を integration contract として扱う。
 
-Better: Treat canvas layout, camera composition, safe zones, and DOM HUD z-index/pointer rules as part of the Three.js integration contract.
+**generic 3D demo**
 
-**Generic 3D demo**
-
-Why bad: A default cube with default lighting ignores whether the user asked for a game, product viewer, background, or visualization.
-
-Better: Choose camera, materials, motion, controls, and density around the requested use case.
+問題: default cube / default lighting は game、product viewer、background、visualization などの用途を反映しない。
+改善: use case に合う camera、materials、motion、controls、density を選ぶ。
 
 ## Variation Guidance
 
-Vary based on:
+- Product viewer: realistic lighting、PBR、orbit controls、loading state、bounded zoom、neutral background
+- Game: constrained camera、snappy input、state machine、pooled objects、debug views、DOM HUD
+- Showcase/portfolio: cinematic composition、intentional palette、subtle motion、responsive framing
+- Data visualization: readable scale、labels、raycast selection、legend、instancing
+- Background effect: low contrast、slow motion、reduced interaction、strict performance budget
 
-- Product viewer: realistic lighting, PBR materials, orbit controls, loading state, bounded zoom, neutral background
-- Game: fixed or constrained camera, snappy input, state machine, pooled objects, clear collision/debug views, DOM HUD for readable controls/status, WebGL cues for spatial state
-- Showcase/portfolio: cinematic composition, intentional palette, subtle motion, responsive framing
-- Data visualization: readable scale, labels, raycast selection, consistent color legend, performance-aware instancing
-- Background effect: low contrast, slow motion, reduced interaction, strict performance budget
+rotating cube / particle field、hardcoded `camera.position.z = 5`、CDN/npm version mixing、GLTF の scale/origin/forward direction の同一視に収束しない。
 
-Avoid converging on:
+## 検証
 
-- The same rotating cube or particle field for every request
-- Hardcoded `camera.position.z = 5` without framing the content
-- Mixing CDN and npm imports or different Three.js versions
-- Treating GLTF models as if they all share the same scale, origin, or forward direction
+- build checks: existing `npm run lint`、`npm run typecheck`、`npm test`、`npm run build`
+- runtime checks: browser console clean、network assets loaded、no WebGL context errors
+- visual checks: desktop/mobile screenshots、canvas nonblank、scene framed、UI overlap なし、resize works
+- interaction checks: orbit/pointer/keyboard/touch、DOM overlays の input ownership
+- GLTF checks: clip names、anchors、forward direction、independent clone animation
 
-## Verification
+## 成果物
 
-Use the narrowest checks that prove the requested behavior:
-
-- Build checks: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` when those scripts exist
-- Runtime checks: browser console clean, network assets loaded, no WebGL context errors
-- Visual checks: desktop and mobile screenshots; canvas nonblank; scene framed; no UI overlap; resize works
-- Interaction checks: orbit/pointer/keyboard/touch behavior matches the request; DOM overlays do not steal input except on controls
-- GLTF checks: animation clip names logged, anchors calibrated, forward direction verified, clones animate independently
-
-## Deliverables
-
-Return the changed files, the scene/game/viewer behavior implemented, verification commands and visual checks performed, the local URL when a dev server is running, and any remaining risk such as missing assets or an untested browser path.
+changed files、implemented scene/game/viewer behavior、verification commands、visual checks、dev server URL、remaining risk を報告する。

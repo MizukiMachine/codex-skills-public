@@ -5,104 +5,95 @@ description: "2Dゲーム向けPNGアセットを監査・整理する。スプ�
 
 # Gamedev Assets
 
-Use the bundled scripts in `scripts/` to keep your game's art pipeline consistent and debuggable.
+`scripts/` の同梱 script を使い、game art pipeline を一貫性があり debug 可能な状態に保つ。
 
-## Asset Index Learnings (from Rocky Roads)
+## Asset Index の学び
 
-Keep a short “worked example” doc in your own repo whenever you establish an asset-index convention.
+asset-index convention を作るときは、自分の repo に短い worked example doc を残す。この repo では Love2D asset index 構築の実践メモが `docs/asset-index-learnings.md` にある。
 
-In this repo, the practical “what worked / what didn’t” notes from building a Love2D asset index live at:
-- `docs/asset-index-learnings.md`
+manifest を作るときの要点:
 
-Key takeaways to apply when building/managing an asset index:
-- Prefer a **native** manifest format (Lua table for Love2D), but keep it **JSON-shaped** for export.
-- Categorize by **how you use the asset** (`backgrounds`, `tilesets`, `images`, `spritesheets`), not by size alone.
-- Pick a **tile size** first for tilesets (this pack is consistently **16×16**), then derive `columns/rows`.
-- Treat many sprite sheets as **sparse**: compute and store **non-empty** `{col,row}` frames (alpha-based) instead of assuming a full grid.
-- Use **stable, sanitized keys**; keep `path` as the on-disk truth (case + spaces preserved).
-- Always run a **coverage check** after asset changes so the manifest stays trustworthy.
+- Love2D では Lua table のような **native** manifest format を使ってよいが、export しやすい **JSON-shaped** 構造にする
+- size だけでなく、使い方で分類する: `backgrounds`、`tilesets`、`images`、`spritesheets`
+- tileset では最初に tile size を決める。例: `16x16` なら `columns/rows` を導出する
+- sprite sheets は sparse として扱い、full grid 前提ではなく alpha-based non-empty `{col,row}` frames を保存する
+- key は stable / sanitized、`path` は case と spaces を含む on-disk truth として保持する
+- asset 変更後は coverage check を必ず走らせる
 
-## Animation Normalization Learnings
+## Animation Normalization の学び
 
-When importing AI-generated sprite strips or extracted video frames into game-sized animation frames:
+AI-generated sprite strips や extracted video frames を game-sized animation frames に入れるとき:
 
-- Use one **approved in-game frame** as the target size reference.
-- Use one **shared runtime anchor** from metadata for placement.
-- Use one **shared scale** for the whole sequence. Do not scale each frame independently unless the source is genuinely inconsistent.
-- Choose the shared-scale reference deliberately:
-  - use a **baseline / median-lower** pose height for states like attack or hurt, where some frames are taller but the character should not be rescaled per pose
-  - use the **first frame** for crouch-like states, where frame `01` should match idle height and later frames should remain visibly shorter
-- For video-frame imports, compute one **union crop** across the full frame set and crop every frame with that same box.
-- Align frames with a stable rule such as **fixed center + fixed bottom** or your known runtime anchor. Do not re-center each frame from its own local silhouette unless the source frames were hand-authored as isolated cells.
+- target size reference は1つの approved in-game frame にする
+- placement は metadata 由来の shared runtime anchor を使う
+- sequence 全体に one shared scale を使う。frame ごとに scale しない
+- attack / hurt など tall poses が混ざる state では `median-lower`、crouch など first frame が idle-like standing なら `first-frame` を scaling reference にする
+- video-frame imports は full frame set の union crop を計算し、全 frame に同じ crop box を使う
+- fixed center + fixed bottom または known runtime anchor で align する。local silhouette ごとの recenter は drift を生む
 
-Why this matters:
+理由:
 
-- per-frame cropping/alignment often creates fake sideways drift or "skateboarding"
-- per-frame scaling often shrinks tall poses like raised weapons or hurt reactions
-- many apparent animation problems are actually registration problems introduced during import
-- keeping every extracted frame from a source video often gives you repeated cycles rather than one usable game loop
+- per-frame crop/alignment は sideways drift や "skating" を作りやすい
+- per-frame scaling は raised weapons / hurt reactions など tall poses を縮める
+- 多くの animation 問題は import 時の registration 問題
+- source video の全 frame を残すと、usable game loop ではなく repeated cycles になりやすい
 
-Practical rule:
+practical rule:
 
-- preserve sequence framing first
-- normalize second
-- derive collision/body bounds only after the normalized export exists
+- sequence framing を先に保つ
+- normalize はその後
+- collision/body bounds は normalized export 後に導く
 
-For strip importers that support explicit scaling modes, prefer:
+explicit scaling modes を持つ strip importer では次を優先する。
 
-- `median-lower` for attack, hurt, or other states with upward pose variation
-- `first-frame` for crouch or other enter-and-lower states that begin from an idle-like standing pose
+- upward pose variation がある attack、hurt などは `median-lower`
+- frame `01` が idle-like standing で、後続 frame が短く見えるべき crouch / enter-and-lower state は `first-frame`
 
-For video-derived animation specifically:
+video-derived animation では特に次の順序にする。
 
-1. Use a dense extraction first if you need to inspect the motion clearly.
-2. Normalize that dense sequence with one shared crop, one shared scale, and one shared anchor.
-3. Treat that result as analysis material.
-4. Curate one clean loop cycle for the runtime asset.
+1. motion を明確に確認したい場合は、まず dense extraction を使う
+2. その dense sequence を one shared crop、one shared scale、one shared anchor で normalize する
+3. その結果を analysis material として扱う
+4. runtime asset には clean loop cycle を1つ curate する
 
-This repo's run-animation experiments established an important distinction:
+この repo の run-animation 実験では、次の区別が重要だった。
 
-- dense import is good for diagnosis
-- curated single-cycle export is better for the actual game asset
+- dense import は診断に向く
+- curated single-cycle export は実際の game asset に向く
 
-If an animation looks like it is "skating" or sliding sideways, check these in order:
+animation が "skating" している、または横に滑っているように見える場合は、この順序で確認する。
 
-1. whether frames were cropped independently
-2. whether frames were centered independently
-3. whether tall poses were scaled differently from short poses
-4. whether the source motion itself contains true root-motion drift
+1. frames が independently cropped されていないか
+2. frames が independently centered されていないか
+3. tall poses が short poses と違う scale になっていないか
+4. source motion 自体に true root-motion drift が含まれていないか
 
-If a character looks like it is **floating above its shadow** or standing at different heights by direction, check the visible alpha bounds:
+character が **shadow から浮いている**、または direction ごとに立ち位置の高さが違う場合は visible alpha bounds を確認する。
 
-1. measure the lowest non-transparent pixel for each frame
-2. compare the bottom baseline across directions and states
-3. normalize the PNG frames so feet land on a shared baseline, commonly `bottomY = frameHeight - 1`
-4. only then tune engine-side sprite origin or shadow offsets
+1. 各 frame の lowest non-transparent pixel を測る
+2. directions / states 間で bottom baseline を比較する
+3. PNG frames を normalize して feet が shared baseline に着くようにする。一般的には `bottomY = frameHeight - 1`
+4. その後で engine-side sprite origin や shadow offsets を調整する
 
-Do not use the asset manifest as the first fix for bad foot placement. Manifests can describe frame size, atlas size, frame count, fps, and sometimes engine pivots, but they do not repair transparent padding inside the PNG. Prefer fixing the runtime spritesheet unless the engine has deliberate per-animation pivot metadata and the team has standardized on using it.
-
-Nearest-neighbor import preserves pixels. If the in-between poses still look soft after correct normalization, the softness is usually already present in the source frames.
+foot placement が悪い場合、asset manifest を最初の修正先にしない。manifest は frame size、atlas size、frame count、fps、pivot metadata を記述できるが、PNG 内の transparent padding は直せない。まず runtime spritesheet を直す。nearest-neighbor import 後も pose が soft に見える場合、その softness は source frames に既に含まれていることが多い。
 
 ## Asset Index Theory
 
-An asset index (manifest) is a structured metadata file that serves as the single source of truth for all game art. It enables:
-- **Centralized loading** - One place to reference all assets by logical name
-- **Frame metadata** - Grid dimensions, animation sequences, timing
-- **Validation** - Ensure disk files match what code expects
+asset index / manifest は game art の single source of truth。centralized loading、frame metadata、disk/code validation を可能にする。
 
 ### Output Formats
 
-- **JSON** (preferred) - Universal, works with any engine
-- **Lua table** - For Love2D or other Lua-based projects
+- **JSON**: engine 依存が少なく推奨
+- **Lua table**: Love2D など Lua projects
 
 ### Asset Categories
 
 | Category | Purpose | Key metadata |
 |----------|---------|--------------|
-| `backgrounds` | Parallax/scrolling layers, static backdrops | `path`, `width`, `height` |
-| `tilesets` | Grid-based level tiles | `path`, `tileWidth`, `tileHeight`, `columns`, `rows`, `margin`, `spacing` |
-| `images` | Static sprites (no animation) | `path`, `width`, `height` |
-| `spritesheets` | Animated sprites | `path`, `frameWidth`, `frameHeight`, `fps`, `frames` or `animations` |
+| `backgrounds` | parallax/scrolling layers、static backdrops | `path`, `width`, `height` |
+| `tilesets` | grid-based level tiles | `path`, `tileWidth`, `tileHeight`, `columns`, `rows`, `margin`, `spacing` |
+| `images` | static sprites | `path`, `width`, `height` |
+| `spritesheets` | animated sprites | `path`, `frameWidth`, `frameHeight`, `fps`, `frames` or `animations` |
 
 ### Manifest Structure
 
@@ -113,32 +104,28 @@ An asset index (manifest) is a structured metadata file that serves as the singl
     "root": "assets/game",
     "defaultFps": 10
   },
-  "backgrounds": {
-    "clouds": { "path": "Backgrounds/clouds.png", "width": 256, "height": 128 }
-  },
   "tilesets": {
     "desert": {
       "path": "Tilesets/desert.png",
-      "width": 192, "height": 96,
-      "tileWidth": 16, "tileHeight": 16,
-      "columns": 12, "rows": 6
-    }
-  },
-  "images": {
-    "deco": {
-      "bush": { "path": "Deco/bush.png", "width": 32, "height": 16 }
+      "width": 192,
+      "height": 96,
+      "tileWidth": 16,
+      "tileHeight": 16,
+      "columns": 12,
+      "rows": 6
     }
   },
   "spritesheets": {
     "enemies": {
       "chicken": {
         "path": "Enemies/chicken.png",
-        "width": 224, "height": 64,
-        "frameWidth": 32, "frameHeight": 32,
-        "columns": 7, "rows": 2,
+        "frameWidth": 32,
+        "frameHeight": 32,
+        "columns": 7,
+        "rows": 2,
         "animations": {
-          "idle": { "fps": 6, "frames": [[0,0], [1,0]] },
-          "run": { "fps": 10, "frames": [[0,1], [1,1], [2,1], [3,1]] }
+          "idle": { "fps": 6, "frames": [[0, 0], [1, 0]] },
+          "run": { "fps": 10, "frames": [[0, 1], [1, 1], [2, 1], [3, 1]] }
         }
       }
     }
@@ -148,53 +135,50 @@ An asset index (manifest) is a structured metadata file that serves as the singl
 
 ### Frame Coordinates
 
-Frames are referenced as `[column, row]` pairs within the sprite sheet grid:
-- **Zero-based indexing** - First cell is `[0, 0]`
-- **Grid defined by frame dimensions** - `frameWidth × frameHeight` subdivides the image
-- **Sparse sheets** - When not all cells contain content, use explicit `frames` array
-- **Named animations** - Group frame sequences with timing under `animations` object
+frame は sprite sheet grid 内の `[column, row]` pair として参照する。
+
+- **zero-based indexing**: 最初の cell は `[0, 0]`
+- **grid defined by frame dimensions**: `frameWidth x frameHeight` で image を分割する
+- **sparse sheets**: すべての cell に content がない場合は explicit `frames` array を使う
+- **named animations**: frame sequence と timing は `animations` object にまとめる
 
 ### Workflow: Building an Asset Index
 
-1. **Inventory** - Run `asset_sizes.py` to get dimensions of all PNGs
-2. **Probe sheets** - Run `asset_sheet_probe.py --frame WxH --list` to find non-empty cells
-3. **Categorize** - Determine if each asset is background, tileset, static image, or spritesheet
-4. **Define animations** - For spritesheets, identify frame sequences and fps
-5. **Write manifest** - Create JSON (or Lua for Love2D projects)
-6. **Validate** - Run `asset_manifest_check.py` to ensure manifest ↔ disk sync
+1. **Inventory**: `asset_sizes.py` で PNG dimensions を取得
+2. **Probe sheets**: `asset_sheet_probe.py --frame WxH --list` で non-empty cells を調べる
+3. **Categorize**: background、tileset、static image、spritesheet を分類
+4. **Define animations**: frame sequences と fps を決める
+5. **Write manifest**: JSON または Love2D 向け Lua
+6. **Validate**: `asset_manifest_check.py` で manifest と disk を照合
 
-## Quick Start (recommended: `uv`)
+## Quick Start (`uv` 推奨)
 
-Run from repo root:
+repo root から実行する。
 
 ```bash
-# 1) Check manifest coverage (manifest ↔ disk)
+# manifest coverage
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_check.py --manifest path/to/assets_index.lua --root assets
 
-# 1b) Export Lua manifest to portable JSON (recommended for non-Lua engines/tools)
+# Lua manifest -> portable JSON
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_export_json.py --manifest path/to/assets_index.lua --out path/to/assets_index.json
 
-# 2) List PNG sizes
+# PNG sizes
 uv run .codex/skills/gamedev-assets/scripts/asset_sizes.py --root assets --json tmp/asset_sizes.json
 
-# 3) Probe sprite sheet for non-empty frames
+# sprite sheet non-empty frames
 uv run .codex/skills/gamedev-assets/scripts/asset_sheet_probe.py path/to/sheet.png --frame 32x32 --list --json tmp/probe.json
 
-# 3b) Audit/fix visible foot baselines inside sprite frames
+# visible foot baselines audit/fix
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py assets/characters --frame 256x256 --json tmp/baselines.json
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py assets/characters --frame 256x256 --target-bottom 255 --out-dir tmp/baseline-fixed
 
-# 4) Debug tilesets / tilemaps with a manifest-driven GUI editor
+# manifest-driven tilemap editor
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py --manifest path/to/assets_index.json
 ```
 
-Without `uv`: Python 3.11+ with Pillow installed.
+`uv` なしなら Python 3.11+ と Pillow が必要。同梱 Python scripts は PEP 723 metadata を含むため、`uv run <script.py>` で dependencies が自動 install される。
 
-All Python scripts shipped with this skill include PEP 723 metadata (`# /// script ...`) so `uv run <script.py>` installs dependencies automatically (no manual `pip install` steps).
-
-## Asset Index Export (Lua → JSON)
-
-If you have an existing `assets_index.lua` (Love2D-style), export it to a portable `assets_index.json`:
+## Asset Index Export (Lua -> JSON)
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_export_json.py \
@@ -202,65 +186,63 @@ uv run .codex/skills/gamedev-assets/scripts/asset_manifest_export_json.py \
   --out path/to/assets_index.json
 ```
 
-By default the exporter rewrites all `path` entries to be relative to the output manifest folder and sets `meta.root` to `"."`, so the resulting folder can be copied/zip'd and still work.
+exporter は既定で `path` を output manifest folder からの相対 path に書き換え、`meta.root` を `"."` にする。copy/zip 後も動く manifest になる。
 
 ## Tilemap Debugging (Python tileset/tilemap editor)
 
-Use the manifest-driven editor to verify:
-- `tileWidth`/`tileHeight` grid math and `columns`/`rows`
-- that cursor movement is exactly 1 cell per keypress
-- that saving/loading a JSON tilemap preserves the same layout
+manifest-driven editor で次を確認する。
 
-Run:
+- `tileWidth` / `tileHeight`、`columns` / `rows`
+- cursor movement が keypress ごとに exactly 1 cell
+- JSON tilemap の save/load が同じ layout を保つ
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py --manifest path/to/assets_index.json
 ```
 
-Note: this GUI uses `tkinter`, which is provided by your Python distribution/OS (it’s not installed via `uv`/pip).
+注意: この GUI は `tkinter` を使う。`tkinter` は Python distribution / OS が提供するもので、`uv` / pip で install されるものではない。
 
-Headless exports (no `tkinter` required):
+headless exports:
 
 ```bash
-# Export a grid-overlay PNG for a tileset
+# tileset の grid-overlay PNG を export
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py \
   --manifest path/to/assets_index.json --tileset <tileset_name> \
   --export-tileset-grid tmp/tileset_grid.png --label-ids --scale 6 --trim
 
-# Generate a self-test tilemap (all non-empty tiles in-place) and render it
+# all non-empty tiles を in-place にした self-test tilemap を生成して render
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py \
   --manifest path/to/assets_index.json --tileset <tileset_name> \
   --make-selftest-map tmp/selftest.json
+
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py \
   --manifest path/to/assets_index.json --map tmp/selftest.json \
   --export-map-render tmp/selftest.png --scale 6 --trim
 
-# Optional: set a background color and fill rectangles behind tiles (useful for concept mockups)
+# 任意: concept mockup 用に背景色と tile 背面の fill rectangles を設定
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py \
   --manifest path/to/assets_index.json --map tmp/selftest.json \
   --export-map-render tmp/selftest_bg.png --scale 6 --bg '#77cfd8' --fill-rect '0,40,24,6,#12a7d5'
 ```
 
-Controls:
-- Arrows: move cursor cell-by-cell
-- `WASD`: move palette selection on the tileset
-- `Space/Enter`: paint, `X/Backspace`: erase
-- `[` / `]`: switch tileset, `+/-`: zoom map
-- `F5`: quick-save (`tilemap.json` by default), `F9`: quick-load (requires `--map`)
-- `G`: grid, `H`: help
+controls:
 
-## Scene Reconstruction (Tilemap → Reference Image)
+- arrows: cursor
+- `WASD`: palette selection
+- `Space/Enter`: paint、`X/Backspace`: erase
+- `[` / `]`: tileset、`+/-`: zoom
+- `F5`: quick-save、`F9`: quick-load
+- `G`: grid、`H`: help
 
-Use these scripts when you have a **reference PNG** that was assembled from tiles (and possibly backdrops), and you want to reconstruct it from a tileset + tilemap so you can:
-- iterate row-by-row (often from “ground” upward)
-- verify with deterministic renders
-- see exactly which tiles still differ (and where)
+## Scene Reconstruction
 
-See `references/tilemap_to_reference.md` for heuristics (alignment/padding/backdrops) and `references/autofill_notes.md` for autofill tuning + future acceleration ideas.
+reference PNG が tiles/backdrops から組まれており、tileset + tilemap で再構築したいときに使う。row-by-row で iterate し、deterministic renders と diff overlays で確認する。
+
+詳細 heuristics は `references/tilemap_to_reference.md`、autofill tuning は `references/autofill_notes.md`。
 
 **Workflow (manifest-driven, engine-agnostic)**
 
-1) Export/prepare `assets_index.json` (if you start from Lua):
+1. Lua から始める場合は `assets_index.json` を export / prepare する。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_export_json.py \
@@ -268,7 +250,7 @@ uv run .codex/skills/gamedev-assets/scripts/asset_manifest_export_json.py \
   --out tmp/assets_index.json
 ```
 
-2) Compose a backdrop (optional; if your reference image includes background layers that are *not* tiles):
+2. reference image に tiles ではない background layers が含まれる場合は、任意で backdrop を compose する。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/tile_backdrop_compose.py \
@@ -276,7 +258,7 @@ uv run .codex/skills/gamedev-assets/scripts/tile_backdrop_compose.py \
   --out tmp/backdrop.png --scale 6 --out-scaled tmp/backdrop_x6.png
 ```
 
-3) Prepare a tile-aligned reference (downscale + grid overlay):
+3. tile-aligned reference を prepare する。downscale と grid overlay を作る。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/tile_reference_prepare.py \
@@ -285,14 +267,14 @@ uv run .codex/skills/gamedev-assets/scripts/tile_reference_prepare.py \
   --out-small tmp/ref_small.png --out-grid tmp/ref_grid.png --out-grid-scaled tmp/ref_grid_x6.png
 ```
 
-4) Generate a tileset ID sheet (quick “tile picker” for manual fixes):
+4. manual fixes 用の quick tile picker として tileset ID sheet を生成する。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/tile_tileset_ids.py \
   --tileset path/to/tileset.png --tile 16 --scale 6 --out tmp/tileset_ids.png
 ```
 
-5) Create a base layered map JSON (you keep editing this + step files):
+5. base layered map JSON を作る。この file と step files を継続的に編集する。
 
 ```json
 {
@@ -313,7 +295,7 @@ uv run .codex/skills/gamedev-assets/scripts/tile_tileset_ids.py \
 }
 ```
 
-6) Render a step with debug overlay + diff + mismatched-tile highlighting:
+6. debug overlay、diff、mismatched-tile highlighting 付きで step を render する。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/tilemap_render_step.py \
@@ -324,19 +306,21 @@ uv run .codex/skills/gamedev-assets/scripts/tilemap_render_step.py \
   --diff-threshold 6 --diff-tile-threshold 6
 ```
 
-Outputs:
-- `*_render.png`: clean render
-- `*_debug.png`: map coords + tile IDs + tileset coords (for targeted fixes)
-- `*_diff.png`: reference-colored overlay showing mismatched pixels
-- `*_diff_tiles_debug.png` + `*_diff_tiles.json`: outlines + `{x,y}` list of mismatching tile cells
+outputs:
 
-If you want the resolved indices written as a `tilemap.json` (for loading into `asset_tilemap_editor.py`), add:
+- `*_render.png`
+- `*_debug.png`
+- `*_diff.png`
+- `*_diff_tiles_debug.png`
+- `*_diff_tiles.json`
+
+resolved indices を `asset_tilemap_editor.py` で読み込める `tilemap.json` として書きたい場合は、次を追加する。
 
 ```bash
   --out-tilemap tmp/tilemap.json
 ```
 
-7) (Optional) Autofill a row (naive brute force; good for bootstrapping):
+optional row autofill:
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/tilemap_autofill_row.py \
@@ -346,7 +330,7 @@ uv run .codex/skills/gamedev-assets/scripts/tilemap_autofill_row.py \
   --row 10 --layer ground --min-improve 1.0 --out-step path/to/steps/step_04.json
 ```
 
-8) Make GIFs for review:
+review GIFs:
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/make_gifs.py \
@@ -356,11 +340,13 @@ uv run .codex/skills/gamedev-assets/scripts/make_gifs.py \
 
 ## No tilemap? Generate `tilemap.json` from a reference (best-effort)
 
-If you *don’t* have a tilemap yet, you can generate a first-pass `tilemap.json` directly from:
-- a tileset (via `assets_index.json`)
-- a reference image (and ideally a backdrop)
+tilemap がまだない場合は、次から first-pass `tilemap.json` を直接生成できる。
 
-This uses naive brute-force matching and may not be perfect (or even solvable) if the reference contains non-tile pixels. It’s meant to **bootstrap** a map so you can fix mismatches with the debug/diff tools.
+- tileset (`assets_index.json` 経由)
+- reference image
+- できれば backdrop
+
+これは naive brute-force matching なので、reference に non-tile pixels がある場合は完全でない、または解けない場合がある。debug/diff tools で mismatch を直すための bootstrap として扱う。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/tilemap_from_reference.py \
@@ -370,95 +356,76 @@ uv run .codex/skills/gamedev-assets/scripts/tilemap_from_reference.py \
   --out-dir tmp/recon_out --min-improve 1.0
 ```
 
-Outputs include:
-- `tmp/recon_out/tilemap.json` (indices)
-- `tmp/recon_out/steps/step_*.json` (placements you can refine)
+outputs:
+
+- `tmp/recon_out/tilemap.json`: indices
+- `tmp/recon_out/steps/step_*.json`: refine できる placements
 
 ## Tilemap Debugging (Love2D test scenes)
 
-When tile sizes / tileset grids don’t line up in-engine, use the built-in Love2D scenes in this repo to verify:
-- the tileset grid math (tileW/tileH, columns/rows, margin/spacing)
-- that your cursor moves exactly 1 cell per keypress
-- that saved `.lua` maps load back identically
-
-Run from repo root:
+engine 内で tile sizes / grids が合わない場合は repo built-in Love2D scenes を使う。
 
 ```bash
 love .
 ```
 
-Controls:
-- `1` Tileset Inspector: arrows move selection cell-by-cell; `[`/`]` switch tilesets; `g` grid; `+/-` zoom
-- `2` Tilemap Editor:
-  - arrows move map cursor cell-by-cell
-  - `WASD` moves the palette (selected tile) on the tileset sheet
-  - `Space/Enter` paints, `X/Backspace` erases
-  - `Ctrl+S` quick-save, `Ctrl+L` quick-load (`F5`/`F9` also work)
-  - saved maps go to `maps/` in Love’s save directory (shown after saving)
+- `1` Tileset Inspector
+- `2` Tilemap Editor
+- `Ctrl+S` save、`Ctrl+L` load、`F5` / `F9` も可
 
 ## Tools
 
-### 1) Manifest Coverage Check (`asset_manifest_check.py`)
+### `asset_manifest_check.py`
 
-Verify every PNG on disk appears in manifest and vice versa.
+manifest と disk の PNG が相互に揃っているか検証する。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_check.py
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_check.py --json tmp/coverage.json
 ```
 
-### 1b) Manifest Export (`asset_manifest_export_json.py`)
-
-Export `assets_index.lua` to `assets_index.json` (portable across engines/tooling):
+### `asset_manifest_export_json.py`
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_export_json.py --manifest path/to/assets_index.lua --out path/to/assets_index.json
 ```
 
-### 2) Sprite-Sheet Probe (`asset_sheet_probe.py`)
+### `asset_sheet_probe.py`
 
-Find non-empty cells in a sprite sheet grid. Essential for building `frames` arrays.
+sprite sheet grid の non-empty cells を探す。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_sheet_probe.py image.png --frame 32x32
 uv run .codex/skills/gamedev-assets/scripts/asset_sheet_probe.py folder/ --frame 16x16 --list --json tmp/probe.json
 ```
 
-### 2b) Sprite Baseline Audit/Fix (`asset_sprite_baseline.py`)
+### `asset_sprite_baseline.py`
 
-Audit visible alpha bounds inside a spritesheet grid and optionally write baseline-corrected copies.
+spritesheet grid 内の visible alpha bounds を audit し、baseline-corrected copies を書ける。
 
-Use this when:
-- a character floats above its shadow in one direction but not another
-- a directional idle was made from an attack frame
-- AI-generated sheets have inconsistent transparent padding under the feet
-- engine origins are correct, but visual foot placement still differs
+使う場面:
+
+- direction ごとに shadow から浮く
+- directional idle が attack frame 由来
+- AI sheets の feet 下 transparent padding が不統一
+- engine origins は正しいが visual foot placement が違う
 
 ```bash
-# Report per-frame alpha bounds, visible bottom pixel, and required shift.
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py public/assets/kaede --frame 256x256 --json tmp/kaede-baselines.json
-
-# Write fixed copies whose visible feet land on y=255.
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py public/assets/kaede --frame 256x256 --target-bottom 255 --out-dir tmp/kaede-baseline-fixed
-
-# Optionally normalize horizontal center too, when the source is meant to be idle/standing.
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py public/assets/kaede/idle-n.png --frame 256x256 --target-bottom 255 --target-center-x 128 --out tmp/idle-n-fixed.png
 ```
 
-Treat the script as a runtime export guardrail. It does not decide animation quality; it verifies that final PNG frames agree with the engine's sprite-origin and shadow assumptions.
+この script は animation quality を判断するものではなく、final PNG frames が engine の sprite-origin / shadow assumptions と一致するかを検証する runtime export guardrail。
 
-### 3) PNG Dimension Listing (`asset_sizes.py`)
-
-Get dimensions for all PNGs under a folder.
+### `asset_sizes.py`
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_sizes.py
 uv run .codex/skills/gamedev-assets/scripts/asset_sizes.py --root assets/ --json tmp/sizes.json
 ```
 
-### 4) Tileset/Tilemap Editor (`asset_tilemap_editor.py`)
-
-GUI tool for selecting tiles and painting a grid to validate tileset assumptions.
+### `asset_tilemap_editor.py`
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py --manifest path/to/assets_index.json

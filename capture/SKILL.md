@@ -5,52 +5,53 @@ description: "セッションの要約や学びを標準ディレクトリへ保
 
 # Capture
 
-Save the current session's conversation artifacts — prompts, plans, and learnings — into their canonical repo directories so the full workflow is preserved and cross-linked.
+現在のセッションで生まれた会話上の成果物、つまりプロンプト、計画、学びを標準ディレクトリへ保存する。ワークフロー全体が後から追えるように、関連ファイル同士を必ず相互リンクする。
 
-## Philosophy
+## 考え方
 
-Every meaningful session produces three kinds of knowledge:
+意味のあるセッションからは、主に3種類の記録が生まれる。
 
-1. **Prompts** — the raw user intent, preferences, clarifications, and the exact model prompts or invocations used. This is the "what was asked and how it was executed."
-2. **Plans** — the structured approach: goal, steps, verification. This is the "what was decided."
-3. **Learnings** — outcomes, surprises, quality notes, and decisions for next time. This is the "what was learned."
+1. **Prompts**: ユーザーの意図、好み、確認事項、実際に使ったモデルプロンプトや呼び出し
+2. **Plans**: ゴール、手順、検証方法など、決めた進め方
+3. **Learnings**: 結果、意外だった点、品質メモ、次回に向けた判断
 
-These three files form a linked triple. Each one references the other two. They are the durable record of the session — not ephemeral conversation, but curated artifacts.
+3つのファイルは、単なる一時的な会話ログではなく、整えられた作業記録として扱う。存在する兄弟ファイルには必ずリンクする。
 
-## When To Capture
+## 保存するタイミング
 
-- After a planning phase produces a concrete plan
-- After a task is completed and there are outcomes to record
-- When the user explicitly asks to save, capture, or log
-- At natural milestones where prompts, decisions, or learnings would otherwise be lost
+- 計画フェーズで具体的な計画ができた後
+- タスクが完了し、記録すべき結果があるとき
+- ユーザーが保存、capture、log、作業記録を明示的に頼んだとき
+- プロンプト、判断、学びが失われそうな自然な節目
 
-You do not need all three files every time. Capture what exists:
-- Planning-only session? Prompts + plan.
-- Quick experiment? Prompts + learnings.
-- Full workflow? All three.
+毎回3ファイルすべてが必要とは限らない。
 
-## File Naming Convention
+- 計画だけのセッション: prompts + plan
+- 短い実験: prompts + learnings
+- 一連の作業: prompts + plan + learnings
 
-All files share the same timestamp and slug:
+## ファイル名
 
-```
+すべてのファイルは同じタイムスタンプと slug を共有する。
+
+```text
 YYYY-MM-DD-HHMMSS-<slug>
 ```
 
-- Timestamp: use the session start time or the time of the primary user request
-- Slug: short, hyphenated, descriptive (e.g., `pirate-walk-v2`, `fal-ai-video-experiment-harness`)
-- If the user provides a slug argument via `/capture <slug>`, use it
-- If no slug is provided, derive one from the conversation topic
+- タイムスタンプはセッション開始時刻、または主要なユーザー依頼の時刻を使う
+- slug は短く、ハイフン区切りで内容がわかるものにする
+- ユーザーが `/capture <slug>` のように指定した場合はそれを使う
+- 指定がない場合は会話の主題から作る
 
-## Output Locations
+## 出力先
 
-```
+```text
 prompts/<timestamp>-<slug>-prompts.md
 plans/<timestamp>-<slug>-plan.md
 learnings/<timestamp>-<slug>-learnings.md
 ```
 
-## Prompts File Template
+## Prompts テンプレート
 
 ```markdown
 # <Title> Prompts
@@ -65,7 +66,7 @@ Author: `User`
 Exact user message(s):
 
 \```text
-<paste the user's exact prompt(s), including typos and formatting>
+<ユーザーの正確な発言を、誤字や書式も含めて貼る>
 \```
 
 ## User Preferences
@@ -75,13 +76,13 @@ Author: `User`
 Preferences captured during the session:
 
 \```text
-<any stated preferences, constraints, or clarifications from the user>
+<ユーザーが示した好み、制約、確認事項>
 \```
 
 ## Assistant Summary
 
 \```text
-<concise summary of the intent and scope as understood by the assistant>
+<アシスタントが理解した意図と範囲の簡潔な要約>
 \```
 
 ## Docs Studied
@@ -89,7 +90,7 @@ Preferences captured during the session:
 Author: `Assistant`
 
 \```text
-<list of URLs or docs read during the session, if any>
+<セッション中に読んだ URL やドキュメント。なければ省略>
 \```
 
 ## Working Findings
@@ -97,35 +98,33 @@ Author: `Assistant`
 Author: `Assistant`
 
 \```text
-<key findings, research notes, or technical details discovered during planning/execution>
+<計画や実行中に見つけた重要な調査結果や技術メモ>
 \```
 
 ## Model Prompts Used
 
-<for each model prompt sent, include:>
-
 ### <Model Name> Prompt Sent
 
 \```text
-<exact prompt text>
+<送信した正確なプロンプト>
 \```
 
 ### <Model Name> Exact Invocation
 
 \```bash
-<exact command or API call>
+<正確なコマンドまたは API 呼び出し>
 \```
 
 ### Outcome
 
 \```text
-<what happened — success, failure, moderation block, quality notes>
+<結果、失敗、品質メモなど>
 \```
 ```
 
-Omit sections that don't apply. The "User Verbatim" section is always required. Other sections are included only when relevant content exists.
+該当しないセクションは省略する。ただし `User Verbatim` は必須。
 
-## Plan File Template
+## Plan テンプレート
 
 ```markdown
 # <Title> Plan
@@ -135,18 +134,18 @@ Linked learnings file: `learnings/<timestamp>-<slug>-learnings.md`
 
 ## Goal
 
-<one-paragraph goal statement>
+<ゴールを1段落で書く>
 
 ## Approach
 
-<structured approach — numbered steps, sub-bullets for detail>
+<手順を番号付きで書く>
 
 ## Verification
 
-<how to confirm the work is correct — build checks, visual confirmation, test commands>
+<ビルド、視覚確認、テストなど、正しさの確認方法>
 ```
 
-## Learnings File Template
+## Learnings テンプレート
 
 ```markdown
 # <Title> Learnings
@@ -157,40 +156,40 @@ Related records:
 
 ## Context
 
-<brief context for what this session was about>
+<このセッションの背景>
 
 ## Initial Hypothesis
 
-<what was expected to happen, if applicable>
+<当初の仮説。なければ省略>
 
 ## What Happened
 
-<factual account of outcomes — what worked, what didn't, what surprised>
+<何が起きたか、何がうまくいったか、何がうまくいかなかったか>
 
 ## Result Quality
 
-<quality assessment of outputs, comparison notes if applicable>
+<成果物の品質評価。なければ省略>
 
 ## Decisions
 
-<decisions made during or as a result of this session — what to keep, what to change next time>
+<今回決めたこと、次回以降に残す判断>
 ```
 
-Omit sections that don't apply. "Context" and "What Happened" are always required. Other sections are included only when relevant.
+`Context` と `What Happened` は必須。それ以外は必要なときだけ含める。
 
-## Cross-Linking
+## 相互リンク
 
-Every file must link to its siblings. Use relative paths from the repo root:
-- Prompts links to plan and learnings
-- Plan links to prompts and learnings
-- Learnings links to plan and prompts
+すべてのファイルは兄弟ファイルへリンクする。リンクはリポジトリルートからの相対パスで書く。
 
-If only two files are created (e.g., no learnings yet), link only to the sibling that exists.
+- prompts は plan と learnings へリンクする
+- plan は prompts と learnings へリンクする
+- learnings は plan と prompts へリンクする
+- 2ファイルしか作らない場合は、存在する兄弟ファイルだけにリンクする
 
-## Anti-Patterns
+## 避けること
 
-- **Don't fabricate content**: Only capture what actually happened in the session. If there are no learnings yet, don't create a learnings file.
-- **Don't over-summarize user verbatim**: Paste the user's exact words. Typos, formatting, and all.
-- **Don't merge sessions**: Each capture is one timestamp, one slug, one coherent unit of work.
-- **Don't skip the cross-links**: The linked triple is the whole point.
-- **Don't include ephemeral conversation**: Capture decisions and artifacts, not back-and-forth chatter.
+- **内容を捏造しない**: 実際に起きたことだけを記録する
+- **ユーザー原文を要約しすぎない**: `User Verbatim` には正確な発言を貼る
+- **別セッションを混ぜない**: 1つの capture は1タイムスタンプ、1 slug、1つのまとまった作業にする
+- **相互リンクを省略しない**: リンクされた記録セットがこのスキルの要点
+- **雑談的な往復をそのまま残さない**: 会話そのものではなく、判断と成果物を記録する

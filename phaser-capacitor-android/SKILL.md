@@ -7,221 +7,205 @@ metadata:
 
 # Phaser Capacitor Android
 
-Build Phaser games that run in the browser and ship in an Android native shell via Capacitor.
-Use this skill at the boundary where most breakage happens: Vite build output, static asset paths, Phaser version differences, mobile scale and orientation, touch/audio behavior, Android WebView lifecycle, Gradle setup, sync/run, signing, and WSL2 emulator or ADB workflows.
+browser で動く Phaser game を Capacitor 経由で Android native shell に出荷する。Vite build output、static asset paths、Phaser version differences、mobile scale/orientation、touch/audio、Android WebView lifecycle、Gradle、sync/run、signing、WSL2 emulator / ADB workflow の境界で使う。
 
-Use the `phaser-gamedev` skill for browser-only Phaser gameplay work. Use `phaser4-gamedev` alongside this skill when the project is confirmed Phaser 4.x, the user asks for Phaser 4, or the task touches Phaser 3 to 4 migration, renderer internals, filters, lighting, shaders, render textures, GPU layers, or texture orientation.
+browser-only gameplay は `phaser-gamedev` を使う。Phaser 4.x 確認済み、ユーザーが Phaser 4 を求めた、migration / renderer / filters / lighting / shaders / render textures / GPU layers / texture orientation に触れる場合は `phaser4-gamedev` も使う。
 
-Use this skill when Android, Capacitor, WebView, native build, emulator, device, or Play Store packaging concerns are part of the task.
+## 基本方針: Two Runtimes, One Game Contract
 
-## Operating Model: Two Runtimes, One Game Contract
+project を合意すべき systems として扱う。
 
-Treat the project as systems that must agree:
-- A web game runtime: Phaser + Vite + browser APIs.
-- A native wrapper: Capacitor Android + Android System WebView + Gradle.
-- A host boundary when applicable: Linux/WSL builds, Windows Android Studio or emulator, and ADB device ownership.
+- web game runtime: Phaser + Vite + browser APIs
+- native wrapper: Capacitor Android + Android System WebView + Gradle
+- host boundary: Linux/WSL builds、Windows Android Studio/emulator、ADB device ownership
 
-Most failures happen when the contract is implicit. Make build output, asset URLs, scene startup, scale mode, orientation, input, audio unlock, pause/resume behavior, and signing choices explicit and testable.
+失敗の多くは contract が implicit なときに起きる。build output、asset URLs、scene startup、scale mode、orientation、input、audio unlock、pause/resume、signing を explicit / testable にする。
 
-Before implementing or debugging, establish:
-- Phaser version: inspect the installed or vendored Phaser major/minor before using version-sensitive APIs.
-- Web output: exact Vite output directory (`dist` or `www`) and matching Capacitor `webDir`.
-- Assets: images, atlases, audio, tilemaps, and packs under `public/` or bundled imports, with loader URLs that work under the Android WebView origin.
-- Scale/orientation: chosen Phaser scale mode, fixed or responsive game size, pixel-art rules, DPR cap, and Android orientation policy.
-- Input: desktop keyboard/mouse/gamepad and mobile touch or virtual controls are both intentional.
-- Audio: first-gesture unlock behavior and background pause/resume rules are defined.
-- Lifecycle: WebView pause/resume, WebGL context loss, hardware back button, and scene cleanup have product rules.
-- Android toolchain: Capacitor, Android Studio, SDK, Gradle JDK, and `adb` match the project's Capacitor major version.
-- Host split: if WSL2/Linux builds but Windows owns Android Studio, the emulator, or `adb.exe`, treat Windows as the device host. Do not let `npx cap run android` or `npx cap open android` choose WSL-side Android Studio/ADB implicitly. Build/sync in WSL, then install with Windows `adb.exe`, or explicitly open Windows native Android Studio.
+作業前に確認すること:
 
-Core priorities:
-1. Contract-first game boot: scene list, loader keys, asset paths, and scale behavior are discoverable and stable.
-2. Toolchain-first Android setup: verify Capacitor, Android Studio, SDK, Gradle JDK, and `adb` before debugging game logic.
-3. Mobile-first ergonomics: touch, audio unlock, orientation, safe areas, and resize behavior are not afterthoughts.
-4. Build-sync discipline: native runs use freshly built and synced web assets.
-5. Fast diagnosis: add small runtime checks for missing assets, loader failures, blank canvas, WebGL failures, and stale bundles before deep native debugging.
+- Phaser version
+- exact Vite output directory と Capacitor `webDir`
+- assets の配置と Android WebView origin で動く loader URLs
+- scale/orientation、pixel-art rules、DPR cap、Android orientation policy
+- desktop と mobile の input plan
+- first-gesture audio unlock、pause/resume
+- WebView pause/resume、WebGL context loss、hardware back button、scene cleanup
+- Capacitor、Android Studio、SDK、Gradle JDK、`adb`
+- WSL2/Linux と Windows device host の分離
 
-## Reference Files
+優先順位:
+
+1. scene list、loader keys、asset paths、scale behavior が安定した contract-first boot
+2. Android toolchain の先行検証
+3. touch、audio unlock、orientation、safe areas、resize を mobile-first に扱う
+4. native run は fresh build + sync 済み assets を使う
+5. missing assets、loader failures、blank canvas、WebGL failures、stale bundles を小さな runtime checks で早期診断する
+
+## 参照ファイル
 
 | Topic | File | Use When |
 | --- | --- | --- |
-| Android workflow | [references/capacitor-android-workflow.md](references/capacitor-android-workflow.md) | Setup, build/sync/run, emulator/device, live reload, signing |
-| WSL2 + Windows Emulator | [references/windows-wsl-emulator-workflow.md](references/windows-wsl-emulator-workflow.md) | Project is in WSL2/Linux, Windows Android Studio/Emulator owns the GUI/device, or WSL emulator controls are unreliable |
-| Phaser mobile runtime | [references/phaser-mobile-runtime-patterns.md](references/phaser-mobile-runtime-patterns.md) | Phaser config, scene boot, asset paths, touch input, audio unlock, scale/orientation, pause/resume |
-| Phaser 4 Android rendering | [references/phaser4-android-rendering.md](references/phaser4-android-rendering.md) | Confirmed Phaser 4, Phaser 3 to 4 migration, filters, lighting, shaders, render targets, GPU layers, or renderer performance |
-| Gotchas | [references/gotchas.md](references/gotchas.md) | Browser works but Android fails, loader/audio/touch/scale/WebGL/Gradle/ADB issues |
+| Android workflow | [references/capacitor-android-workflow.md](references/capacitor-android-workflow.md) | setup、build/sync/run、emulator/device、live reload、signing |
+| WSL2 + Windows Emulator | [references/windows-wsl-emulator-workflow.md](references/windows-wsl-emulator-workflow.md) | WSL2/Linux project、Windows Android Studio/Emulator、WSL emulator controls が不安定 |
+| Phaser mobile runtime | [references/phaser-mobile-runtime-patterns.md](references/phaser-mobile-runtime-patterns.md) | Phaser config、scene boot、asset paths、touch、audio unlock、scale/orientation、pause/resume |
+| Phaser 4 Android rendering | [references/phaser4-android-rendering.md](references/phaser4-android-rendering.md) | confirmed Phaser 4、migration、filters、lighting、shaders、render targets、GPU layers |
+| Gotchas | [references/gotchas.md](references/gotchas.md) | browser works but Android fails、loader/audio/touch/scale/WebGL/Gradle/ADB |
 
-## Quick Start Workflow
+## Quick Start
 
-1. Inspect `package.json`, `vite.config.*`, `capacitor.config.*`, Phaser entry points, scenes, and asset folders.
-2. Determine Phaser major/minor and Capacitor major version from local dependencies or vendored bundles.
-3. Build the Phaser app with the project-native command, usually `npm run build`.
-4. Configure Capacitor with `webDir` matching the build output, usually `"dist"`.
-5. Add Android if missing: install `@capacitor/android`, then run `npx cap add android`.
-6. For a native Linux/macOS/Windows project, use the deterministic loop:
+1. `package.json`、`vite.config.*`、`capacitor.config.*`、Phaser entry points、scenes、asset folders を確認
+2. local dependencies / vendored bundles から Phaser major/minor と Capacitor major を特定
+3. project-native command で build。通常 `npm run build`
+4. Capacitor `webDir` を build output に合わせる。通常 `"dist"`
+5. Android がなければ `@capacitor/android` を install し `npx cap add android`
+6. 通常 loop:
    - `npm run build`
    - `npx cap sync android`
-   - `npx cap run android` or `npx cap open android`
+   - `npx cap run android` または `npx cap open android`
 
-When possible, add project scripts so repeated commands cannot skip build or sync.
+可能なら build/sync を飛ばせない project scripts を追加する。
 
-For WSL2 projects with Windows Android Studio or a Windows emulator, do not use the plain `cap run/open` loop as the default. First choose the device host deliberately:
-- Install a WSL-built APK with Windows `adb.exe`: best for smoke-testing TypeScript, Phaser scenes, CSS, assets, Capacitor config, or Android output that already syncs.
-- Open the Android project in Windows native Android Studio: best when editing native Gradle, manifest, plugin code, signing, Logcat, profilers, or resource editors.
+WSL2 + Windows Android Studio / emulator では plain `cap run/open` を既定にしない。device host を先に決める。
 
-Do not default to debugging a flaky WSL2 emulator GUI, WSL-side Android Studio, or Linux `adb` when the user's goal is an Android app smoke test. Use the Windows emulator/device host instead and convert WSL paths with `wslpath -w` when passing APKs or project paths to Windows tools.
+- WSL-built APK を Windows `adb.exe` で install: TypeScript、Phaser scenes、CSS、assets、Capacitor config の smoke test に向く
+- Windows native Android Studio で開く: Gradle、manifest、plugin code、signing、Logcat、profilers、resource editors に向く
 
-## Implementation Guidelines
+WSL 側 emulator GUI / Linux `adb` が不安定な場合は Windows emulator/device host を使い、APK paths は `wslpath -w` で変換する。
 
-### 1) Project Shape
+## 実装ガイド
 
-Prefer this shape:
-- `index.html` and `src/*` for Phaser app code.
-- `public/assets/...` for images, atlases, audio, tilemaps, JSON packs, and fonts that should be served as files.
-- `capacitor.config.ts` with `webDir: "dist"` for Vite defaults.
-- A small boot or preload scene that owns loading, progress, and loader error reporting.
+### Project Shape
 
-Keep runtime loads compatible with both desktop browser and Android System WebView:
+- Phaser code: `index.html` と `src/*`
+- file として serve する images、atlases、audio、tilemaps、JSON packs、fonts: `public/assets/...`
+- Vite 既定では `capacitor.config.ts` に `webDir: "dist"`
+- loading、progress、loader error reporting は small boot/preload scene が所有する
+
+runtime loads は desktop browser と Android System WebView の両方で動くようにする。
+
 - Good: `this.load.image('player', '/assets/player.png')`
 - Good: `this.load.tilemapTiledJSON('level-1', '/assets/maps/level-1.json')`
-- Avoid: filesystem paths, `file://` assumptions, absolute dev-machine hostnames, or paths that only work with Vite dev server rewrites.
+- Avoid: filesystem paths、`file://` assumptions、dev-machine hostnames、Vite dev server rewrites に依存する paths
 
-Android serves bundled web assets from a local WebView origin. Absolute `/assets/...` URLs usually resolve correctly under that origin for files in `public/assets`. Do not change Capacitor's Android scheme or use `server.url` without a routing or live-reload reason.
+Android bundled assets は local WebView origin で serve される。`public/assets` の files には absolute `/assets/...` URLs が通常有効。routing/live-reload 理由なしに Android scheme や `server.url` を変えない。
 
-### 2) Phaser Runtime Contract
+### Phaser Runtime Contract
 
-Inspect version and config before editing:
-- Phaser 3 and Phaser 4 differ in renderer, filters, pipelines, texture behavior, and some APIs.
-- Unknown Phaser version means stop API-sensitive edits until dependency, vendored bundle, script tag, or runtime `Phaser.VERSION` identifies the major/minor.
-- For Phaser 3.x, use the matching installed minor version and avoid copying Phaser 4-only renderer/filter APIs into the project.
-- For Phaser 4.x, prefer WebGL-aware patterns and read `references/phaser4-android-rendering.md` before changing filters, masks, lighting, shaders, render textures, GPU layers, custom pipelines, or renderer internals.
-- For migration work, inventory renderer hotspots before changing gameplay logic.
-- Preserve the existing scene model unless it is the source of the Android failure.
-- Choose scale behavior deliberately: fixed virtual resolution with `FIT`, responsive canvas with `RESIZE`, or pixel-art integer scaling.
-- Cap effective resolution for Android devices with very high DPR.
-- Keep CSS and Phaser config aligned so the canvas fills the WebView without page scrolling.
+- Phaser 3/4 の renderer、filters、pipelines、texture behavior、APIs は違う
+- version 不明なら API-sensitive edits を止める
+- Phaser 4 では `references/phaser4-android-rendering.md` を読んでから renderer-sensitive changes
+- scene model は Android failure の原因でない限り保つ
+- fixed virtual resolution + `FIT`、responsive canvas + `RESIZE`、pixel-art integer scaling を意図して選ぶ
+- high-DPI Android では effective resolution を cap する
+- CSS と Phaser config を合わせ、WebView 内で canvas が scroll/zoom しないようにする
 
-For Phaser-specific implementation details, read `references/phaser-mobile-runtime-patterns.md`.
+### Assets / Scenes / State
 
-### 3) Assets, Scenes, and State
+- assets は `preload()` または boot scene で load
+- spritesheet frame width/height、spacing、margin を測定してから animations
+- animations は once per lifecycle、または `this.anims.exists(key)` で guard
+- gameplay、UI、loading、menus は clear ownership の scenes に分ける
+- global `window` state より scene data、registries、typed state modules
+- projectiles、enemies、particles などは pool
 
-Use stable loader keys and one source of truth for asset dimensions:
-- Load assets in `preload()` or a boot scene, not ad hoc in `create()`.
-- Measure spritesheet frame width, height, spacing, and margin before adding animations.
-- Create animations once per game lifecycle or guard with `this.anims.exists(key)`.
-- Keep gameplay, UI, loading, and menus in scenes with clear ownership.
-- Use scene data, registries, or typed state modules instead of global `window` state.
-- Pool projectiles, enemies, particles, and frequently spawned objects.
+tilemaps、atlases、spritesheets、physics、general gameplay は `phaser-gamedev` も使う。
 
-For tilemaps, atlases, spritesheets, physics, and general Phaser gameplay, use the `phaser-gamedev` skill alongside this one.
+### Mobile Input / Audio / Back Button
 
-### 4) Mobile Input, Audio, and Back Button
+- desktop keyboard/mouse/gamepad と Android touch/virtual controls を両方設計する
+- multi-touch controls には active pointers を増やす
+- canvas/container に `touch-action: none` を設定し、WebView gestures に scroll/zoom されないようにする
+- audio は first user gesture 後に start/resume。Capacitor `pause` で pause/mute、`resume` で意図して復帰
+- hardware back button は `@capacitor/app` で扱う。閉じる state、route stack、menu、pause screen があるなら product rule を定義する
 
-Set desktop and mobile input rules together:
-- Map keyboard/mouse/gamepad for browser development.
-- Map touch, virtual sticks/buttons, swipe, or tap zones for Android.
-- Add enough active pointers for multi-touch controls.
-- Set `touch-action: none` on the game container/canvas so WebView gestures do not scroll or zoom the page.
+### Performance / Stability
 
-Plan for browser audio policy:
-- Start or resume audio after the first user gesture.
-- Pause or mute audio on Capacitor `pause`.
-- Resume intentionally on `resume`.
+- draw calls / load churn が問題なら atlases
+- high-DPI screens で effective render resolution を cap
+- major rewrite 前に `game.loop.actualFps`、active objects、physics bodies、tweens、timers、particles、loader/cache size を測定
+- object churn、collision explosions、oversized textures、culling を先に直す
+- every frame で sprites/text/graphics/tweens/sounds を作らない
+- scene shutdown で timers、listeners、subscriptions を止める
+- loader errors を surface する
+- app backgrounding で simulation/audio を pause
+- Android では WebGL context loss を想定する
 
-Handle Android's hardware back button via `@capacitor/app` when there is in-app state to close, a route stack to pop, a menu to dismiss, or a pause screen to open. Letting default exit behavior stand is acceptable only when it is an explicit product decision.
+### Capacitor Android Integration
 
-### 5) Performance and Stability Guardrails
+project の Capacitor major version に合う official docs を source of truth にする。Node、Android Studio、Android SDK platform、Gradle JDK、target SDK を local project で確認する。
 
-- Prefer atlases over many small images when draw calls or load churn matter.
-- Cap effective render resolution on high-DPI Android screens.
-- Measure `game.loop.actualFps`, active object counts, physics bodies, tweens, timers, particles, and loader/cache size before major performance rewrites.
-- Fix object churn, collision-pair explosions, oversized textures, and culling issues before moving to specialized Phaser 4 GPU layers or custom rendering.
-- Avoid creating sprites, text, graphics, tweens, or sounds every frame.
-- Use object pools for repeat spawns.
-- Stop timers, event listeners, and subscriptions on scene shutdown.
-- Listen for Phaser loader errors and surface the failing key or URL.
-- Pause simulation and audio on app backgrounding.
-- Treat WebGL context loss as possible on Android, especially with custom pipelines, render textures, or large textures.
-- Verify the app on a real device or emulator when touch, orientation, audio, or performance matters.
+確認:
 
-### 6) Capacitor Android Integration
-
-Use the official Capacitor docs for the project's major version as the source of truth. Do not hardcode environment requirements from memory; confirm Node, Android Studio, Android SDK platform, Gradle JDK, and target SDK requirements for the local project.
-
-Verify with:
 - `node --version`
 - `npm ls @capacitor/core @capacitor/cli @capacitor/android`
 - `npx cap doctor`
 - `adb devices`
-- Android Studio Gradle sync when native files are involved
+- native files に触る場合は Android Studio Gradle sync
 
-After native-side config changes, plugin changes, permissions, signing changes, or web asset changes, run `npx cap sync android` again.
+native config、plugins、permissions、signing、web assets を変えた後は `npx cap sync android`。
 
-For WSL2 projects where Windows owns Android Studio/Emulator:
-- Prefer scripts such as `android:cloud:apk` or `android:debug:apk` that build in WSL with `npx cap sync android` plus `./gradlew assembleDebug`.
-- Install and launch with Windows `adb.exe` using a Windows-converted APK path, for example `wslpath -w android/app/build/outputs/apk/debug/app-debug.apk`.
-- If Android Studio is needed, explicitly launch Windows `studio64.exe` with a Windows-converted project path. Do not rely on `npx cap open android` from WSL unless the user explicitly wants the WSL/UNC workflow.
-- Keep one ADB host per session. Mixing Linux `adb` and Windows `adb.exe` is a common source of missing, duplicate, or offline devices.
+WSL2 で Windows が Android Studio/Emulator を所有する場合:
 
-Live reload is development-only. If using `server.url`, use a reachable LAN/emulator host and `server.cleartext: true` only when required. Remove `server.url` before release builds.
+- WSL で `npx cap sync android` + `./gradlew assembleDebug`
+- Windows `adb.exe` で install / launch。APK path は `wslpath -w android/app/build/outputs/apk/debug/app-debug.apk`
+- Android Studio が必要なら Windows `studio64.exe` に Windows-converted project path を渡す
+- 1 session では ADB host を1つにする。Linux `adb` と Windows `adb.exe` を混ぜない
 
-Release builds need a project-owned keystore. Debug builds auto-sign.
+live reload は development-only。`server.url` を使う場合は reachable LAN/emulator host を使い、必要な場合だけ `server.cleartext: true` を設定する。release builds 前に `server.url` を消す。release には project-owned keystore が必要。debug builds は auto-sign。
 
-## Anti-Patterns to Avoid
+## 避けること
 
-**Guessing Phaser version**
+**Phaser version を推測する**
 
-Why bad: Phaser 3 and 4 renderer, filter, texture, and API differences can turn a small fix into a regression.
-Better: inspect dependencies, vendored banners, or runtime `Phaser.VERSION` before editing version-sensitive code.
+問題: Phaser 3 と 4 の renderer、filter、texture、API 差分により、小さな修正が regression になり得る。
+改善: version-sensitive code を編集する前に dependencies、vendored banners、runtime `Phaser.VERSION` を確認する。
 
-**Treating Phaser 4 as a drop-in Phaser 3 upgrade**
+**Phaser 4 を drop-in Phaser 3 upgrade として扱う**
 
-Why bad: code can compile while filters, masks, tint, camera rounding, render targets, texture orientation, or custom pipelines change behavior.
-Better: run a hotspot search, classify findings as mechanical, behavioral, or architectural, then verify visual output on browser and Android.
+問題: code が compile しても filters、masks、tint、camera rounding、render targets、texture orientation、custom pipelines の挙動が変わり得る。
+改善: hotspot search を実行し、mechanical / behavioral / architectural に分類してから browser と Android で visual output を検証する。
 
-**Running Android without rebuilding web assets**
+**web assets を rebuild せず Android を run する**
 
-Why bad: device/emulator shows stale JS, CSS, and assets.
-Better: use scripts that always build before `cap sync` and `cap run`.
+問題: device/emulator が stale JS、CSS、assets を表示する。
+改善: `cap sync` と `cap run` の前に必ず build する scripts を使う。
 
-**Using dev-server-only asset paths**
+**dev-server-only asset paths を使う**
 
-Why bad: Vite dev server may resolve paths that bundled Android WebView assets cannot.
-Better: load public assets with stable `/assets/...` URLs or imported bundle URLs that survive production build.
+問題: Vite dev server では解決できても、bundled Android WebView assets では解決できない path がある。
+改善: production build 後も生きる stable `/assets/...` URLs または imported bundle URLs で public assets を load する。
 
-**Loading or creating game objects in the wrong lifecycle**
+**wrong lifecycle で load/create する**
 
-Why bad: assets can be missing, animations duplicated, and scenes leak event handlers after restart.
-Better: load in `preload()`, create in `create()`, update with delta time, and clean up on scene shutdown.
+問題: assets missing、animations duplicated、scene restart 後の event handler leaks を起こす。
+改善: `preload()` で load、`create()` で create、delta time で update し、scene shutdown で cleanup する。
 
-**Treating Android as a browser-only bug**
+**Android を browser-only bug として扱う**
 
-Why bad: Android adds WebView origin, lifecycle, audio policy, memory pressure, orientation, touch, and hardware back behavior.
-Better: inspect WebView console, verify touch/audio/orientation on device, and test pause/resume.
+問題: Android には WebView origin、lifecycle、audio policy、memory pressure、orientation、touch、hardware back behavior がある。
+改善: WebView console を inspect し、device で touch/audio/orientation を検証し、pause/resume を test する。
 
-**Shipping a development server config**
+**development `server.url` を ship する**
 
-Why bad: `server.url` points the app at a dev machine or remote web bundle and changes release security/performance behavior.
-Better: remove `server.url` for production and ship built assets unless the project has an intentional live-update architecture.
+問題: `server.url` は app を dev machine または remote web bundle に向け、release の security / performance behavior を変える。
+改善: intentional live-update architecture がない限り、production では `server.url` を削除して built assets を ship する。
 
-**Mixing ADB hosts in WSL2**
+**WSL2 で ADB hosts を混ぜる**
 
-Why bad: Linux `adb` and Windows `adb.exe` may talk to different servers, so devices appear missing, offline, or inconsistent.
-Better: choose the device host first. If Windows owns the emulator, run Windows `adb.exe` from WSL and convert APK paths with `wslpath -w`.
+問題: Linux `adb` と Windows `adb.exe` が別 server と話し、devices が missing、offline、inconsistent に見える。
+改善: device host を先に選ぶ。Windows が emulator を所有する場合は WSL から Windows `adb.exe` を実行し、APK path は `wslpath -w` で変換する。
 
-**Opening WSL-side Android Studio by accident**
+**WSL 側 Android Studio を意図せず開く**
 
-Why bad: `npx cap open android` from WSL can open or target the wrong Android Studio/SDK/ADB path, leaving the real Windows emulator disconnected from the build workflow.
-Better: for smoke tests, build the APK in WSL and install with Windows `adb.exe`; for native Android editing, explicitly launch Windows `studio64.exe` or work from a Windows filesystem clone.
+問題: WSL から `npx cap open android` すると wrong Android Studio/SDK/ADB path を開く、または target し、実際の Windows emulator が build workflow から切り離されることがある。
+改善: smoke tests では WSL で APK を build し Windows `adb.exe` で install する。native Android editing では Windows `studio64.exe` を明示的に起動するか、Windows filesystem clone で作業する。
 
-**Starting with shaders, filters, or GPU layers**
+**requirement が証明される前に shaders / filters / GPU layers から始める**
 
-Why bad: advanced renderer paths add render passes, fill-rate, WebGL-only behavior, and version-specific failure modes.
-Better: use standard game objects, atlases, pooling, culling, and measured profiling until the requirement proves a specialized path is needed.
+問題: advanced renderer paths は render passes、fill-rate、WebGL-only behavior、version-specific failure modes を増やす。
+改善: requirement が specialized path を証明するまで standard game objects、atlases、pooling、culling、measured profiling を使う。
 
-## Verification
-
-Run the strongest project checks available without inventing unrelated tooling:
+## 検証
 
 ```bash
 npm run typecheck
@@ -230,38 +214,31 @@ npm test
 npm run build
 ```
 
-For Android-facing changes, also verify:
-- `npx cap sync android` runs after the latest build.
-- Device/emulator launches the fresh bundle, not stale web assets.
-- Canvas is nonblank, correctly sized, and free of WebView console loader errors.
-- Boot, preload, scene transitions, pause/resume, restart, and UI overlays work.
-- Touch controls, audio unlock, orientation, hardware back, and safe-area layout match the product rule.
-- Movement uses delta time or physics velocity and remains stable at variable frame rates.
-- Animations, atlases, tilemaps, collision bodies, camera bounds, and pixel-art rounding match visible art.
-- For Phaser 4 renderer work, filters, lighting, render textures, GPU layers, and texture orientation render correctly and do not destroy FPS on target hardware.
+Android-facing changes では次を確認する。
 
-If a check cannot run, state exactly why and what risk remains.
+- latest build 後に `npx cap sync android`
+- device/emulator が fresh bundle を起動
+- canvas が nonblank、size 正常、WebView console loader errors なし
+- boot、preload、scene transitions、pause/resume、restart、UI overlays
+- touch controls、audio unlock、orientation、hardware back、safe-area layout
+- delta/physics movement、animations、atlases、tilemaps、collision bodies、camera bounds、pixel-art rounding
+- Phaser 4 renderer work の filters、lighting、render textures、GPU layers、texture orientation、FPS
+
+実行できない check は理由と remaining risk を伝える。
 
 ## Variation Guidance
 
-Do not produce identical mobile wrappers by default. Adjust implementation to the game:
-- Arcade/action game: responsive controls, low input latency, object pooling, pause behavior, and stable FPS matter most.
-- Platformer: fixed virtual resolution, camera rounding, collision debug toggles, and virtual buttons need deliberate tuning.
-- Pixel-art game: `pixelArt`, nearest-neighbor CSS, integer-friendly scale, and texture bleeding checks are critical.
-- Tiled RPG or map-heavy game: tilemap paths, layer collisions, camera bounds, and asset pack structure are the fragile surface.
-- Menu-heavy or visual novel game: safe areas, text layout, back-button rules, and audio focus matter more than physics.
-- Asset QA tool: diagnostics overlay, loader error list, texture dimensions, FPS, and screenshot checks are useful.
+game context で変える。
 
-Vary these dimensions intentionally:
-- Scale mode and virtual resolution.
-- Orientation policy and safe-area handling.
-- Touch control layout and active pointer count.
-- Audio unlock and background behavior.
-- Scene boundaries, state persistence, and diagnostics visibility.
+- arcade/action: responsive controls、low latency、pooling、pause、stable FPS
+- platformer: fixed virtual resolution、camera rounding、collision debug、virtual buttons
+- pixel art: `pixelArt`、nearest-neighbor CSS、integer-friendly scale、texture bleeding checks
+- Tiled RPG/map-heavy: tilemap paths、layer collisions、camera bounds、asset pack structure
+- menu/visual novel: safe areas、text layout、back-button rules、audio focus
+- asset QA: diagnostics overlay、loader error list、texture dimensions、FPS、screenshots
 
-Avoid converging on a generic "canvas plus three buttons" output when the project context calls for platformer controls, tilemap inspection, menu navigation, or production packaging.
+scale mode、orientation、touch layout、audio behavior、scene boundaries、diagnostics visibility を意図して変える。
 
-## Remember
+## 覚えておくこと
 
-Phaser + Capacitor Android succeeds when contracts are explicit and workflows are disciplined.
-Verify the Phaser and Capacitor versions, make scene and asset boot deterministic, design touch/audio/lifecycle behavior for Android, align the Android toolchain, and keep build/sync/run repeatable.
+Phaser + Capacitor Android は explicit contracts と disciplined workflow で成功する。Phaser/Capacitor versions を確認し、scene/asset boot を deterministic にし、Android touch/audio/lifecycle behavior を設計し、toolchain と build/sync/run を repeatable にする。

@@ -7,147 +7,169 @@ metadata:
 
 # X API Builder
 
-Build reliable X API integrations that survive real production constraints: auth mismatch, partial responses, rate limits, and billing surprises.
+auth mismatch、partial responses、rate limits、billing surprises など本番制約に耐える X API integration を作る。
 
-## Philosophy: Contract-First Integration
+## 考え方: Contract-First Integration
 
-Treat X API work as a contract system, not a quick HTTP-call task. A correct integration is one that stays correct under changing data, auth context, and platform limits.
+X API work は quick HTTP-call ではなく contract system として扱う。正しい integration とは、data、auth context、platform limits が変化しても正しく動くもの。
 
-**Before implementing, ask:**
-- Which contract am I targeting: REST endpoint, SDK method, or both?
-- What auth context is required for this exact operation and fields?
-- What are the operational constraints: rate window, retries, partial errors, cost model?
-- How will this degrade when data is missing, protected, deleted, or partially returned?
+**実装前に確認すること:**
 
-**Core principles:**
-1. Verify first, code second: derive behavior from current docs/OpenAPI, then implement.
-2. Scope is data access: fields and expansions are permissions and payload decisions, not cosmetics.
-3. Production over demo: include retry, observability, partial-failure handling, and budget awareness from day one.
+- target は REST endpoint、SDK method、またはその両方か
+- その operation と fields に必要な auth context は何か
+- rate window、retries、partial errors、cost model などの operational constraints は何か
+- data が missing、protected、deleted、partial returned の場合どう degrade するか
 
-## Workflow
+**基本原則**
 
-### 1. Define Integration Shape
-- Choose endpoint family and auth model first.
-- Pin required response fields and expansions before writing business logic.
-- Decide if the integration is lookup, user-owned mutation, or long-lived stream ingestion.
-- For Posts/Users features, decide whether you need single-item lookup, batch lookup, or write operations.
-- Use `references/posts-users-playbook.md` to select canonical endpoint patterns.
+1. verify first, code second: current docs/OpenAPI から behavior を導き、その後に実装する
+2. scope は data access: fields と expansions は見た目ではなく、permission と payload の判断
+3. production over demo: retry、observability、partial-failure handling、budget awareness を最初から入れる
 
-### 2. Resolve Auth and Scopes
-- Confirm whether app-only is sufficient or user-context is mandatory.
-- For write operations like create post, require user-context permissions and scopes.
-- For `/2/users/me`, require user-context only.
-- For user-owned Likes/Bookmarks writes, ensure path user IDs match the authenticated user.
-- For Likes Streams, validate bearer-token access and stream product entitlement before coding.
-- Keep credential families explicit:
-  - OAuth 2.0 app credentials: `X_CLIENT_ID` + `X_CLIENT_SECRET`.
-  - OAuth 1.0a app keys: consumer key/secret (different family).
-  - App-only bearer token: service token, not user login.
-- For local OAuth dev in X portal, register both callback URLs:
+## ワークフロー
+
+### 1. integration shape を定義する
+
+- endpoint family と auth model を先に選ぶ
+- business logic を書く前に required response fields と expansions を固定する
+- integration が lookup、user-owned mutation、long-lived stream ingestion のどれか決める
+- Posts/Users features では single-item lookup、batch lookup、write operations のどれが必要か決める
+- canonical endpoint pattern の選択には `references/posts-users-playbook.md` を使う
+
+### 2. auth と scopes を解決する
+
+- app-only で足りるか、user-context が必須か確認する
+- create post など write operations には user-context permissions と scopes が必要
+- `/2/users/me` は user-context only
+- user-owned Likes/Bookmarks writes では path user IDs が authenticated user と一致することを確認する
+- Likes Streams では coding 前に bearer-token access と stream product entitlement を検証する
+- credential families を明示する
+  - OAuth 2.0 app credentials: `X_CLIENT_ID` + `X_CLIENT_SECRET`
+  - OAuth 1.0a app keys: consumer key/secret。別 family
+  - App-only bearer token: service token であり user login ではない
+- local OAuth dev では X portal に両方の callback URL を登録する
   - `http://localhost:3000/api/x/oauth/callback`
   - `http://127.0.0.1:3000/api/x/oauth/callback`
-- Keep `redirect_uri` byte-for-byte identical across authorize + token exchange + app settings.
-- If X portal requires Website URL validation for local apps, use `https://127.0.0.1:3000` for website metadata and keep callback URLs on `http`.
-- Use `references/auth-and-scopes.md` to map operation to token type.
+- `redirect_uri` は authorize、token exchange、app settings で byte-for-byte identical にする
+- X portal が local apps に Website URL validation を要求する場合、website metadata は `https://127.0.0.1:3000`、callback は `http` に保つ
+- operation から token type を map するには `references/auth-and-scopes.md` を使う
 
-### 3. Design Request/Response Contract
-- Request only needed fields (`tweet.fields`, `user.fields`, etc.) and explicit expansions.
-- Build parser logic that tolerates partial success in batch endpoints (`data` plus `errors`).
-- Handle missing includes safely.
-- Normalize IDs as strings end-to-end.
-- For mutation endpoints, model boolean result envelopes (`liked`, `bookmarked`) and error arrays.
-- For likes streams, model event payload and include-aware expansions separately.
+### 3. request/response contract を設計する
 
-### 4. Add Operational Guardrails
-- Implement rate-limit-aware retry with header-driven reset handling.
-- Distinguish idempotent retries (safe) from write retries (needs dedupe strategy).
-- Log request metadata needed for debugging and billing analysis.
-- For streams, implement reconnect + bounded backfill and enforce valid partition ranges.
-- Use `references/rate-limits-and-billing.md` for baseline limits and cost behavior.
+- 必要な fields (`tweet.fields`, `user.fields` など) と明示的な expansions だけを request する
+- batch endpoints の partial success (`data` plus `errors`) に耐える parser を作る
+- missing includes を安全に扱う
+- IDs は end-to-end で string として normalize する
+- mutation endpoints では boolean result envelopes (`liked`, `bookmarked`) と error arrays を model 化する
+- likes streams では event payload と include-aware expansions を別々に model 化する
 
-### 5. Map to TypeScript XDK When Needed
-- Prefer official SDK methods when building TypeScript services.
-- Keep method usage aligned with endpoint semantics.
-- Use `references/typescript-xdk-mapping.md` for REST-to-XDK mapping.
+### 4. operational guardrails を追加する
 
-### 6. Validate with Scenario Matrix
-- Validate with these cases before shipping:
-- Public object lookup success.
-- Missing, deleted, or protected object.
-- Batch request with mixed valid and invalid IDs.
-- Rate-limit response and reset-aware retry path.
-- Auth mismatch (app-only vs user-context).
-- Field or expansion mismatch.
-- User-owned endpoint with mismatched path ID (should fail).
-- Likes lookup cap behavior (`/2/tweets/:id/liking_users` max 100 users lifetime).
-- Stream reconnection with `backfill_minutes` and partition bounds.
+- header-driven reset handling を使い、rate-limit-aware retry を実装する
+- idempotent retries と write retries を区別する。write には dedupe strategy が必要
+- debugging と billing analysis に必要な request metadata を log する
+- streams では reconnect + bounded backfill を実装し、valid partition ranges を強制する
+- baseline limits と cost behavior には `references/rate-limits-and-billing.md` を使う
+
+### 5. 必要に応じて TypeScript XDK に map する
+
+- TypeScript services では official SDK methods を優先する
+- method usage を endpoint semantics と合わせる
+- REST-to-XDK mapping には `references/typescript-xdk-mapping.md` を使う
+
+### 6. scenario matrix で検証する
+
+ship 前に次を検証する。
+
+- public object lookup success
+- missing、deleted、protected object
+- valid / invalid IDs が混ざった batch request
+- rate-limit response と reset-aware retry path
+- auth mismatch (app-only vs user-context)
+- field or expansion mismatch
+- path ID が authenticated user と違う user-owned endpoint
+- Likes lookup cap (`/2/tweets/:id/liking_users` は lifetime max 100 users)
+- `backfill_minutes` と partition bounds を伴う stream reconnection
 
 ## Output Guidance
 
-When implementing X API features, produce outputs that include:
-- Clear endpoint or SDK method choice and auth rationale.
-- Concrete request examples with fields and expansions.
-- Error, partial success, and retry behavior.
-- Notes on rate limits and billing implications.
-- If relevant, REST and TypeScript XDK versions side by side.
+X API features を実装するときの output には次を含める。
 
-## Anti-Patterns to Avoid
+- endpoint または SDK method の選択と auth rationale
+- fields と expansions を含む concrete request examples
+- error、partial success、retry behavior
+- rate limits と billing implications のメモ
+- 必要なら REST と TypeScript XDK version の併記
 
-❌ **Endpoint-first coding without auth model**
-Why bad: creates immediate 401/403 failures and hidden permission bugs.
-Better: lock auth context and scopes before code structure.
+## 避けること
 
-❌ **Mixing localhost and 127.0.0.1 in one OAuth flow**
-Why bad: causes redirect URI mismatch on token exchange.
-Better: register both callbacks in X, then use one host consistently per session.
+**auth model なしの endpoint-first coding**
 
-❌ **Using HTTPS callback URLs for local PKCE flow by default**
-Why bad: local setup often runs HTTP callback endpoints, causing callback mismatch.
-Better: use `http://localhost:3000/api/x/oauth/callback` and/or `http://127.0.0.1:3000/api/x/oauth/callback` as configured.
+問題: 401/403 と hidden permission bugs を生み、実装後に scope mismatch が発覚する。
+改善: 先に auth context、required scopes、field/expansion permissions を固定する。
 
-❌ **Assuming full success in batch responses**
-Why bad: X batch endpoints can return mixed `data` and `errors`.
-Better: explicitly handle partial success and propagate unresolved IDs.
+**1つの OAuth flow で localhost と 127.0.0.1 を混ぜる**
 
-❌ **Requesting all fields by default**
-Why bad: payload bloat, permission failures, and higher processing cost.
-Better: request only required fields and expansions.
+問題: token exchange で redirect URI mismatch になる。
+改善: 両方を登録し、1 session では片方に統一する。
 
-❌ **Confusing rate limits with billing**
-Why bad: you can stay under request limits and still overspend.
-Better: track both request frequency and billable resource usage.
+**local PKCE flow で既定に HTTPS callback URL を使う**
 
-❌ **Trusting stale pricing snippets**
-Why bad: overview pages and secondary sources can lag current pricing model.
-Better: treat pricing docs plus Developer Console as source of truth at implementation time.
+問題: local dev server は HTTP callback endpoint が多く、HTTPS にすると callback が受けられない。
+改善: 設定済みの `http://localhost:3000/...` または `http://127.0.0.1:3000/...` を使う。
 
-❌ **Ignoring edit history semantics for posts**
-Why bad: downstream systems mis-handle updated content.
-Better: model `edit_history_tweet_ids` and "latest version returned" behavior.
+**batch responses が full success と仮定する**
 
-❌ **Using generic retries for all writes**
-Why bad: can duplicate actions or produce ambiguous state.
-Better: apply idempotency strategy and explicit conflict handling.
+問題: `data` と `errors` が混在し得る。
+改善: partial success と unresolved IDs を明示的に扱う。
 
-❌ **Assuming all likes are pageable forever**
-Why bad: `liking_users` is capped at 100 users per Post for all time.
-Better: model this cap explicitly and route full-fidelity needs to stream/analytics pipelines.
+**all fields を request する**
 
-❌ **Treating stream partitions as optional knobs**
-Why bad: likes stream partitions are required and range-limited by endpoint.
-Better: validate partition and backfill constraints at config load time.
+問題: payload bloat、permission failures、processing cost が増える。
+改善: 必要 fields と expansions だけを request する。
+
+**rate limits と billing を混同する**
+
+問題: request limits 内でも billable resource usage で overspend し得る。
+改善: request frequency と billable usage の両方を track する。
+
+**古い pricing snippets を信頼する**
+
+問題: X API の pricing / access は変わりやすく、古い snippets は運用判断を誤らせる。
+改善: 実装時点では pricing docs と Developer Console を source of truth にする。
+
+**posts の edit history semantics を無視する**
+
+問題: downstream が updated content を誤処理する。
+改善: `edit_history_tweet_ids` と latest version behavior を model 化する。
+
+**すべての writes に generic retries を使う**
+
+問題: duplicate actions や ambiguous state を生む。
+改善: idempotency strategy、dedupe key、conflict handling を入れる。
+
+**likes が永久に pageable と仮定する**
+
+問題: `liking_users` は Post ごと lifetime 100 users cap で、full historical list にはならない。
+改善: full-fidelity needs は stream / analytics pipeline へ回す。
+
+**stream partitions を任意 knob として扱う**
+
+問題: likes stream partitions は required で range-limited。
+改善: config load 時に partitions を検証し、不正なら fail fast する。
 
 ## Variation Guidance
 
-**IMPORTANT**: Implementations should vary based on product context, not converge on one pattern.
-- Internal analytics backend: optimize batch lookup, throughput, and observability.
-- User-facing app: prioritize latency, graceful fallback, and human-readable errors.
-- Write-heavy workflows: emphasize scope checks, idempotency, and conflict handling.
-- Cost-sensitive workflows: minimize fields and expansions, maximize caching and dedupe.
+実装は product context で変える。
 
-Avoid converging on one default stack or one "favorite" endpoint pattern when workload shape differs.
+- Internal analytics backend: batch lookup、throughput、observability を最適化
+- User-facing app: latency、graceful fallback、human-readable errors を優先
+- Write-heavy workflows: scope checks、idempotency、conflict handling を重視
+- Cost-sensitive workflows: fields/expansions を最小化し、caching と dedupe を最大化
 
-## References
+workload shape が違うのに、1つの default stack や favorite endpoint pattern に収束させない。
+
+## 参照
 
 - Endpoint and payload choices: `references/posts-users-playbook.md`
 - Auth decision matrix and scopes: `references/auth-and-scopes.md`
@@ -156,13 +178,14 @@ Avoid converging on one default stack or one "favorite" endpoint pattern when wo
 - Implementation checklist: `references/build-workflow.md`
 - Source links and verification anchors: `references/api_reference.md`
 
-## Empowered Execution
+## 実行姿勢
 
-You are expected to produce integration code that is defensible in production review.
-- Challenge ambiguous requirements that hide auth, rate-limit, or billing risk.
-- Prefer explicit contracts over implicit assumptions.
-- Make tradeoffs visible and choose reliability over short-term convenience.
+production review に耐える integration code を作る。
 
-## Remember
+- auth、rate-limit、billing risk を隠す曖昧な要求は確認する
+- implicit assumptions より explicit contracts を優先する
+- tradeoff を見える化し、短期的な便利さより reliability を選ぶ
 
-Codex can build X API integrations that are both fast and robust. Aim for correctness under change, not just first-response success.
+## 覚えておくこと
+
+X API integration は初回成功ではなく、変化に耐える正しさを目指す。

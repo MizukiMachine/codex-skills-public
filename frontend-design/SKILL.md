@@ -5,47 +5,47 @@ description: "本番品質のフロントエンドUIを構築・改善・レビ�
 
 # Frontend Design
 
-## Purpose
+## 目的
 
-Use this skill to produce working frontend code that feels intentionally designed for its product, audience, and workflow. The goal is not decoration or a design essay; it is a usable interface with a clear visual point of view, stable responsive behavior, accessible controls, and verified rendering.
+product、audience、workflow に合う意図的な frontend code を作る。装飾や design essay ではなく、明確な visual point of view、stable responsive behavior、accessible controls、verified rendering を備えた usable interface を目指す。
 
-## Operating Model
+## 基本方針
 
-Great frontend design comes from context, hierarchy, concept, and implementation integrity.
+良い frontend design は context、hierarchy、concept、implementation integrity から生まれる。
 
-Prioritize:
+優先順位:
 
-1. User workflow and product purpose
-2. Existing framework, design system, and code conventions
-3. Clear visual hierarchy and information density suited to the domain
-4. Responsive stability, accessibility, and interaction states
-5. A distinctive aesthetic concept, typography, and theme that support the task
-6. Browser verification with real screenshots or smoke tests
+1. user workflow と product purpose
+2. existing framework、design system、code conventions
+3. domain に合う visual hierarchy と information density
+4. responsive stability、accessibility、interaction states
+5. task を支える aesthetic concept、typography、theme
+6. browser verification with screenshots / smoke tests
 
-Before acting, answer:
+作業前に確認すること:
 
-- What is the user trying to accomplish on this screen?
-- Is this an operational tool, marketing surface, portfolio, game, creative app, or content site?
-- What framework, UI library, routing model, assets, fonts, icons, and design tokens already exist?
-- Which one visual idea, typographic identity, or themed interaction should make this interface feel specific to the product?
-- Does the screen include a canvas, 3D scene, video, map, or other primary visual layer, and what safe areas must the UI preserve around it?
-- What states must be designed: loading, empty, error, disabled, hover, active, selected, focused, mobile?
+- この screen で user は何を達成するのか
+- operational tool、marketing surface、portfolio、game、creative app、content site のどれか
+- framework、UI library、routing、assets、fonts、icons、design tokens は何か
+- この product らしさを出す visual idea / typography / themed interaction は何か
+- canvas、3D scene、video、map など primary visual layer があるか。UI safe areas はどこか
+- loading、empty、error、disabled、hover、active、selected、focused、mobile など設計すべき states は何か
 
-Ask at most one to three questions only when missing constraints would materially change the result.
+不足情報で結果が大きく変わる場合だけ、1-3問まで確認する。
 
 ## Design Contracts
 
-- Treat the local design system as the source of truth. If Storybook, Figma notes, `DESIGN.md`, component docs, shadcn config, CSS variables, or theme tokens exist, inspect them before inventing new styles.
-- If no design system exists, define a compact token set first: color roles, type scale, spacing, radius, elevation, motion, and interaction states. Implement through CSS variables, Tailwind theme values, or the project's equivalent.
-- Keep scope bounded to the requested surface. Do not replace the framework, router, styling system, or UI library unless the existing stack cannot reasonably support the task.
-- For canvas, 3D, game, map, video, or editor surfaces, treat the visual layer and DOM UI as one composition. Define safe zones, z-index layers, pointer-event ownership, focus behavior, and resize rules before styling overlays.
-- Design toward WCAG 2.2 AA where feasible: semantic structure, labels, keyboard flow, visible focus, contrast, target size, error identification, and reduced-motion behavior.
-- Translate inspiration into local principles. Do not copy a proprietary brand, product UI, or external asset set unless the user owns it or explicitly provided it for reuse.
-- When the user asks for a targeted refinement such as typography, motion, density, palette, or spacing, isolate that dimension and preserve unrelated structure unless there is a direct conflict.
+- local design system を source of truth にする。Storybook、Figma notes、`DESIGN.md`、component docs、shadcn config、CSS variables、theme tokens があれば先に確認する
+- design system がなければ compact token set を先に定義する: color roles、type scale、spacing、radius、elevation、motion、interaction states
+- scope は requested surface に閉じる。既存 stack で対応できる限り framework/router/styling system/UI library を置き換えない
+- canvas、3D、game、map、video、editor surfaces では visual layer と DOM UI を1つの composition として扱う。safe zones、z-index、pointer events、focus、resize rules を先に決める
+- 可能な範囲で WCAG 2.2 AA を目指す: semantic structure、labels、keyboard flow、focus、contrast、target size、error identification、reduced motion
+- inspiration は local principles に変換する。proprietary brand / UI / asset set は user が所有または提供している場合だけ使う
+- typography、motion、density、palette、spacing の targeted refinement では、その dimension に絞り、無関係な structure は保つ
 
 ## Discovery First
 
-For an existing project, inspect before designing or editing:
+既存 project では設計・編集前に調べる。
 
 ```bash
 rg --files | rg '(^|/)(DESIGN\.md|AGENTS\.md|README\.md|package.json|src|app|pages|components|styles|public|assets|static|tailwind|vite|next|astro|nuxt|svelte|storybook|\.storybook)'
@@ -54,205 +54,190 @@ rg -n "Button|Card|Dialog|Modal|Tabs|Toggle|Select|Slider|Tooltip|Navbar|Sidebar
 rg -n "canvas|WebGLRenderer|three|phaser|pixi|requestAnimationFrame|setAnimationLoop|pointer-events|aria-label|data-role" src app pages components styles 2>/dev/null
 ```
 
-If these searches produce too much output, narrow them to the target route, component, or style folder before reading more.
+output が多い場合は target route / component / style folder に絞る。
 
-Extract:
+抽出するもの:
 
-- Framework and route structure
-- Existing component primitives and UI libraries
-- Design docs, Storybook stories, Figma handoff notes, screenshots, and acceptance criteria
-- Color tokens, CSS variables, Tailwind config, font loading, spacing scale, radius, elevation, and motion patterns
-- Icon library and any brand/logo assets
-- Existing page layout patterns and responsive breakpoints
-- Primary visual layer constraints: canvas/media bounds, HUD safe areas, overlay stack, pointer-event routing, and resize behavior
-- Existing loading, empty, error, disabled, selected, focus, and validation patterns
-- Available scripts for lint, typecheck, test, build, and dev preview
+- framework / route structure
+- existing component primitives / UI libraries
+- design docs、Storybook stories、Figma handoff、screenshots、acceptance criteria
+- color tokens、CSS variables、Tailwind config、font loading、spacing、radius、elevation、motion patterns
+- icon library、brand/logo assets
+- page layout patterns と responsive breakpoints
+- primary visual layer constraints: canvas/media bounds、HUD safe areas、overlay stack、pointer routing、resize behavior
+- loading、empty、error、disabled、selected、focus、validation patterns
+- lint、typecheck、test、build、dev preview scripts
 
-For a greenfield page or app, choose the simplest stack already implied by the workspace. Build the actual usable experience as the first screen unless the user specifically asks for a marketing landing page.
+greenfield page/app では workspace が示す最も単純な stack を選ぶ。ユーザーが marketing landing page を明示しない限り、最初の画面に actual usable experience を作る。
 
-## Workflow
+## ワークフロー
 
-1. Define the screen job and design direction in a short phrase. Include surface type, audience, density, palette, typography, imagery, motion, and one memorable product-specific move.
-2. Align or create the token contract. Decide color roles, type scale, spacing, radius, elevation, focus ring, disabled treatment, and motion rules before styling many components.
-3. Map the interaction surface: navigation, primary and secondary actions, controls, data states, feedback states, keyboard paths, touch ergonomics, and responsive behavior.
-4. For canvas, 3D, media, map, game, or editor screens, reserve the primary visual layer first. Place HUD, rails, toolbars, modals, and status bars in stable safe zones and decide which layer owns pointer and keyboard input.
-5. Implement in the project's native style. Reuse local components, CSS variables, Tailwind utilities, icon libraries, accessibility primitives, and framework patterns before adding new abstractions.
-6. Use appropriate visual assets. Product, venue, person, object, game, and website experiences need real or generated visual signals, not abstract placeholders. If raster assets are required and absent, use an image-generation workflow when available.
-7. Add polished states: hover, focus-visible, active, disabled, loading, empty, error, selected, drag/resize if relevant.
-8. Keep layout stable with explicit constraints such as aspect ratio, min/max sizes, grid tracks, container queries where useful, and fixed control dimensions.
-9. Verify visually at desktop and mobile sizes, then revise anything that overlaps, clips, wraps badly, shifts unexpectedly, or renders blank.
+1. screen job と design direction を短い phrase で定義する。surface type、audience、density、palette、typography、imagery、motion、product-specific move を含める
+2. token contract を合わせる / 作る。color roles、type scale、spacing、radius、elevation、focus ring、disabled、motion rules を決める
+3. interaction surface を map する: navigation、actions、controls、data states、feedback、keyboard、touch、responsive behavior
+4. canvas/3D/media/map/game/editor では primary visual layer を先に確保し、HUD / rails / toolbars / modals / status bars を safe zones に置く
+5. project native style で実装する。local components、CSS variables、Tailwind utilities、icon libraries、accessibility primitives、framework patterns を再利用する
+6. 適切な visual assets を使う。product、venue、person、object、game、website experiences には real/generated visual signals が必要
+7. hover、focus-visible、active、disabled、loading、empty、error、selected、drag/resize などの states を polish する
+8. aspect ratio、min/max、grid tracks、container queries、fixed control dimensions などで layout を stable にする
+9. desktop/mobile で視覚確認し、overlap、clip、bad wrap、layout shift、blank rendering を修正する
 
-## Direction By Surface
+## Surface 別の方向性
 
 | Surface | Design Bias |
 |---------|-------------|
-| SaaS, CRM, admin, finance, operations | Quiet, dense, scan-friendly, restrained color, strong tables/forms, predictable navigation |
-| Creative tool or editor | Full working canvas, compact controls, icon buttons with tooltips, stable toolbars, no explanatory marketing copy |
-| Canvas, 3D, map, or media app | Primary visual layer first, DOM controls in safe zones, pointer-event contract, responsive framing, readable overlays |
-| Consumer app | More expressive brand moments, warm feedback, clear task progression, mobile ergonomics |
-| Landing or product page | First viewport must clearly show the brand/product/place/person; hint at the next section; avoid generic split hero cards |
-| Portfolio, editorial, culture | Strong typography, art direction, image rhythm, intentional whitespace |
-| Game or playful experience | Immediate playable surface, readable HUD, custom assets, responsive input, pause/game-over/settings states |
+| SaaS, CRM, admin, finance, operations | quiet、dense、scan-friendly、restrained color、tables/forms、predictable navigation |
+| Creative tool or editor | working canvas、compact controls、icon buttons + tooltips、stable toolbars、no marketing copy |
+| Canvas, 3D, map, media app | primary visual layer first、safe-zone DOM controls、pointer-event contract、responsive framing |
+| Consumer app | expressive brand moments、warm feedback、clear task progression、mobile ergonomics |
+| Landing/product page | first viewport で brand/product/place/person を明示し、next section を少し見せる |
+| Portfolio/editorial/culture | strong typography、art direction、image rhythm、intentional whitespace |
+| Game/playful | immediate playable surface、readable HUD、custom assets、responsive input、pause/game-over/settings |
 
 ## Aesthetic Direction
 
-Choose a specific visual concept instead of a generic "modern" look. The concept can be quiet or loud, but it must be deliberate and appropriate to the surface.
+generic "modern" ではなく specific visual concept を選ぶ。quiet でも loud でも、surface に合って deliberate であること。
 
-Use strong directions when the product can support them:
+- **Brutally minimal**: sparse structure、precise spacing、strong type contrast
+- **Editorial / magazine-like**: display type、image rhythm、asymmetric pacing
+- **Industrial / technical**: exposed grids、utility color、monospaced accents、dense controls
+- **Luxury / refined**: restrained palette、quality imagery、subtle motion
+- **Playful / toy-like**: saturated accents、tactile controls、bouncy feedback
+- **Retro-futuristic / solarpunk / cyberpunk / art deco / Memphis / brutalist**: product に合うか user が求めた場合だけ
 
-- **Brutally minimal**: sparse structure, precise spacing, strong type contrast, few effects
-- **Editorial or magazine-like**: expressive display type, image rhythm, asymmetric pacing
-- **Industrial or technical**: exposed grids, utility color, monospaced accents, dense controls
-- **Luxury or refined**: restrained palette, high-quality imagery, subtle motion, careful proportion
-- **Playful or toy-like**: saturated accents, tactile controls, bouncy feedback, custom assets
-- **Retro-futuristic, solarpunk, cyberpunk, art deco, Memphis, or brutalist**: use only when it fits the product or the user asks for it
+user が aesthetic を指定したら、color、typography、layout rhythm、texture、motion、component detailing をその theme に lock する。
 
-Theme-locking rule: when the user names an aesthetic, lock color, typography, layout rhythm, texture, motion, and component detailing to that theme. Match implementation complexity to the concept: maximal directions need richer layers and motion; refined minimal directions need stricter spacing, contrast, and restraint.
+## Typography / Theme
 
-## Typography And Theme
-
-- Treat typography as a core design system, not an afterthought. Choose display, body, numeric, and code styles deliberately.
-- Reuse existing fonts when the project already has a brand or performance budget. For greenfield work, avoid defaulting to Inter, Roboto, Arial, or system fonts unless the product calls for utilitarian neutrality.
-- Pair fonts for contrast when useful: serif with geometric sans, display with restrained body, or mono accents with a readable UI face.
-- Use strong weight and scale contrast for heroes, editorial surfaces, and brand moments; use compact, stable type scales for dashboards, editors, and operational tools.
-- Load fonts through the project's established mechanism. Avoid adding remote font dependencies when offline use, privacy, or performance constraints make that a poor tradeoff.
-- Build the theme with variables or tokens. Color, radius, shadow, type scale, focus, disabled state, and motion should be reusable rather than scattered one-offs.
-- Pull palette inspiration from the domain, product materials, imagery, or named aesthetic. Use dominant roles plus sharp accents; avoid timid evenly distributed palettes.
+- typography を design system の中核として扱う
+- existing fonts がある場合は再利用する。greenfield でも Inter/Roboto/Arial/system に無自覚に寄せない
+- serif + geometric sans、display + restrained body、mono accents + readable UI face など、必要なら contrast を作る
+- heroes/editorial では weight/scale contrast、dashboards/editors では compact/stable type scale
+- font loading は project の仕組みに合わせる。offline/privacy/performance が問題なら remote dependency を避ける
+- colors、radius、shadow、type scale、focus、disabled、motion は variables/tokens にする
+- palette は domain、materials、imagery、aesthetic から引く。single hue family に寄せない
 
 ## Targeted Refinement
 
-When the user asks to improve one dimension, keep the edit narrowly focused:
-
 | Request | Preserve | Change |
 |---------|----------|--------|
-| Better typography | Layout, palette, components | Font choice, scale, weight, line-height, measure, hierarchy |
-| Better color/theme | Layout, type hierarchy, workflow | Tokens, semantic roles, contrast, accents, surfaces |
-| Better motion | Layout, palette, information architecture | Timing, easing, entrance, hover/focus, state transitions |
-| More premium/playful/minimal/etc. | Core workflow and accessibility | Aesthetic tokens, imagery, texture, rhythm, detailing |
-| Fix responsive polish | Visual identity and behavior | Constraints, wrapping, breakpoints, overflow, touch targets |
+| typography | layout、palette、components | font、scale、weight、line-height、measure、hierarchy |
+| color/theme | layout、type hierarchy、workflow | tokens、semantic roles、contrast、accents、surfaces |
+| motion | layout、palette、IA | timing、easing、entrance、hover/focus、state transitions |
+| more premium/playful/minimal | core workflow、accessibility | aesthetic tokens、imagery、texture、rhythm、detailing |
+| responsive polish | visual identity、behavior | constraints、wrapping、breakpoints、overflow、touch targets |
 
 ## Interaction Rules
 
-- Make the common path obvious. Each screen should make the next action clear without competing primary buttons.
-- Use progressive disclosure for secondary actions, filters, advanced settings, and destructive controls.
-- Give each async region a loading, empty, error, retry, and success or saved state when relevant.
-- Prefer URL state for shareable filters, search, sort, tabs, and pagination. Use local state for transient UI such as open menus and temporary selections.
-- Build forms with persistent labels, useful helper text, inline validation, submit feedback, and safe destructive confirmation.
-- Make dialogs, popovers, menus, command palettes, and drawers manage focus, Escape, outside click, scroll lock, and return focus.
-- Treat keyboard and touch as first-class: visible focus, logical tab order, hit targets large enough for touch, and no hover-only affordances.
-- For layered canvas/HUD screens, keep passive overlay regions `pointer-events: none` and restore `pointer-events: auto` only on controls. Do not let decorative layers intercept gameplay, map, editor, or camera input.
+- common path を明確にし、不要な competing primary buttons を置かない
+- secondary actions、filters、advanced settings、destructive controls は progressive disclosure
+- async region には loading、empty、error、retry、success/saved state
+- shareable filters/search/sort/tabs/pagination は URL state を優先
+- forms は persistent labels、helper text、inline validation、submit feedback、destructive confirmation
+- dialogs/popovers/menus/drawers は focus、Escape、outside click、scroll lock、return focus を管理
+- keyboard/touch を first-class に扱う。visible focus、logical tab order、touch targets、no hover-only affordances
+- layered canvas/HUD では passive overlay を `pointer-events: none` にし、controls だけ `pointer-events: auto`
 
 ## Visual Rules
 
-- Match the aesthetic to the domain. Do not make operational software look like a marketing hero unless the user asked for that.
-- Commit to a clear aesthetic direction, then execute it with restraint or intensity as the domain requires. Minimal designs need precision; maximal designs need orchestration.
-- Use distinctive typography when appropriate, but respect existing font loading and performance. Avoid converging on the same popular choices across unrelated projects.
-- Use palettes with real contrast, purposeful accents, and semantic roles. Avoid one-note themes made only from one hue family.
-- Prefer icons for tool actions when a familiar symbol exists. Use the project's icon library, often Lucide, instead of hand-drawn inline SVG.
-- Use familiar controls: segmented controls for modes, toggles or checkboxes for booleans, sliders or numeric inputs for numbers, tabs for views, menus for option sets.
-- For HUDs, dashboards, previews, counters, meters, and keycaps, use fixed or bounded dimensions, tabular numerals, stable SVG/canvas viewBoxes, and wrapping rules that tolerate localization and long labels.
-- Keep cards to real repeated items, modals, and framed tools. Do not put cards inside cards or turn every page section into a floating card.
-- Keep card radii modest unless the existing design system says otherwise.
-- Use motion for meaningful state change, spatial orientation, and high-impact reveals. Avoid scattered animation that distracts from the workflow.
-- Do not add visible in-app text that explains the app's features, keyboard shortcuts, or visual styling unless the product surface genuinely needs onboarding.
-- Ensure text fits its container at mobile and desktop sizes. Do not use viewport-width font scaling or negative letter spacing to force drama.
+- domain に合う aesthetic にする。operational software を marketing hero にしない
+- clear aesthetic direction に commit し、必要な強度で実装する
+- distinctive typography は使えるが、existing font loading/performance を尊重する
+- palettes は contrast、purposeful accents、semantic roles を持たせる
+- familiar tool actions は icons を優先し、project icon library を使う
+- modes は segmented controls、booleans は toggles/checkboxes、numbers は sliders/inputs、views は tabs、options は menus
+- HUDs/dashboards/previews/counters/meters/keycaps は bounded dimensions、tabular numerals、stable viewBoxes、wrapping rules
+- cards は repeated items、modals、framed tools に限定する。cards inside cards や floating page sections を避ける
+- card radii は design system が求めない限り控えめ
+- motion は meaningful state change や spatial orientation に使い、散らばった animation を避ける
+- visible in-app text で features / shortcuts / styling を説明しない。onboarding が本当に必要な場合だけ
+- mobile/desktop で text が container に収まるようにする。viewport-width font scaling や negative letter spacing で無理に演出しない
 
 ## Quality Gates
 
-Before calling the work done, confirm:
+完了前に確認すること:
 
-- The first viewport contains a product, brand, workflow, or domain signal specific enough that it could not belong to any generic app.
-- For canvas, 3D, media, map, game, or editor screens, the primary visual layer remains visible and correctly framed; HUD overlays do not hide critical content at desktop or mobile sizes.
-- Primary task completion is clear, with no more than one dominant primary action per view unless the workflow truly requires branching.
-- Design tokens and local primitives are used instead of hardcoded one-off styling when a system exists.
-- For interactive or data-driven surfaces, critical states are designed: loading, empty, error, disabled, selected, focused, active, hover, mobile, and long-content cases.
-- Accessibility basics pass: semantic elements, labels, contrast, focus-visible, keyboard operation, reduced motion, and screen-reader names for icon-only controls.
-- The UI tolerates realistic content: long names, localized text, many/few items, missing images, slow network, and narrow screens.
-- Visual assets, fonts, animation, shadows, and effects support the concept without excessive payload, jank, or readability loss.
+- first viewport に generic app ではない product/brand/workflow/domain signal がある
+- canvas/3D/media/map/game/editor では primary visual layer が見え、HUD が critical content を隠さない
+- primary task completion が明確で、不要に複数 primary actions を競合させない
+- design tokens / local primitives を使い、one-off hardcode を避ける
+- interactive/data-driven surface では loading、empty、error、disabled、selected、focused、active、hover、mobile、long content を扱う
+- accessibility basics: semantic elements、labels、contrast、focus-visible、keyboard、reduced motion、screen-reader names
+- long names、localized text、many/few items、missing images、slow network、narrow screens に耐える
+- assets、fonts、animation、shadows、effects が readability/performance を損なわない
 
-## Anti-Patterns
+## 避けること
 
-**Generic AI aesthetic**
+**generic AI aesthetic**
 
-Bad: Purple-blue gradients, glass cards, floating blobs, same rounded cards, generic Inter/Roboto/system typography, stock-like copy, predictable layouts, and no domain signal.
+問題: purple-blue gradients、glass cards、floating blobs、generic typography は domain signal を弱め、どの product にも見える。
+改善: product domain、existing brand、workflow density から visual language を作る。
 
-Better: Extract the product context first, then pick a specific visual concept and implement it through layout, typography, assets, interaction states, and copy density.
+**theme as decoration**
 
-**Theme as decoration**
+問題: aesthetic 名だけで color を変えても、layout、type、motion、interaction が product と結びつかない。
+改善: typography、spacing、component shape、state behavior まで theme concept に合わせる。
 
-Bad: Naming an aesthetic but changing only colors while leaving default layout, type, motion, and component shapes untouched.
+**uncontrolled maximalism**
 
-Better: Lock the theme across palette, typography, spacing rhythm, imagery, texture, motion, and control details.
+問題: effects、custom cursors、animations が task と競合し、readability や input を邪魔する。
+改善: primary workflow を優先し、motion / effects は state feedback や hierarchy に必要な範囲に絞る。
 
-**Uncontrolled maximalism**
+**over-broad refinement**
 
-Bad: Adding many effects, patterns, overlaps, custom cursors, and animations that compete with the task.
+問題: typography、color、motion、mobile polish の依頼で全体を作り替えると、既存の構造や user intent を壊す。
+改善: requested surface と affected components に scoped changes を入れる。
 
-Better: Choose one or two high-impact expressive moves and keep interaction, readability, and performance intact.
+**decorative dashboard**
 
-**Over-broad refinement**
+問題: oversized hero、ornamental cards、weak tables/forms は operational tool の scanning と repeated action を妨げる。
+改善: dense but organized information、clear controls、predictable navigation を優先する。
 
-Bad: Rebuilding the whole page when the user only asked for better typography, color, motion, or mobile polish.
+**app 依頼に marketing page を返す**
 
-Better: Isolate the requested design dimension, adjust it deeply, and leave unrelated structure alone.
-
-**Decorative dashboard**
-
-Bad: An operations screen with oversized hero text, ornamental cards, sparse fake metrics, and weak tables or forms.
-
-Better: Prioritize navigation, filtering, scanning, comparison, status, dense controls, and fast repeated actions.
-
-**Marketing page when asked for an app**
-
-Bad: A landing page that describes the tool instead of providing the tool.
-
-Better: Put the usable app, game, editor, or workflow in the first viewport. Add explanatory content only when it helps the actual task.
+問題: usable workflow が first viewport にないと、user は実際の tool/game/editor を使えない。
+改善: landing copy ではなく actual app/game/editor/workflow を初期画面に置く。
 
 **HUD pasted over a scene**
 
-Bad: Floating panels, status bars, and controls are positioned after the canvas without reserving safe space, so they hide the subject, capture input accidentally, or break at shorter viewports.
+問題: safe space なしの overlay は subject を隠し、pointer/keyboard input を妨げる。
+改善: canvas composition、HUD safe areas、pointer routing、z-index を一体で設計する。
 
-Better: Design the canvas/media framing and DOM HUD together. Reserve safe zones, route pointer events deliberately, test pause/settings/error states, and adjust camera or visual composition when overlays are present.
+**unstable responsive design**
 
-**Unstable responsive design**
+問題: clipping、hover での size change、mobile overlap、ideal content length 依存は production UI を壊す。
+改善: stable dimensions、responsive constraints、wrapped text、mobile screenshots で検証する。
 
-Bad: Text clipping, buttons growing on hover, controls changing size, mobile overlap, or layout depending on ideal content length.
+**token drift**
 
-Better: Use stable dimensions, responsive constraints, wrapping rules, and screenshot checks at realistic viewport sizes.
+問題: existing tokens があるのに hardcoded colors/spacing/radii/shadows を足すと design system が崩れる。
+改善: existing tokens / CSS variables / theme scale を使い、必要な token だけ追加する。
 
-**Token drift**
+**incomplete state surface**
 
-Bad: Adding hardcoded colors, spacing, radii, shadows, or custom controls in a project with established tokens and primitives.
+問題: happy path の static mock data だけでは loading、empty、error、disabled、selected、focused の UX が壊れる。
+改善: expected states を実装し、controls と feedback を stateful にする。
 
-Better: Extend existing tokens or compose existing primitives. If an exception is necessary, keep it local and explain why.
+**unverified polish**
 
-**Incomplete state surface**
-
-Bad: Designing only the happy path with static mock data.
-
-Better: Implement or at least account for loading, empty, error, disabled, focused, long-content, and mobile states.
-
-**Unverified polish**
-
-Bad: Shipping CSS changes without opening the page.
-
-Better: Run the app, inspect desktop and mobile screenshots, test interactions, and revise visible defects.
+問題: page を開かず CSS changes を出すと overlap、contrast、responsive failures を見逃す。
+改善: browser で rendering を確認し、desktop/mobile screenshot または smoke test を残す。
 
 ## Review Mode
 
-When the user asks to review an existing frontend, lead with findings rather than praise. Prioritize:
+existing frontend の review 依頼では、称賛ではなく findings を先に出す。優先順位:
 
-1. Broken behavior, inaccessible controls, unreadable contrast, layout overlap, and mobile failures
-2. Mismatches with existing design system, token, accessibility, or framework conventions
-3. Information hierarchy, action hierarchy, and workflow friction
-4. Generic visual choices that weaken the product signal
-5. Missing states, assets, content stress handling, or verification
+1. broken behavior、inaccessible controls、unreadable contrast、layout overlap、mobile failures
+2. design system、token、accessibility、framework conventions との不一致
+3. information hierarchy、action hierarchy、workflow friction
+4. product signal を弱める generic visuals
+5. missing states、assets、content stress handling、verification
 
-Classify issues as blocking, major, or minor when useful. Reference files and line numbers when reviewing code. If screenshots are available, mention the viewport and visible issue.
+blocking / major / minor に分類すると有用。code review では file/line を参照し、screenshots がある場合は viewport と visible issue を示す。
 
-## Verification
+## 検証
 
-Use the repo's scripts first:
+existing scripts を使う。
 
 ```bash
 npm run lint
@@ -261,23 +246,18 @@ npm run build
 npm test
 ```
 
-Run only the commands that exist for the project. If the app needs a dev server, start it and provide the local URL. If static HTML is enough, point to the file.
+存在する commands だけ実行する。dev server が必要なら起動して URL を渡す。static HTML で足りるなら file を示す。
 
-For visual QA:
+Visual QA:
 
-- Check at least one desktop and one mobile viewport.
-- Inspect browser console errors, page errors, failed requests, and obvious layout overflow when browser automation is available.
-- Confirm images, icons, fonts, gradients, canvas/WebGL, and videos render as intended.
-- Confirm controls have hover, focus, selected, disabled, and loading behavior when relevant.
-- Confirm text does not overlap, clip, overflow its parent, or change control dimensions unexpectedly.
-- Scan the CSS for accidental one-note palette, excessive purple/blue gradients, beige/brown monotony, dark slate monotony, or decorative blobs.
-- For 3D/canvas/game surfaces, verify the canvas is nonblank, framed correctly, and interactive or animated.
+- desktop と mobile viewport を少なくとも1つずつ確認
+- browser automation があれば console errors、page errors、failed requests、layout overflow を見る
+- images、icons、fonts、gradients、canvas/WebGL、videos が意図どおり render されるか確認
+- controls の hover、focus、selected、disabled、loading
+- text の overlap / clip / overflow / control dimension shift
+- CSS palette が one-note、purple/blue gradient 過多、beige/brown/dark slate monotony、decorative blobs になっていないか確認
+- 3D/canvas/game surfaces は canvas nonblank、correctly framed、interactive/animated を確認
 
-## Deliverables
+## 成果物
 
-Return:
-
-- The implemented or reviewed files
-- The design direction chosen and why it fits
-- The verification commands and visual checks performed
-- Any remaining risks, such as unrun tests, missing assets, or browser checks that were not possible
+implemented / reviewed files、選んだ design direction と理由、verification commands / visual checks、remaining risks を報告する。

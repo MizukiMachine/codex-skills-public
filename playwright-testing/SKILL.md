@@ -7,85 +7,87 @@ metadata:
 
 # Frontend Testing
 
-Unlock reliable confidence fast: enable safe refactors by choosing the right test layer, making the app observable, and eliminating nondeterminism so failures are actionable.
+安全な refactor を可能にするため、適切な test layer を選び、app を観測可能にし、nondeterminism を除去して actionable な失敗にする。
 
-## Philosophy: Confidence Per Minute
+## 考え方: Confidence Per Minute
 
-Frontend tests fail for two reasons: the product is broken, or the test is lying. Your job is to maximize signal and minimize "test is lying".
+frontend tests が失敗する理由は2つだけ。product が壊れているか、test が嘘をついているか。signal を最大化し、"test is lying" を最小化する。
 
-**Before writing a test, ask**:
-- What user risk am I covering (money, progression, auth, data loss, crashes)?
-- What's the narrowest layer that catches this bug class (pure logic vs UI vs full browser)?
-- What nondeterminism exists (time, RNG, async loading, network, animations, fonts, GPU)?
-- What "ready" signal can I wait on besides `setTimeout`?
-- What should a failure print/screenshot so it's diagnosable in CI?
+**test を書く前に確認すること:**
 
-**Core principles**:
-1. **Test the contract, not the implementation**: assert stable user-meaningful outcomes and public seams.
-2. **Prefer determinism over retries**: make time/RNG/network controllable; remove flake at the source.
-3. **Observe like a debugger**: console errors, network failures, screenshots, and state dumps on failure.
-4. **One critical flow first**: a reliable smoke test beats 50 flaky tests.
+- どの user risk を cover するか。money、progression、auth、data loss、crashes など
+- その bug class を捕まえる最小 layer は何か。pure logic、UI、full browser
+- time、RNG、async loading、network、animations、fonts、GPU などの nondeterminism は何か
+- `setTimeout` 以外で待てる "ready" signal は何か
+- failure 時に CI で診断できるよう、何を print/screenshot すべきか
+
+**基本原則**
+
+1. **implementation ではなく contract を test する**: stable user-meaningful outcomes と public seams を assert する
+2. **retries より determinism**: time/RNG/network を制御し、flake を原因から消す
+3. **debugger のように観測する**: console errors、network failures、screenshots、state dumps を failure evidence にする
+4. **まず1つの critical flow**: 50個の flaky tests より信頼できる smoke test を優先する
 
 ## Test Layer Decision Tree
 
-Pick the cheapest layer that provides needed confidence:
+必要な confidence を得られる最も安い layer を選ぶ。
 
 | Layer | Speed | Use For |
 |-------|-------|---------|
-| **Unit** | Fastest | Pure functions, reducers, validators, math, pathfinding, deterministic simulation |
-| **Component** | Medium | UI behavior with mocked IO (React Testing Library, Vue Testing Library) |
-| **E2E** | Slowest | Critical user flows across routing, storage, real bundling/runtime |
-| **Visual** | Specialized | Layout/pixel regressions; for canvas/WebGL, only after locking determinism |
+| **Unit** | Fastest | pure functions、reducers、validators、math、pathfinding、deterministic simulation |
+| **Component** | Medium | mocked IO を使った UI behavior |
+| **E2E** | Slowest | routing、storage、real bundling/runtime をまたぐ critical user flows |
+| **Visual** | Specialized | layout/pixel regressions。canvas/WebGL では determinism を固定した後だけ |
 
-## Quick Start: First Smoke Test
+## Quick Start: 最初の Smoke Test
 
-1. **Define 1 critical flow**: "page loads → user can start → one key action works"
-2. **Add a test seam** to the app (see below)
-3. **Choose runner**: Playwright MCP for E2E, unit tests for logic
-4. **Fail loudly**: treat console errors and failed requests as test failures
-5. **Stabilize**: seed RNG, freeze time, fix viewport, disable animations
+1. **1 critical flow** を定義する: "page loads -> user can start -> one key action works"
+2. app に **test seam** を追加する
+3. runner を選ぶ: E2E は Playwright MCP、logic は unit tests
+4. **fail loudly**: console errors と failed requests を test failures にする
+5. **stabilize**: RNG seed、freeze time、fixed viewport、disable animations
 
-## Concrete MCP Workflow: Testing a Game
+## Concrete MCP Workflow: Game Testing
 
-Step-by-step sequence for testing a Phaser/canvas game:
+Phaser/canvas game を test するときの手順:
 
-```
+```text
 1. mcp__playwright__browser_navigate
-   → http://localhost:3000?test=1&seed=42
+   -> http://localhost:3000?test=1&seed=42
 
 2. mcp__playwright__browser_evaluate
-   → () => new Promise(r => { const c = () => window.__TEST__?.ready ? r(true) : setTimeout(c, 100); c(); })
-   (Wait for game ready)
+   -> () => new Promise(r => { const c = () => window.__TEST__?.ready ? r(true) : setTimeout(c, 100); c(); })
+   (game ready を待つ)
 
 3. mcp__playwright__browser_console_messages
-   → level: "error"
-   (Fail if any errors)
+   -> level: "error"
+   (error があれば fail)
 
 4. mcp__playwright__browser_snapshot
-   → Get UI state and refs
+   -> UI state と refs を取得
 
 5. mcp__playwright__browser_click
-   → element: "Start Button", ref: [from snapshot]
+   -> element: "Start Button", ref: [from snapshot]
 
 6. mcp__playwright__browser_evaluate
-   → () => window.__TEST__.state()
-   (Assert game state is correct)
+   -> () => window.__TEST__.state()
+   (game state を assert)
 
 7. mcp__playwright__browser_press_key
-   → key: "ArrowRight" (or WASD for movement)
+   -> key: "ArrowRight"
 
 8. mcp__playwright__browser_evaluate
-   → () => window.__TEST__.state().player.x
-   (Verify movement happened)
+   -> () => window.__TEST__.state().player.x
+   (movement を検証)
 
 9. mcp__playwright__browser_take_screenshot
-   → filename: "gameplay-state.png"
-   (Visual evidence after deterministic setup)
+   -> filename: "gameplay-state.png"
+   (deterministic setup 後の visual evidence)
 ```
 
 ## Recommended Test Seams
 
-Add to the app for testability (read-only, stable, minimal):
+testability のために app へ read-only、stable、minimal な seam を追加する。
 
 ```javascript
 window.__TEST__ = {
@@ -106,65 +108,73 @@ window.__TEST__ = {
 };
 ```
 
-**Rule**: Expose IDs + essential fields, not raw Phaser/engine objects.
+raw Phaser/engine objects ではなく、IDs と essential fields を expose する。
 
-## Anti-Patterns to Avoid
+## 避けること
 
-❌ **Testing the wrong layer**: E2E tests for pure logic
-*Why tempting*: "Let's just test everything through the browser"
-*Better*: Unit tests for logic; reserve E2E for integration contracts
+**wrong layer を test する**
 
-❌ **Testing implementation details**: Asserting DOM structure/classnames
-*Why tempting*: Easy to assert what you can see in DevTools
-*Better*: Assert user-meaningful outputs (text, score, HP changes)
+問題: pure logic を E2E で検証すると遅く brittle になり、failure の原因も分かりにくい。
+改善: logic は unit test、E2E は integration contract と critical flow に使う。
 
-❌ **Sleep-driven tests**: `wait 2s then click`
-*Why tempting*: Simple and "works on my machine"
-*Better*: Wait on explicit readiness (DOM marker, `window.__TEST__.ready`)
+**implementation details を assert する**
 
-❌ **Uncontrolled randomness**: RNG/time in assertions
-*Why tempting*: "The game uses random, so the test should too"
-*Better*: Seed RNG (`?seed=42`), freeze time, assert stable invariants
+問題: DOM structure や classnames は refactor で変わりやすく、user-visible behavior を保証しない。
+改善: text、score、HP changes、navigation、visible state など user-meaningful outputs を assert する。
 
-❌ **Pixel snapshots without determinism**: Canvas screenshots that flake
-*Why tempting*: "I'll catch visual bugs automatically"
-*Better*: Deterministic mode first; then screenshot at known stable frames
+**sleep-driven tests**
 
-❌ **Retries as a strategy**: "Just bump retries to 3"
-*Why tempting*: Quick fix that makes CI green
-*Better*: Fix the flake source; retries hide real problems
+問題: `wait 2s then click` は machine speed、network、animation に依存して flaky になる。
+改善: DOM marker、network idle、`window.__TEST__.ready` など explicit readiness を待つ。
 
-## Debugging Failed Tests
+**uncontrolled randomness**
 
-When a test fails, gather evidence in this order:
+問題: RNG/time が uncontrolled だと同じ test が別状態を検証してしまう。
+改善: `?seed=42`、freeze time、stable invariants を使う。
+
+**determinism なしの pixel snapshots**
+
+問題: canvas screenshots は timing、DPR、randomness、animation frame で揺れる。
+改善: deterministic mode を先に作り、known stable frames で screenshot する。
+
+**retries を戦略にする**
+
+問題: retry は real failures を隠し、CI green でも product confidence を上げない。
+改善: flake source を分類し、readiness、timing、environment、data の原因を直す。
+
+## Failed Tests の debug
+
+失敗時はこの順序で evidence を集める。
 
 1. **Console errors**: `mcp__playwright__browser_console_messages({ level: "error" })`
-2. **Network failures**: `mcp__playwright__browser_network_requests()` → check for non-2xx
-3. **Screenshot**: `mcp__playwright__browser_take_screenshot()` → visual state at failure
+2. **Network failures**: `mcp__playwright__browser_network_requests()` で non-2xx を確認
+3. **Screenshot**: `mcp__playwright__browser_take_screenshot()` で失敗時の visual state
 4. **App state**: `mcp__playwright__browser_evaluate({ function: "() => window.__TEST__.state()" })`
-5. **Classify the flake** (see references/flake-reduction.md):
-   - Readiness? → add explicit wait
-   - Timing? → control animation/physics
-   - Environment? → lock viewport/DPR
-   - Data? → isolate test data
+5. **Flake classification** (`references/flake-reduction.md`):
+   - readiness -> explicit wait を追加
+   - timing -> animation/physics を制御
+   - environment -> viewport/DPR を固定
+   - data -> test data を isolate
 
-## Graduation Criteria: When Is Testing "Enough"?
+## "十分な testing" の基準
 
 Minimum viable test suite:
-- [ ] **1 smoke test** that proves the app loads and primary action works
-- [ ] **Test seam exists** (`window.__TEST__` with ready flag and state)
-- [ ] **Deterministic mode** for canvas/games (`?test=1` enables seeding)
-- [ ] **Console errors fail tests** (no silent failures)
-- [ ] **CI runs tests** on every push
 
-Level up when:
-- Critical paths (auth, payment, save/load) have dedicated E2E
-- Unit tests cover complex logic (pathfinding, damage calc, state machines)
-- Visual regression on key screens (menu, HUD) with locked determinism
+- [ ] app が load し primary action が動く **1 smoke test**
+- [ ] ready flag と state を持つ **test seam** (`window.__TEST__`)
+- [ ] canvas/game 用 deterministic mode (`?test=1` で seeding)
+- [ ] console errors が tests を fail させる
+- [ ] CI が push ごとに tests を実行する
 
-## Visual Regression with imgdiff.py
+次の段階:
 
-For pixel comparison of screenshots:
+- auth、payment、save/load など critical paths に dedicated E2E
+- pathfinding、damage calc、state machines など complex logic に unit tests
+- menu、HUD など key screens の visual regression。determinism は固定する
+
+## Visual Regression with `imgdiff.py`
+
+screenshot の pixel comparison:
 
 ```bash
 # Compare baseline to current
@@ -174,35 +184,35 @@ python scripts/imgdiff.py baseline.png current.png --out diff.png
 python scripts/imgdiff.py baseline.png current.png --max-rms 2.0
 ```
 
-Exit codes: 0 = identical, 1 = different, 2 = error
+exit codes: 0 = identical、1 = different、2 = error
 
-## UI Slicing Regressions (Nine-Slice / Ribbons / Bars)
+## UI Slicing Regressions
 
-Canvas UI issues (panel seams, segmented ribbons, invisible HUD fills) are best caught with a dedicated UI harness instead of the full gameplay flow.
+Canvas UI issues (panel seams、segmented ribbons、invisible HUD fills) は、full gameplay flow より dedicated UI harness で検出する。
 
-1. Build a simple `test.html`/scene that loads *only* the UI assets.
-2. Render raw slices next to assembled panels (multi-size), and include ribbon/bars with both “raw crop + scale” and “stitched multi-slice” views.
-3. Expose `window.__TEST__` with `.commands.showTest(n)` so Playwright can toggle each mode deterministically.
-4. Capture targeted screenshots (panels, ribbons, bars) and diff them in CI.
+1. UI assets だけを load する simple `test.html` / scene を作る
+2. raw slices と assembled panels を並べ、ribbon/bar も "raw crop + scale" と "stitched multi-slice" の両方で表示する
+3. `window.__TEST__.commands.showTest(n)` を expose し、Playwright が deterministic に mode を切り替えられるようにする
+4. panels、ribbons、bars の targeted screenshots を capture し、CI で diff する
 
-See `references/phaser-canvas-testing.md` for the deterministic setup + screenshot workflow.
+deterministic setup と screenshot workflow は `references/phaser-canvas-testing.md` を読む。
 
 ## Variation Guidance
 
-Adapt approach based on context:
-- **DOM app**: Standard Playwright selectors, wait for text/elements
-- **Canvas game**: Test seams mandatory, wait via `window.__TEST__.ready`
-- **Hybrid**: DOM for menus, test seams for gameplay
-- **CI-only GPU**: May need software rendering flags or skip visual tests
-- **UI slicing regressions**: For nine-slice/ribbon/bar artifacts, prefer a small UI harness scene/page with deterministic modes and targeted screenshots (`references/phaser-canvas-testing.md`).
+- **DOM app**: standard Playwright selectors、text/elements を待つ
+- **Canvas game**: test seams 必須。`window.__TEST__.ready` で待つ
+- **Hybrid**: menus は DOM、gameplay は test seams
+- **CI-only GPU**: software rendering flags、または visual tests の skip が必要な場合あり
+- **UI slicing regressions**: nine-slice/ribbon/bar は deterministic modes と targeted screenshots を持つ小さな harness を優先する
 
 ## Bundled Resources
 
-Read these when needed:
-- `references/playwright-mcp-cheatsheet.md`: Detailed MCP tool patterns
-- `references/phaser-canvas-testing.md`: Deterministic mode for Phaser games
-- `references/flake-reduction.md`: Flake classification and fixes
+必要なときだけ読む。
 
-## Remember
+- `references/playwright-mcp-cheatsheet.md`: MCP tool patterns
+- `references/phaser-canvas-testing.md`: Phaser games の deterministic mode
+- `references/flake-reduction.md`: flake classification and fixes
 
-You can make almost any frontend (including canvas/WebGL games) testable by adding a tiny, stable seam for readiness + state. One reliable smoke test is the foundation. Aim for tests that are boring to maintain: deterministic, explicit about readiness, and rich in failure evidence. The goal is confidence, not coverage numbers.
+## 覚えておくこと
+
+小さく安定した readiness + state seam を足せば、canvas/WebGL games を含むほぼすべての frontend は testable になる。coverage numbers ではなく、deterministic で failure evidence が豊富な、保守しやすい tests を目指す。

@@ -7,51 +7,53 @@ metadata:
 
 # Retro Diffusion
 
-Use this skill when the user wants to generate pixel-art images or animation sheets through Retro Diffusion, especially when the task involves reference-image-driven character work like side-view platformer walks, turnarounds, or action cycles.
+Retro Diffusion で pixel-art images や animation sheets を生成する場合に使う。特に side-view platformer walks、turnarounds、action cycles など reference-image-driven character work に向く。
 
-## Philosophy: Match The Style To The Asset Contract
+## 考え方: Style を Asset Contract に合わせる
 
-Retro Diffusion does not expose a provider-agnostic model marketplace like fal. The important control is the `prompt_style`, and each style implies a specific asset contract:
+Retro Diffusion は fal のような provider-agnostic model marketplace ではない。重要な control は `prompt_style` で、style ごとに asset contract が違う。
 
-- some styles are general image models
-- some are spritesheet-oriented
-- some are fixed-size animation generators
-- some require an input frame and work best only from neutral poses
+- general image models
+- spritesheet-oriented styles
+- fixed-size animation generators
+- input frame を必要とし、neutral poses から強い styles
 
-The right way to use Retro Diffusion is:
+正しい使い方:
 
-- choose the style that matches the asset shape you want
-- respect the style's size contract
-- pass a clean RGB reference when using `input_image`
-- treat cost checks and output capture as first-class workflow steps
+- 欲しい asset shape に合う style を選ぶ
+- style の size contract を守る
+- `input_image` には clean RGB reference を渡す
+- cost checks と output capture を workflow の first-class step として扱う
 
-**Before generating, ask:**
-- Are we making a single image, a spritesheet, or an animation?
-- Is this a freeform prompt, a reference-driven edit, or a starting-frame animation?
-- Does the selected `prompt_style` impose a fixed frame size?
-- Do we want a GIF preview, a PNG spritesheet, or both?
+**生成前に確認すること:**
 
-**Core principles**:
-1. **Style first, prompt second**: in Retro Diffusion, `prompt_style` is the mode selector, not just a flavor tweak.
-2. **Respect size contracts**: `animation__four_angle_walking` is a `48x48` workflow, `animation__8_dir_rotation` is `80x80`, and advanced animations should match the starting frame size.
-3. **Reference cleanliness matters**: `input_image` should be RGB with no transparency, and the prompt should describe the reference rather than assume the API will infer everything.
-4. **Capture the sheet, not just the preview**: for sprite work, prefer `return_spritesheet: true` so downstream analysis stays deterministic.
-5. **Prompt shorter than you think**: for advanced animations, keep prompts extremely terse. The service expands action text internally, and long prompts can fail server-side even when your raw prompt looks reasonable.
-6. **Treat completion as artifact-based, not CLI-message-based**: a run can succeed even if the local wrapper times out, drops the final response, or never prints a clean completion message.
+- single image、spritesheet、animation のどれか
+- freeform prompt、reference-driven edit、starting-frame animation のどれか
+- selected `prompt_style` に fixed frame size があるか
+- GIF preview、PNG spritesheet、または両方が必要か
 
-## What This Skill Provides
+**基本原則**
 
-- A portable Retro Diffusion harness bundled with the skill for:
+1. **style first, prompt second**: `prompt_style` は flavor ではなく mode selector
+2. **size contracts を守る**: `animation__four_angle_walking` は `48x48`、`animation__8_dir_rotation` は `80x80`、advanced animations は starting frame size に合わせる
+3. **reference cleanliness matters**: `input_image` は transparency なしの RGB。prompt で reference を説明する
+4. **preview だけでなく sheet を capture**: sprite work では `return_spritesheet: true`
+5. **prompt は短く**: advanced animations は service が action text を内部展開する。長い prompt は server-side で失敗し得る
+6. **completion は artifacts で判断**: wrapper が timeout しても run が成功している場合がある
+
+## 提供するもの
+
+- portable Retro Diffusion harness:
   - text-to-image
-  - img2img-style runs via `input_image`
-  - multi-reference runs via `reference_images`
-  - fixed-style animation and spritesheet generation
-- A generic inference runner that:
-  - sends requests to `POST https://api.retrodiffusion.ai/v1/inferences`
-  - supports cost-only checks via `check_cost: true`
-  - writes normalized run manifests and decoded outputs
-- A batch runner for repeatable experiment configs
-- Model/style presets for commonly useful Retro Diffusion modes:
+  - `input_image` による img2img-style runs
+  - `reference_images` による multi-reference runs
+  - fixed-style animation / spritesheet generation
+- generic inference runner:
+  - `POST https://api.retrodiffusion.ai/v1/inferences`
+  - `check_cost: true` による cost-only checks
+  - normalized run manifests と decoded outputs の書き出し
+- repeatable experiment configs 用 batch runner
+- useful presets:
   - `rd-pro-platformer`
   - `rd-pro-edit`
   - `rd-pro-spritesheet`
@@ -71,215 +73,187 @@ The right way to use Retro Diffusion is:
 - Endpoint: `POST https://api.retrodiffusion.ai/v1/inferences`
 - Auth header: `X-RD-Token: YOUR_API_KEY`
 
-Outputs can include:
+outputs:
 
 - `base64_images`
 - `output_urls`
 - `balance_cost`
 - `remaining_balance`
 
-Important operational rule:
+operational rule:
 
-- do not assume a run failed just because the terminal process returned no final success line
-- Retro Diffusion runs can complete while the local caller reports an indeterminate state
-- before retrying, check the intended output folder for:
+- terminal process に final success line がないだけで失敗と決めない
+- local caller が indeterminate state を返しても、Retro Diffusion run は完了している場合がある
+- retry 前に output folder を確認する
   - new image artifacts
   - run metadata JSON
-  - file modification times newer than the run start
-- only classify a run as failed after artifact verification, not from missing stdout alone
+  - run start より新しい file modification times
+- missing stdout ではなく artifact verification 後に failed と判断する
 
-Animations normally come back as transparent GIFs. Add `return_spritesheet: true` when you want a PNG sheet instead.
+animations は通常 transparent GIFs で返る。PNG sheet が必要なら `return_spritesheet: true` を付ける。
 
 ### Reference And Animation Guidance
 
-For `input_image`:
+`input_image`:
 
-- convert to RGB first
-- remove transparency
-- do not include the `data:image/png;base64,` prefix
-- mention what the reference is in the prompt
-- prefer an explicit prepared RGB reference image over silent RGBA-to-black conversion
+- 先に RGB へ変換する
+- transparency を除去する
+- `data:image/png;base64,` prefix は含めない
+- prompt で reference が何かを書く
+- silent RGBA-to-black conversion より explicit prepared RGB reference image を使う
 
-For side-view platformer walks:
+side-view platformer walks:
 
-- prefer `rd_advanced_animation__walking` first when you already have a neutral starting frame
-- keep `width` and `height` equal to that starting frame
-- use `frames_duration` deliberately instead of taking the default
-- ask for in-place locomotion if you want extractable frames instead of a traveling character
-- if a large anchor behaves inconsistently, prepare a compact square reference first and retry
-- successful advanced-walking runs returned transparent spritesheet PNGs rather than GIFs when `return_spritesheet: true` was set
+- neutral starting frame があるなら `rd_advanced_animation__walking` を先に試す
+- `width` と `height` は starting frame と合わせる
+- `frames_duration` を意図して指定する
+- extractable frames が必要なら in-place locomotion を求める
+- large anchor が不安定なら compact square reference を準備して retry
+- `return_spritesheet: true` では transparent spritesheet PNG が返った実績がある
 
-For multi-direction walking presets:
+multi-direction walking presets:
 
-- `animation__four_angle_walking` and `animation__walking_and_idle` are `48x48` workflows
-- they are useful for broad exploration, but not as clean for direct comparison against an existing `64x64` anchor
+- `animation__four_angle_walking` と `animation__walking_and_idle` は `48x48` workflows
+- broad exploration には有用だが、既存 `64x64` anchor との直接比較には向かない
 
-For eight-direction turnaround experiments:
+eight-direction turnaround:
 
-- try `animation__8_dir_rotation` first when you want a one-shot directional sheet
-- remember it is fixed at `80x80`
-- treat it as the first experiment, not guaranteed directional truth
-- if `animation__8_dir_rotation` returns server errors or weak directions, fall back immediately to a staged `rd_pro__edit` workflow
-- a dependable staged fallback is:
-  - cardinals first from the isometric anchor
-  - diagonals second using the same anchor plus the cardinal sheet as `reference_images`
+- one-shot directional sheet が欲しいときは `animation__8_dir_rotation` を first probe にする
+- fixed `80x80` として扱う
+- server errors や weak directions が出たら staged `rd_pro__edit` workflow へ切り替える
+- dependable fallback:
+  - isometric anchor から cardinals を先に作る
+  - same anchor + cardinal sheet を `reference_images` として diagonals を作る
 
 ### Prompting Guidance
 
-Prompt like animation direction, not concept art copy:
+concept art copy ではなく animation direction として書く。
 
-- who the character is
+- character は誰か
 - facing direction
 - intended motion
-- what must remain stable
-- what should not happen
+- 何を stable に保つか
+- 何を避けるか
 
-Good Retro Diffusion prompt components for character animation:
+良い components:
 
-- identity: compact adventurer, same costume colors, same silhouette and proportions
-- facing: side-facing, profile view, facing right
-- motion: walk cycle in place, readable step rhythm, alternating arm swing
+- identity: compact adventurer、same costume colors、same silhouette and proportions
+- facing: side-facing、profile view、facing right
+- motion: walk cycle in place、readable step rhythm、alternating arm swing
 - stability: keep silhouette and costume consistent frame to frame
-- exclusions: no camera movement, no perspective rotation, no extra props, no background
+- exclusions: no camera movement、no perspective rotation、no extra props、no background
 
-For advanced animation prompts in particular:
+advanced animation prompts:
 
-- prefer one or two short sentences
-- avoid long descriptive prose
-- avoid repeating identity details more than necessary
-- keep the full prompt comfortably below `300` characters when possible
+- 1-2 short sentences
+- long descriptive prose を避ける
+- identity details を過剰に繰り返さない
+- 可能なら full prompt を `300` characters 未満に保つ
 
-Important live-use nuance:
-
-- "shorter" is not the same as "better"
-- once you have a run that preserves character identity well, do not aggressively simplify the prompt unless you know which clauses are safe to remove
-- keep the non-negotiable guardrails that lock the output:
-  - facing / camera orientation such as `side-facing`
-  - identity preservation such as `same costume and silhouette`
-  - action disambiguation such as `bow-butt melee attack`
-  - cleanup constraints such as `no background clutter`
-- removing those guardrails can cause Retro Diffusion to drift into a different move family entirely, even when the starting frame and references are correct
+ただし guardrails は残す。`side-facing`、`same costume and silhouette`、action disambiguation、`no background clutter` などを削ると別 motion family へ drift し得る。
 
 ## Scripts
 
-- `scripts/retro_inference_run.py`
-  - one Retro Diffusion run
-  - image, edit, or animation/spritesheet
-  - supports cost-only mode
-- `scripts/retro_experiment_matrix.py`
-  - run a JSON-defined experiment batch
-  - useful for cross-comparing Retro Diffusion styles on the same source sprite
-- `scripts/prepare_reference_image.py`
-  - prepare explicit RGB reference inputs from local PNGs
-  - flatten transparency to a chosen matte
-  - optionally resize to a target square with nearest-neighbor scaling
+- `scripts/retro_inference_run.py`: one run、image/edit/animation/spritesheet、cost-only mode
+- `scripts/retro_experiment_matrix.py`: JSON-defined experiment batch
+- `scripts/prepare_reference_image.py`: local PNG から RGB reference を準備、matte flatten、nearest-neighbor square resize
 
 ## Portable Workflow
 
-Keep project-specific artifacts in the user's working project, not inside the skill directory.
+project-specific artifacts は skill directory ではなく user's working project に置く。
 
-Good default layout:
+default layout:
 
-- checked-in experiment contracts under a path such as `experiments/retro-diffusion/configs/`
-- generated outputs under a project-owned `outputs/`, `artifacts/`, or asset-staging directory
-- human-readable prompts, notes, and learnings next to the experiment docs if the project uses them
+- checked-in experiment contracts: `experiments/retro-diffusion/configs/`
+- generated outputs: project-owned `outputs/`、`artifacts/`、asset-staging directory
+- prompts、notes、learnings は project が使う experiment docs の隣に置く
 
-The important rule is:
-
-- the skill provides scripts, references, and presets
-- the user's project decides where prompts, configs, manifests, and generated images live
+skill は scripts、references、presets を提供し、prompts/configs/manifests/generated images の置き場所は user project が決める。
 
 ## Run Verification Workflow
 
-When a Retro Diffusion run appears to stall, timeout, or return an ambiguous result:
+run が stall、timeout、ambiguous result に見える場合:
 
-1. Record the intended output directory before starting the run.
-2. Launch the run once.
-3. If the wrapper does not report clean completion, inspect the output directory before doing anything else.
-4. Check for:
-   - expected output filenames
-   - non-empty PNG / GIF artifacts
-   - run JSON or response JSON written by the harness
-   - timestamps newer than the invocation time
-5. If artifacts exist, treat the run as completed and assess quality from the returned sheet.
-6. Only retry when:
-   - no new artifacts were produced, or
-   - the returned artifact is explicitly corrupt / incomplete for the task.
+1. start 前に intended output directory を記録する
+2. run を1回だけ launch
+3. wrapper が clean completion を出さない場合、まず output directory を inspect
+4. expected filenames、non-empty PNG/GIF、run JSON / response JSON、new timestamps を確認
+5. artifacts があれば completed と扱い、sheet quality を評価する
+6. retry は no new artifacts、または returned artifact が明らかに corrupt / incomplete の場合だけ
 
-Practical rule:
+practical rule: ambiguous transport state は model failure ではない。files first、retry second。
 
-- ambiguous transport state is not the same as model failure
-- verify files first, retry second
+## 避けること
 
-## Anti-Patterns To Avoid
+**incompatible animation styles を同一 task として比較する**
 
-❌ **Anti-pattern: comparing incompatible animation styles as if they were the same task**
-Why bad: a fixed `48x48` four-angle walker and a reference-driven advanced walking sheet are not equivalent outputs.
-Better: compare them as different Retro Diffusion strategies, not as the same contract.
+問題: fixed `48x48` walker と reference-driven advanced walking sheet は output contract が違う。
+改善: style ごとの size、input、sheet / GIF contract を分けて評価する。
 
-❌ **Anti-pattern: feeding transparent RGBA sprites directly into `input_image`**
-Why bad: the docs say `input_image` should be RGB with no transparency.
-Better: convert the input to RGB first and keep the subject on a clean flat background.
+**transparent RGBA sprites を直接 `input_image` に渡す**
 
-❌ **Anti-pattern: asking for “walk animation” without saying whether you want a GIF or spritesheet**
-Why bad: you may get a preview format that is harder to analyze downstream.
-Better: request `return_spritesheet: true` when the goal is extraction or frame comparison.
+問題: alpha が黒や予期しない matte として扱われ、silhouette や色が崩れることがある。
+改善: RGB へ変換し、clean flat background 付きの prepared reference を渡す。
 
-❌ **Anti-pattern: using verbose prompts with advanced animation modes**
-Why bad: the backend may internally expand the action text and hit a hidden `500`-character validation limit.
-Better: keep advanced-animation prompts minimal and literal.
+**GIF か spritesheet かを指定せず walk animation を頼む**
 
-❌ **Anti-pattern: over-simplifying a prompt after a good run**
-Why bad: deleting "extra words" often deletes the exact identity and motion constraints that were keeping the model on-style.
-Better: shorten carefully, but preserve the clauses that lock facing, silhouette, action type, and background behavior.
+問題: downstream extraction / frame comparison の契約が曖昧になる。
+改善: sprite workflow では `return_spritesheet: true` を指定し、artifact を deterministic に扱う。
 
-❌ **Anti-pattern: retrying immediately because the wrapper did not print a clean success message**
-Why bad: Retro Diffusion may already have produced the output sheet, and an unnecessary retry wastes time, money, and confuses source-of-truth selection.
-Better: inspect the target output directory and run artifacts first, then decide whether a second run is actually needed.
+**advanced animation modes で verbose prompts**
 
-❌ **Anti-pattern: assuming the reference image alone will preserve style**
-Why bad: `animation__any_animation` can still drift into the wrong move family or add inconsistent effects if the prompt stops reinforcing orientation and action semantics.
-Better: pair the starting frame and references with a compact but explicit prompt that preserves orientation, identity, and action read.
+問題: hidden validation limit や prompt expansion と衝突し、server-side failure になることがある。
+改善: action prompt は非常に terse にし、identity / facing / background clauses だけを残す。
 
-❌ **Anti-pattern: assuming a larger isometric anchor will work better**
-Why bad: larger references can be less stable than compact prepared anchors, especially in advanced animation modes.
-Better: downscale the approved anchor to a compact square first, then try advanced walking.
+**良い run の後に prompt を単純化しすぎる**
 
-❌ **Anti-pattern: trusting `animation__8_dir_rotation` as the canonical turnaround path**
-Why bad: it can fail server-side or produce weak directional separation even at the documented `80x80` size.
-Better: keep it as a cheap first probe only, and rely on staged `rd_pro__edit` when you need a dependable turnaround workflow.
+問題: facing、silhouette、action type、background behavior が外れ、次 run で drift する。
+改善: stability に効いた lock clauses は残す。
 
-❌ **Anti-pattern: ignoring the built-in frame-size contracts**
-Why bad: some styles silently clamp or ignore your requested size.
-Better: choose the style because its size/output format fits the task.
+**wrapper の success message なしで即 retry**
 
-❌ **Anti-pattern: treating Retro Diffusion as a general-purpose video model**
-Why bad: this API is about pixel-art image and animation sheet generation, not free-camera video.
-Better: use it for sprite-native outputs and compare those against video-derived workflows later.
+問題: local wrapper が timeout や final response drop を起こしても、artifact は生成済みのことがある。
+改善: retry 前に intended output folder の PNG / GIF / JSON を確認する。
+
+**reference image だけで style が保たれると仮定する**
+
+問題: image reference だけでは orientation、identity、action semantics が弱い場合がある。
+改善: prompt でも facing、silhouette、costume、action を補強する。
+
+**larger isometric anchor が常に良いと仮定する**
+
+問題: larger / angled anchor は walk cycle や side-facing motion を不安定にすることがある。
+改善: compact prepared anchor を試し、side-facing / neutral pose を優先する。
+
+**`animation__8_dir_rotation` を canonical turnaround path とみなす**
+
+問題: 8-dir rotation は first probe には有用でも、すべての turnaround に最適とは限らない。
+改善: probe として扱い、必要なら staged `rd_pro__edit` などに切り替える。
+
+**frame-size contracts を無視する**
+
+問題: style によって size が clamp / ignore され、engine contract とずれる場合がある。
+改善: style ごとの documented size / returned artifact を検証してから runtime asset 化する。
+
+**general-purpose video model として扱う**
+
+問題: Retro Diffusion は sprite-native outputs 用 API で、自由な video generation とは契約が違う。
+改善: sprite / animation / spritesheet artifacts として扱い、motion reference 用 video model と混同しない。
 
 ## Variation Guidance
 
-**IMPORTANT**: Do not converge on one Retro Diffusion mode for every sprite task.
+- asset contract に応じて `RD_PRO`、`RD_FAST`、advanced animation styles を使い分ける
+- short attack と longer walk tests で `frames_duration` を変える
+- downstream need に応じて GIF preview / spritesheet を選ぶ
+- platformer walking の best prompt が turnarounds / idles にも最適とは仮定しない
 
-- vary between `RD_PRO`, `RD_FAST`, and advanced animation styles based on the asset contract
-- vary `frames_duration` deliberately for short attack vs longer walk tests
-- vary whether a run returns GIF preview or spritesheet based on the downstream need
-- do not assume the best prompt for platformer walking is also the best prompt for turnarounds or idles
-
-## References
+## 参照
 
 - API and style notes: `references/api-and-styles.md`
 - Animation strategy notes: `references/animation-workflows.md`
 - Presets: `assets/model-presets.json`
 - Prompt starters: `assets/prompt-profiles/`
 
-## Remember
+## 覚えておくこと
 
-Retro Diffusion is strongest when you meet it on its own terms:
-
-- pick the correct built-in style
-- feed it a clean reference
-- ask for the exact sprite artifact you need
-- keep advanced-animation prompts brutally short
-- prefer staged `RD Pro Edit` for dependable isometric turnaround work
-- and track the result like an experiment, not a one-off prompt
+Retro Diffusion は built-in style を正しく選び、clean reference を渡し、必要な sprite artifact を明確に求め、advanced-animation prompts を短く保ち、結果を one-off prompt ではなく experiment として追跡したときに強い。

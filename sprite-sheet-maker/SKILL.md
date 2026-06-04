@@ -5,72 +5,72 @@ description: "複数のフレームPNGをゲーム用スプライトシートに
 
 # Sprite Sheet Maker
 
-## Purpose
+## 目的
 
-Use the bundled `scripts/make_spritesheet.py` script to combine PNG animation frames into a single sprite sheet. The script is pure Python and does not require Pillow, ImageMagick, or npm packages.
+同梱の `scripts/make_spritesheet.py` で、複数の PNG アニメーションフレームを1枚のスプライトシートへまとめる。スクリプトは pure Python で、Pillow、ImageMagick、npm package は不要。
 
-## Workflow
+## ワークフロー
 
-1. Use the provided input directory and output path. Ask only when either is missing or ambiguous.
-2. Sort frames with natural filename order by default, so `frame_2.png` comes before `frame_10.png`.
-3. Use the default square-ish grid unless the user specifies a layout. A 16-frame directory becomes `4x4`.
-4. Preserve transparency and use transparent background by default.
-5. For variable-sized character frames, keep the default `--align bottom-center` to reduce animation foot/baseline jitter. Use `--align center` for generic icons or effects.
-6. Generate JSON metadata when engine integration needs frame rectangles or source offsets.
+1. 指定された input directory と output path を使う。どちらかが不明なときだけ確認する
+2. 既定では自然順で並べる。`frame_2.png` が `frame_10.png` より前に来る
+3. ユーザーが layout を指定しない限り、正方形に近い grid を使う。16 frames は `4x4`
+4. 透明度を保持し、既定では透明背景にする
+5. 可変サイズの character frame は `--align bottom-center` を維持し、足元や baseline の揺れを減らす。icon や effect では `--align center` を使う
+6. engine integration で frame rectangle や source offset が必要なら JSON metadata を生成する
 
-## Quick Commands
+## クイックコマンド
 
-Default sprite sheet:
+既定のスプライトシート:
 
 ```bash
 python3 "<skill>/scripts/make_spritesheet.py" --input-dir "frames" --output "spritesheet.png"
 ```
 
-Force 4 columns and write metadata next to the PNG:
+4 columns に固定し、PNG の隣に metadata を書く:
 
 ```bash
 python3 "<skill>/scripts/make_spritesheet.py" --input-dir "frames" --output "spritesheet.png" --columns 4 --metadata
 ```
 
-Use fixed cells, center alignment, and spacing:
+固定 cell、center alignment、spacing を使う:
 
 ```bash
 python3 "<skill>/scripts/make_spritesheet.py" --input-dir "frames" --output "spritesheet.png" --columns 4 --cell-width 256 --cell-height 256 --align center --spacing 2
 ```
 
-Preview the planned output without writing files:
+書き込まずに出力計画を確認する:
 
 ```bash
 python3 "<skill>/scripts/make_spritesheet.py" --input-dir "frames" --output "spritesheet.png" --dry-run
 ```
 
-## Script Behavior
+## スクリプトの挙動
 
-- Inputs: non-interlaced 8-bit PNG files, including RGBA, RGB, grayscale, grayscale-alpha, and indexed-color PNGs.
-- Output: 8-bit RGBA PNG.
-- Default cell size: maximum width and height found across all input frames.
-- Default grid: `ceil(sqrt(frame_count))` columns and enough rows. For 16 frames this is `4x4`.
-- Default order: natural filename order.
-- Default alignment: `bottom-center`.
-- Default margin and spacing: `0`.
-- Default background: transparent.
+- 入力: non-interlaced 8-bit PNG。RGBA、RGB、grayscale、grayscale-alpha、indexed-color に対応
+- 出力: 8-bit RGBA PNG
+- 既定 cell size: 全 input frame の最大 width/height
+- 既定 grid: `ceil(sqrt(frame_count))` columns と必要な rows。16 frames は `4x4`
+- 既定 order: natural filename order
+- 既定 alignment: `bottom-center`
+- 既定 margin/spacing: `0`
+- 既定 background: transparent
 
-## Options
+## オプション
 
-- `--pattern "*.png"`: choose input files inside `--input-dir`.
-- `--columns N` / `--rows N`: control grid layout.
-- `--cell-width N` / `--cell-height N`: force cell dimensions; the script rejects cells smaller than the largest frame.
-- `--align VALUE`: one of `top-left`, `top-center`, `top-right`, `center-left`, `center`, `center-right`, `bottom-left`, `bottom-center`, `bottom-right`.
-- `--margin N`: outer margin in pixels.
-- `--spacing N`: spacing between cells in pixels.
-- `--background transparent|#RRGGBB|#RRGGBBAA`: background fill.
-- `--metadata [path]`: write JSON metadata. Without a path, writes `<output>.json`.
-- `--order natural|lex`: choose filename sort behavior.
+- `--pattern "*.png"`: `--input-dir` 内の対象ファイルを選ぶ
+- `--columns N` / `--rows N`: grid layout を制御する
+- `--cell-width N` / `--cell-height N`: cell dimensions を固定する。最大 frame より小さい cell は拒否される
+- `--align VALUE`: `top-left`, `top-center`, `top-right`, `center-left`, `center`, `center-right`, `bottom-left`, `bottom-center`, `bottom-right` のいずれか
+- `--margin N`: 外側 margin pixels
+- `--spacing N`: cell 間 spacing pixels
+- `--background transparent|#RRGGBB|#RRGGBBAA`: 背景塗り
+- `--metadata [path]`: JSON metadata を書く。path なしなら `<output>.json`
+- `--order natural|lex`: filename sort を選ぶ
 
-## Troubleshooting
+## トラブルシューティング
 
-- Unexpected animation jitter: rerun with `--align bottom-center` for characters or `--align center` for effects.
-- Output cells too large: inspect source frame dimensions; variable-sized frames use the maximum frame size as cell size.
-- Engine expects a single row: use `--columns <frame-count>` or `--rows 1`.
-- Engine expects exact cells: pass `--cell-width` and `--cell-height`.
-- Unsupported PNG error: convert the source frames to non-interlaced 8-bit PNGs first.
+- アニメーションが予想外に揺れる: character は `--align bottom-center`、effect は `--align center` で再実行する
+- output cell が大きすぎる: source frame dimensions を確認する。可変サイズ frame は最大 frame size が cell size になる
+- engine が1行を期待する: `--columns <frame-count>` または `--rows 1` を使う
+- engine が正確な cell size を期待する: `--cell-width` と `--cell-height` を渡す
+- unsupported PNG error: source frames を non-interlaced 8-bit PNG に変換してから実行する

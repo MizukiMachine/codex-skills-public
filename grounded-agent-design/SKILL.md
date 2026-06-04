@@ -5,302 +5,256 @@ description: "情報境界を持つLLMシステムを設計・レビューする
 
 # Grounded Agent Design
 
-## Purpose
+## 目的
 
-Build LLM systems where (a) different actors may see different information and
-(b) every generation stays grounded, on-task, and within bounds. The job has two
-inseparable layers:
+異なる actor が異なる情報だけを見られ、各 generation が grounded / on-task / within bounds に保たれる LLM system を作る。仕事は inseparable な2 layers。
 
-- **Boundary (design-time)** — make each actor act from *only* the context it is
-  allowed to know, by projecting a single authoritative state per viewer. This
-  is a product layer, not a prompt instruction.
-- **Control loop (run-time)** — wrap each stochastic generation in a
-  deterministic **Direct → Censor → Correct** loop that enforces the boundary
-  and faithfulness, then falls back to a safe output instead of hanging or
-  shipping a fabrication.
+- **Boundary (design-time)**: viewer ごとに single authoritative state を projection し、actor が許可された context だけから行動するようにする。これは prompt instruction ではなく product layer
+- **Control loop (run-time)**: 各 stochastic generation を deterministic **Direct -> Censor -> Correct** loop で包み、boundary と faithfulness を enforce し、失敗時は safe output に fallback する
 
-The boundary is the *precondition*; the control loop is the *enforcement*. The
-boundary decides what is true and visible this turn; the loop checks the output
-against exactly that and corrects it when it strays.
+boundary は precondition、control loop は enforcement。boundary はその turn で何が true / visible かを決め、loop は output をその projection と照合して修正する。
 
-Applies to: permissioned RAG, enterprise search, support/legal/medical/HR bots,
-multi-agent RAG (planner/retriever/verifier/redactor/answerer), AI NPCs, TRPG,
-social-deduction and negotiation games, meeting/simulation agents, tutoring
-turns, and any assistant with private notes, hidden roles, document ACLs, or
-asymmetric objectives.
+適用先: permissioned RAG、enterprise search、support/legal/medical/HR bots、multi-agent RAG、AI NPC、TRPG、social-deduction / negotiation games、meeting/simulation agents、tutoring、private notes、hidden roles、document ACLs、asymmetric objectives を持つ assistant。
 
 ## Core Principle
 
-Do not ask one all-knowing LLM to hold the entire truth and merely "be careful".
-A stochastic generator violates instructions probabilistically; with enough
-turns it *will* leak or fabricate. Two moves replace "be careful":
+one all-knowing LLM に全 truth を渡して "be careful" と頼まない。stochastic generator は probabilistically に leak / fabricate する。置き換える手段は2つ。
 
-1. **Model the system as information boundaries.** Separate *who is acting*,
-   *what they know*, *what they may reveal*, *what they optimize*, *which output
-   contract the product can safely consume*, and *which checks must pass* before
-   output reaches a user or another agent. Render each actor's context from code,
-   from allowlisted data — never rely on "pretend you don't know X".
-2. **Make quality a property of the loop, not the prompt.** Treat the LLM as a
-   fast, fluent, **unreliable** generator. Compute a deterministic plan before
-   generating, compare the output to ground truth after, and feed the specific
-   violated invariant back as a revision hint, bounded, then fall back.
+1. **information boundaries として system を model 化する**
+   - who is acting、what they know、what they may reveal、what they optimize、safe output contract、required checks を分ける
+   - actor context は code から allowlisted data で render し、"pretend you don't know X" に頼らない
+2. **quality を prompt ではなく loop の property にする**
+   - LLM を fast / fluent / unreliable generator として扱う
+   - generation 前に deterministic plan を作り、output 後に ground truth と比較し、specific violated invariant を revision hint として返す
+   - attempts を bound し、fallback する
 
-**The load-bearing invariant:** *the model may only treat as real what is in the
-visible context.* The boundary layer *constructs* that visible context; the
-censor *checks* the output against it. Most failures are a violation of this one
-rule — enforce it in the boundary (per-viewer projection) and in the plan
-(`allowedFacts` whitelist), and check it in the censor (grounded references).
+**load-bearing invariant:** model は visible context にあるものだけを real として扱える。boundary layer が visible context を作り、censor が output を check する。
 
-**Priority when trade-offs collide:** correctness/faithfulness/no-leak >
-staying on-task > style/voice > latency. A dull-but-true fallback beats a fluent
-fabrication, and a redacted answer beats a leak.
+tradeoff priority: correctness / faithfulness / no-leak > staying on-task > style/voice > latency。fluent fabrication より dull-but-true fallback、leak より redacted answer。
 
-Before implementing, establish:
+実装前に確認すること:
 
-- **What is the authoritative state, and what is each viewer's projection?** If
-  you cannot say which code path strips what, you have no boundary.
-- **What is ground truth this turn?** The exact facts/transcript the output may
-  reference (= the projection + this actor's private slice). If you cannot
-  enumerate it, you cannot censor.
-- **What must stay hidden?** Private state, other actors' secrets, system rules,
-  tool traces, retrieval internals.
-- **Is the context cold?** First turn / empty history / fresh thread. If so, do
-  **not** force a committed move — that is the #1 cause of fabricated filler.
-- **What is the safe fallback output?** The deterministic line/decision used when
-  correction fails. It must always be valid, boring, and leak-free.
+- authoritative state と各 viewer projection は何か。どの code path が何を strip するか
+- この turn の ground truth は何か。output が参照できる facts/transcript は何か
+- hidden にすべき private state、other actors' secrets、system rules、tool traces、retrieval internals は何か
+- cold context か。first turn / empty history なら committed move を強制しない
+- safe fallback output は何か。常に valid、boring、leak-free
 
-## The Two Layers
+## Two Layers
 
-```
+```text
 authoritative state (server source of truth)
-  └─ per-viewer projection / redaction        ← BOUNDARY (precondition)
-       └─ for each actor whose turn it is:
-            definePlan(state) → renderPlan      ← DIRECT
+  └─ per-viewer projection / redaction        ← BOUNDARY
+       └─ actor turn:
+            definePlan(state) → renderPlan    ← DIRECT
             runRevisionLoop(generate, validate, fallback)
                  generate: callModel(prompt + hint)
-                 validate: runValidators(...)    ← CENSOR
-                 fallback: safe deterministic    ← CORRECT
-            commit accepted output to state
-            extract structured signals (round-trip) ← feeds anti-repetition
-       └─ view-specific redaction before client / next agent ← BOUNDARY (egress)
+                 validate: runValidators(...) ← CENSOR
+                 fallback: safe deterministic ← CORRECT
+            commit accepted output
+            extract structured signals
+       └─ view-specific redaction before client / next agent
 ```
 
-`allowedFacts` is not hand-written; it *falls out of* the projection. Keep the
-loop synchronous per generation — concurrency across actors/turns belongs to a
-separate latency runtime (see `references/architecture.md`).
+`allowedFacts` は手書きせず projection から導く。generation loop は per generation で synchronous に保つ。actors/turns の concurrency は別 latency runtime に分ける。
 
-## Workflow
+## ワークフロー
 
-**Phase A — Design the boundary** (`references/boundary-design.md`):
+**Phase A: Boundary を設計する**
 
-1. **Map actors and scopes.** List users, agents, tools, documents, memories,
-   system processes, external viewers. For each: role, goal, allowed inputs,
-   forbidden inputs, allowed outputs, downstream consumers. Include hidden roles,
-   private memories, public history, spectator views (games) or auth, ACLs,
-   citations, tool traces (RAG).
-2. **Classify information** on a small sensitivity lattice
-   (`public / user_provided / confidential / secret / forbidden`). Treat
-   retrieval results, summaries, memories, and diagnostics as data with their own
-   sensitivity, not harmless text.
-3. **Build an access matrix** before writing prompts. Prefer allowlists over
-   denylists. Render role-visible context from code, not prompt prose.
-4. **Choose output contracts by risk.** Free text only where naturalness is the
-   value; JSON/typed schema for actions, target selection, retrieval plans, auth
-   decisions, safety gates. Never let unconstrained prose drive irreversible
-   actions.
-5. **Build prompts from rendered (already-authorized) context**, and treat all
-   user input, retrieved docs, emails, tickets, chat logs, and DB text as
-   untrusted *data*, not instructions (indirect prompt-injection defense).
-6. **Redact by view** at egress: store full data on the server, emit
-   view-specific snapshots, mask forbidden fields before they reach the client or
-   the next agent.
+1. **actors / scopes を map**
+   - users、agents、tools、documents、memories、system processes、external viewers
+   - role、goal、allowed inputs、forbidden inputs、allowed outputs、downstream consumers
+2. **information を sensitivity lattice で分類**
+   - `public / user_provided / confidential / secret / forbidden`
+   - retrieval results、summaries、memories、diagnostics も data として sensitivity を持つ
+3. **prompts 前に access matrix を作る**
+   - denylists より allowlists
+   - role-visible context は code で render
+4. **risk に応じて output contracts を選ぶ**
+   - naturalness が価値なら free text
+   - actions、target selection、retrieval plans、auth decisions、safety gates は JSON/typed schema
+5. **already-authorized context から prompts を作る**
+   - user input、retrieved docs、emails、tickets、chat logs、DB text は instructions ではなく untrusted data
+6. **egress で view-specific redaction**
+   - full data は server-side に保存し、client / next agent には mask 済み snapshot
 
-**Phase B — Build the control loop** (`references/plan-object.md`,
-`references/failure-modes.md`, `references/validators.md`):
+**Phase B: Control Loop を作る**
 
-7. **Define the plan object (Direct).** Model the per-turn contract as data, not
-   prose. Derive `intents` and `allowedFacts` from the projection. Apply the
-   cold-context rule via `definePlan`.
-8. **Enumerate failure modes and write validators (Censor).** Implement only the
-   modes that actually occur for this app; keep language cue-words as a `Lexicon`
-   (config), not hardcoded logic. Calibrate against real transcripts.
-9. **Wire the revision loop (Correct).** Bounded attempts, the *specific*
-   violated invariant fed back as a hint, a safe deterministic fallback per
-   channel, diagnostics on every attempt.
-10. **Adapt the starter harness.** Copy `assets/control-layer/` and replace the
-    plan derivation, the lexicon, and the validator set. Keep the loop and types.
-11. **Verify** (see Verification): each failure mode caught on a known-bad
-    output and passing on a known-good one; the hint flows back; the fallback
-    path works; secret state is absent from the *context builder*, not merely
-    instructed-against.
+7. **plan object (Direct) を定義**
+   - per-turn contract を data として model 化
+   - `intents` / `allowedFacts` は projection から導く
+   - cold-context rule は `definePlan` に入れる
+8. **failure modes と validators (Censor) を列挙**
+   - app で実際に起きる modes だけ実装
+   - cue words は hardcoded logic ではなく `Lexicon` config
+   - real transcripts で calibrate
+9. **revision loop (Correct) を wire**
+   - bounded attempts
+   - specific violated invariant を hint として返す
+   - channel ごとの safe deterministic fallback
+   - attempt diagnostics
+10. **starter harness を adapt**
+    - `assets/control-layer/` を copy し、plan derivation、lexicon、validator set を差し替える
+    - loop と types は保つ
+11. **verify**
+    - known-bad / known-good outputs
+    - hint feedback
+    - fallback path
+    - secret state が context builder に入っていないこと
 
-## Reference Files
+## 参照ファイル
 
 | Topic | File | Use When |
 |-------|------|----------|
-| Information-boundary design | [boundary-design.md](references/boundary-design.md) | Mapping actors/scopes, sensitivity lattice, access matrix, redaction-by-view, output contracts, prompt-injection defense, RAG & game patterns, prompt boundary template |
-| The plan / director layer | [plan-object.md](references/plan-object.md) | What goes in the plan, intents, fact whitelist, forward-move, cold-context, two output channels |
-| Faithfulness failure taxonomy | [failure-modes.md](references/failure-modes.md) | Which hallucination/quality failures to detect and the revision-hint for each |
-| Validator patterns & pitfalls | [validators.md](references/validators.md) | Implementing detectors, patterns-as-config, metadata round-trip, anti-repetition |
-| Cross-cutting architecture | [architecture.md](references/architecture.md) | Where the loop plugs in, bounded attempts + fallback, diagnostics, relationship to a latency runtime |
+| Information-boundary design | [boundary-design.md](references/boundary-design.md) | actors/scopes、sensitivity、access matrix、redaction、prompt-injection defense |
+| Plan / director layer | [plan-object.md](references/plan-object.md) | plan、intents、fact whitelist、cold-context、output channels |
+| Failure taxonomy | [failure-modes.md](references/failure-modes.md) | hallucination / quality failures と revision hints |
+| Validator patterns | [validators.md](references/validators.md) | detectors、patterns-as-config、metadata round-trip、anti-repetition |
+| Architecture | [architecture.md](references/architecture.md) | loop の接続位置、fallback、diagnostics、latency runtime |
 
-## Starter Harness (assets/control-layer/)
+## Starter Harness
 
-A dependency-free, typed, runnable reference implementation of the control loop.
-Copy it in and adapt.
+`assets/control-layer/` は dependency-free typed runnable reference implementation。
 
 | File | Role |
 |------|------|
-| `plan.ts` | Direct: `ControlPlan` type, `definePlan` (bakes in the cold-context invariant), `renderPlan` |
-| `validators.ts` | Censor: `Validator` type, `groundedReferences`, `noBoundaryLeak`, `hasForwardSubstance`, `notRepetitive`, `runValidators` |
-| `revisionLoop.ts` | Correct: `runRevisionLoop` (bounded attempts, hint feedback, safe fallback, diagnostics hook) |
-| `lexicons/en.yaml`, `lexicons/ja.yaml` | The cue words themselves — **edit these (no code) to tune detection per language/domain**. Single source of truth |
-| `loadLexicon.ts` | Reads a lexicon YAML into a `Lexicon` (dependency-free; `loadLexicon("en")` or a path) |
-| `lexicons.ts` | Thin loader exposing `englishLexicon` / `japaneseLexicon` from the YAML |
-| `index.ts` | Barrel export |
-| `demo.ts` | Runnable self-check (fake self-correcting generator, no API key) |
+| `plan.ts` | Direct: `ControlPlan`、`definePlan`、`renderPlan` |
+| `validators.ts` | Censor: validators と `runValidators` |
+| `revisionLoop.ts` | Correct: bounded attempts、hint feedback、safe fallback、diagnostics |
+| `lexicons/en.yaml`, `lexicons/ja.yaml` | detection cue words。domain/language 調整はここ |
+| `loadLexicon.ts` | YAML -> `Lexicon` |
+| `index.ts` | barrel export |
+| `demo.ts` | API key 不要の self-check |
 
-The detection *strategy* lives in code (`validators.ts`); the *patterns* (cue
-words) live in YAML so a non-programmer can adjust them in a text editor. Add a
-new language by dropping in `lexicons/<lang>.yaml` and calling
-`loadLexicon("<lang>")`.
+detection strategy は code、patterns は YAML。新 language は `lexicons/<lang>.yaml` を追加し `loadLexicon("<lang>")`。
 
-Verify the harness runs: `node --import tsx assets/control-layer/demo.ts`
-(expects `ALL PASS`). Run from a project where `tsx` resolves; if none, `npm i -D
-tsx` first (the harness itself is dependency-free — `tsx` is only the TS runner).
+verify:
 
-## Patterns and Examples
+```bash
+node --import tsx assets/control-layer/demo.ts
+```
 
-**The control loop, in shape:**
+期待値は `ALL PASS`。`tsx` がない場合は project に `npm i -D tsx`。
+
+## Patterns
+
+control loop の形:
 
 ```ts
 const plan = definePlan({ hasPriorContext, intents, allowedFacts, mustNotReveal, wantsForwardMove });
 const validators = [groundedReferences(lexicon), noBoundaryLeak, hasForwardSubstance(lexicon)];
 const { value, accepted, usedFallback } = await runRevisionLoop({
-  generate: (hint) => callModel(buildPrompt(renderPlan(plan), hint)),   // Direct (+ hint on retry)
-  validate: (out) => runValidators({ output: out, visibleFacts, entities, plan }, validators), // Censor
-  fallback: () => safeDeterministicLine(plan),                          // Correct: never hang
+  generate: (hint) => callModel(buildPrompt(renderPlan(plan), hint)),
+  validate: (out) => runValidators({ output: out, visibleFacts, entities, plan }, validators),
+  fallback: () => safeDeterministicLine(plan),
   maxAttempts: 3,
   onAttempt: (info) => telemetry.record(info)
 });
 ```
 
-**Cold-context rule (the hard-won one):**
+cold-context rule:
 
 ```ts
-// First turn: no history exists. Forcing "commit to a position" makes the model
-// invent a history to react to. Open instead — but still demand substance.
 const plan = definePlan({ hasPriorContext: false, intents: [openingIntent], wantsForwardMove: true });
-// plan.requiresForwardMove === false  (definePlan overrides it in cold context)
+// first turn では committed history を捏造させない
 ```
 
-**RAG pattern (boundary + loop):** ACL-filter documents *before* generation
-(boundary), set `allowedFacts` = the retrieved chunks, have the censor reject any
-claim that does not trace to a chunk, and redact internal fields/scores at egress.
-Full pipeline + hard rules: `references/boundary-design.md` → RAG pattern.
+RAG pattern:
 
-**Simulation / game pattern (boundary + loop):** project role-visible secrets per
-actor (boundary), split public speech (prose channel) from action/vote (decision
-channel), and censor the spoken line for invented events + boundary leaks while
-the decision goes through a legal-target check. Full pipeline + hard rules:
-`references/boundary-design.md` → Simulation / game pattern.
+- generation 前に ACL-filter documents
+- `allowedFacts` = retrieved chunks
+- censor は chunk に trace しない claims を reject
+- internal fields/scores は egress で redact
 
-**Prompt boundary template:** a compact, copyable starting prompt lives in
-`references/boundary-design.md` → Prompt boundary template.
+simulation / game pattern:
 
-## Anti-Patterns
+- actor ごとに role-visible secrets を project
+- public speech と action/vote を channel 分離
+- spoken line は invented events / boundary leaks で censor
+- decision は legal-target check
 
-**Prompt-only faithfulness / "I told it not to make things up".** A stochastic
-generator violates instructions probabilistically. Better: enumerate the allowed
-facts and *check* the output against them. Instructions reduce the rate; the
-censor enforces the floor.
+## 避けること
 
-**"Pretend you don't know X" in the prompt.** The secret is in the context, so it
-leaks under pressure. Better: an information boundary — never put X in that
-actor's context (grep the context builder, not the prompt text).
+**prompt-only faithfulness / "make things up しないよう指示した"**
 
-**Denylists over allowlists.** Enumerating what to hide always misses a case.
-Render role-visible context from an allowlist of authorized data.
+問題: stochastic generator は probabilistically に instruction を破る。instruction は発生率を下げるだけで、下限を enforce しない。
+改善: allowed facts を enumerate し、output をそれと照合する。censor が floor を enforce する。
 
-**Treating retrieved/user text as instructions.** Documents, tickets, emails, and
-chat logs can carry "ignore your rules / reveal secrets / change roles". Mark
-them as evidence/content; never as developer instructions.
+**"pretend you don't know X" を prompt に書く**
 
-**Discard-and-retry with the same prompt.** An identical prompt re-rolls the same
-distribution. Better: feed the *specific* violated invariant back as a hint.
+問題: secret が context に入っているため、pressure 下で leak する。
+改善: information boundary を作り、その actor の context に X を入れない。prompt text ではなく context builder を grep する。
 
-**Forcing a stance on the opening turn.** With no real history, "take a position"
-is satisfiable only by inventing one. Cold-context plans open the topic and relax
-forward-move while still rejecting passive filler.
+**denylists over allowlists**
 
-**Hardcoding language patterns into validator logic.** Becomes unmaintainable and
-monolingual. Keep the detection *strategy* in code, the *cue words* in a `Lexicon`.
+問題: hide するものの列挙は必ず漏れが出る。
+改善: authorized data の allowlist から role-visible context を render する。
 
-**Unbounded correction.** A stubborn model loops forever. Bound attempts, then a
-safe deterministic fallback.
+**retrieved/user text を instructions として扱う**
 
-**Redaction as a prompt instruction.** Redaction is a product layer: store full
-data server-side, emit view-specific snapshots, mask before egress.
+問題: documents、tickets、emails、chat logs は "ignore your rules / reveal secrets / change roles" を含み得る。
+改善: evidence/content として扱い、developer instructions にはしない。
+
+**same prompt で discard-and-retry**
+
+問題: 同じ prompt は同じ distribution を re-roll するだけ。
+改善: specific violated invariant を revision hint として返す。
+
+**opening turn で stance 強制**
+
+問題: real history がない状態で "take a position" を求めると、invent する以外に満たせない。
+改善: cold-context plans は topic を open し、forward-move を緩めつつ passive filler は reject する。
+
+**language patterns を validator logic に hardcode**
+
+問題: unmaintainable かつ monolingual になる。
+改善: detection strategy は code に置き、cue words は `Lexicon` に置く。
+
+**unbounded correction**
+
+問題: stubborn model が永久 loop する。
+改善: attempts を bound し、safe deterministic fallback に落とす。
+
+**redaction を prompt instruction にする**
+
+問題: redaction は prompt ではなく product layer の責務。
+改善: full data は server-side に保存し、view-specific snapshots を emit し、egress 前に mask する。
 
 ## Variation Guidance
 
-Adapt by context; do not ship one fixed validator set:
-
-- **Output channel** — a *public/spoken* line needs boundary + grounding +
-  substance checks; an *internal/structured decision* needs schema parse + a
-  legal-choice check, not prose validators. Keep the two channels separate.
-- **Domain** — RAG answerers center on "every claim traces to a retrieved chunk";
-  character/agent sims on "no invented events + no boundary leak"; tutoring on
-  "advance the learner + don't assert unstated facts".
-- **Language** — swap the lexicon; richer morphology (e.g. Japanese) needs phrase
-  patterns rather than word membership.
-- **Risk level** — higher stakes warrant more attempts, stricter validators, a
-  more conservative fallback; a low-stakes flavor line can run a single pass.
-- **Repetition pressure** — multi-actor settings need `notRepetitive` fed with
-  prior actors' angles; a single-actor assistant usually does not.
+- **Output channel**: public/spoken line は boundary + grounding + substance。structured decision は schema parse + legal-choice
+- **Domain**: RAG は claim-to-chunk、sim は no invented events + no boundary leak、tutoring は learner を進めつつ unstated facts を assert しない
+- **Language**: lexicon を swap。Japanese は word membership より phrase patterns
+- **Risk level**: high-stakes では attempts と validators を厳しくし、fallback を保守的に
+- **Repetition pressure**: multi-actor では `notRepetitive` を prior angles で feed
 
 ## Review Checklist
 
-Before finishing a design or implementation, answer:
+- authoritative state と viewer projection の code path は何か
+- prompts は allowlisted data から作られているか
+- `allowedFacts` は projection から導かれているか
+- free text / structured outputs は分離され、別々に validation されているか
+- IDs、citations、claims、actions を ground truth と照合しているか
+- user/retrieved text は data として扱われているか
+- cold-context rule は `definePlan` にあるか
+- client / downstream agent 前に何を redact しているか
+- malformed/stale/leaking/low-evidence output の correction/fallback は bounded か
+- diagnostics と tests があるか
 
-- What is the authoritative state, and which code path computes each viewer's
-  projection?
-- Are prompts built from allowlisted data? Is `allowedFacts` derived from the
-  projection, not hand-written?
-- Which outputs are free text, and which are structured? Are the two channels
-  validated separately?
-- What validates IDs, citations, claims, and actions against ground truth?
-- Are user-provided and retrieved texts treated as data, not instructions? What
-  neutralizes indirect prompt injection?
-- Is the cold-context rule applied via `definePlan` (not duplicated per call)?
-- What is redacted before client display or downstream agent use?
-- What happens when the LLM returns malformed, stale, leaking, or low-evidence
-  output? Is correction bounded with a safe fallback per channel?
-- Are per-attempt diagnostics emitted and inspected?
-- Which tests prove the boundaries hold and each validator fires?
+## 検証
 
-## Verification
-
-- Run `node --import tsx assets/control-layer/demo.ts` → `ALL PASS`.
-- For each failure mode implemented: one known-bad output asserts the matching
-  validator returns a violation; one known-good output asserts it passes.
-- Assert the revision hint reaches the generator on retry (the demo checks this).
-- Assert the fallback path returns the safe output when every attempt fails.
-- Confirm hidden state is absent from the actor's *context construction*, not
-  merely instructed-against (grep the prompt builder, not the prompt text).
-- Boundary tests: an unauthorized document never enters prompt context; an actor
-  cannot select an illegal target/document/action ID; public output never exposes
-  hidden state; viewer-specific redaction removes private event fields.
+- `node --import tsx assets/control-layer/demo.ts` -> `ALL PASS`
+- 各 failure mode で known-bad が violation、known-good が pass
+- retry 時に revision hint が generator に届く
+- all attempts fail 時に fallback が safe output を返す
+- hidden state が prompt builder ではなく context construction に入っていないことを grep
+- boundary tests: unauthorized document が prompt context に入らない、illegal target/document/action ID を選べない、public output が hidden state を露出しない、view-specific redaction が private fields を remove
 
 ## Portfolio Framing
 
-When describing work built with this skill:
+説明例:
 
-> I designed the system around information boundaries rather than a single
-> all-knowing prompt, then wrapped each generation in a deterministic
-> Direct→Censor→Correct control loop. Each agent receives only the context it is
-> authorized to see, free-form language is separated from structured decisions,
-> every user-facing view is redacted from authoritative state, and every turn is
-> validated against enumerated ground truth with a bounded revision loop and a
-> safe fallback. This keeps the LLM expressive while keeping permissions, hidden
-> state, citations, grounding, and workflow actions controllable and testable.
+```text
+I designed the system around information boundaries rather than a single all-knowing prompt, then wrapped each generation in a deterministic Direct->Censor->Correct control loop. Each agent receives only the context it is authorized to see, free-form language is separated from structured decisions, every user-facing view is redacted from authoritative state, and every turn is validated against enumerated ground truth with a bounded revision loop and a safe fallback.
+```
