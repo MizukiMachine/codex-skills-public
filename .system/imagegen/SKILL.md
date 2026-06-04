@@ -1,6 +1,6 @@
 ---
 name: "imagegen"
-description: "写真、イラスト、テクスチャ、スプライト、モックアップ、透明背景の切り抜きなど、AI生成のビットマップ視覚素材が有効なタスクでラスター画像を生成または編集する。Codexが新しい画像を作る、既存画像を変換する、参照から視覚バリエーションを作る必要があり、出力がリポジトリ内のコードやvectorではなくbitmap assetであるべきときに使う。既存SVG/vector/code-native assetsの編集、既存のicon/logo system拡張、HTML/CSS/canvasで直接作るほうが適切な場合は使わない。"
+description: "AI生成のビットマップ画像を作成・編集する。写真、イラスト、テクスチャ、スプライト、モックアップ、透明背景切り抜きが必要なときに使う。SVGやHTML/CSSで直接作る用途は除く。"
 ---
 
 # Image Generation Skill
