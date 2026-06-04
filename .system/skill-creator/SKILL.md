@@ -7,57 +7,48 @@ metadata:
 
 # Skill Creator
 
-This skill provides guidance for creating effective skills.
+このスキルは、実用的で効果的な Codex スキルを作成・更新するための指針を提供する。
 
 ## About Skills
 
-Skills are modular, self-contained folders that extend Codex's capabilities by providing
-specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific
-domains or tasks—they transform Codex from a general-purpose agent into a specialized agent
-equipped with procedural knowledge that no model can fully possess.
+スキルは、Codex の能力を拡張する自己完結したフォルダである。特定の領域やタスクに必要な専門知識、手順、ツール、再利用可能なリソースを提供し、汎用エージェントをタスクに特化したエージェントとして動けるようにする。
 
 ### What Skills Provide
 
-1. Specialized workflows - Multi-step procedures for specific domains
-2. Tool integrations - Instructions for working with specific file formats or APIs
-3. Domain expertise - Company-specific knowledge, schemas, business logic
-4. Bundled resources - Scripts, references, and assets for complex and repetitive tasks
+スキルが提供するもの:
+
+1. 専門的な workflow: 特定領域向けの複数ステップ手順。
+2. tool integration: 特定の file format、API、ツールの扱い方。
+3. domain expertise: company 固有の知識、schema、business logic。
+4. bundled resources: 反復的・複雑な作業を支える scripts、references、assets。
 
 ## Core Principles
 
-### Concise is Key
+### Concise Is Key
 
-The context window is a public good. Skills share the context window with everything else Codex needs: system prompt, conversation history, other Skills' metadata, and the actual user request.
+context window は共有資源である。スキル本文は system prompt、会話履歴、他のスキル metadata、ユーザー依頼と同じ context を使う。
 
-**Default assumption: Codex is already very smart.** Only add context Codex doesn't already have. Challenge each piece of information: "Does Codex really need this explanation?" and "Does this paragraph justify its token cost?"
-
-Prefer concise examples over verbose explanations.
+Codex は既にかなり賢いという前提で、Codex がまだ持っていない非自明な context だけを追加する。各説明について「この説明は本当に必要か」「token cost に見合うか」を確認する。長い説明より、短く具体的な例を優先する。
 
 ### Set Appropriate Degrees of Freedom
 
-Match the level of specificity to the task's fragility and variability:
+タスクの壊れやすさと可変性に合わせて、スキルが与える自由度を調整する。
 
-**High freedom (text-based instructions)**: Use when multiple approaches are valid, decisions depend on context, or heuristics guide the approach.
-
-**Medium freedom (pseudocode or scripts with parameters)**: Use when a preferred pattern exists, some variation is acceptable, or configuration affects behavior.
-
-**Low freedom (specific scripts, few parameters)**: Use when operations are fragile and error-prone, consistency is critical, or a specific sequence must be followed.
-
-Think of Codex as exploring a path: a narrow bridge with cliffs needs specific guardrails (low freedom), while an open field allows many routes (high freedom).
+- High freedom: 複数の approach が有効で、判断が context に依存し、heuristic が中心の場合。text instruction が向いている。
+- Medium freedom: 推奨 pattern はあるが多少の variation が必要な場合。pseudocode や parameter 付き script が向いている。
+- Low freedom: 操作が壊れやすく、順序や一貫性が重要な場合。具体的な script と少数 parameter が向いている。
 
 ### Protect Validation Integrity
 
-You may use subagents during iteration to validate whether a skill works on realistic tasks or whether a suspected problem is real. This is most useful when you want an independent pass on the skill's behavior, outputs, or failure modes after a revision.  Only do this when it is possible to start new subagents.
+subagent が使える環境では、現実的なタスクでスキルが機能するか、疑わしい問題が本当にあるかを検証するために subagent を使ってよい。目的は別エージェントが事前に漏れた答えを再構成できるかではなく、スキルが一般化するかを知ることである。
 
-When using subagents for validation, treat that as an evaluation surface. The goal is to learn whether the skill generalizes, not whether another agent can reconstruct the answer from leaked context.
+検証では、example prompt、output、diff、log、trace などの raw artifact を優先する。必要最小限の task-local context だけを渡し、検証に必要でない限り、意図した答え、疑っている bug、予定している fix、これまでの結論は渡さない。
 
-Prefer raw artifacts such as example prompts, outputs, diffs, logs, or traces. Give the minimum task-local context needed to perform the validation. Avoid passing the intended answer, suspected bug, intended fix, or your prior conclusions unless the validation explicitly requires them.
+## Anatomy of a Skill
 
-### Anatomy of a Skill
+すべてのスキルは必須の `SKILL.md` と任意の bundled resources で構成される。
 
-Every skill consists of a required SKILL.md file and optional bundled resources:
-
-```
+```text
 skill-name/
 ├── SKILL.md (required)
 │   ├── YAML frontmatter metadata (required)
@@ -65,88 +56,82 @@ skill-name/
 │   │   └── description: (required)
 │   └── Markdown instructions (required)
 ├── agents/ (recommended)
-│   └── openai.yaml - UI metadata for skill lists and chips
+│   └── openai.yaml - skill list や chip 向け UI metadata
 └── Bundled Resources (optional)
-    ├── scripts/          - Executable code (Python/Bash/etc.)
-    ├── references/       - Documentation intended to be loaded into context as needed
-    └── assets/           - Files used in output (templates, icons, fonts, etc.)
+    ├── scripts/          - executable code (Python/Bash/etc.)
+    ├── references/       - 必要時に context に読む documentation
+    └── assets/           - templates, icons, fonts など output で使う file
 ```
 
 #### SKILL.md (required)
 
-Every SKILL.md consists of:
+`SKILL.md` は次で構成する。
 
-- **Frontmatter** (YAML): Contains `name` and `description` fields. These are the only fields that Codex reads to determine when the skill gets used, thus it is very important to be clear and comprehensive in describing what the skill is, and when it should be used.
-- **Body** (Markdown): Instructions and guidance for using the skill. Only loaded AFTER the skill triggers (if at all).
+- Frontmatter (YAML): `name` と `description` を含む。Codex がスキルを使うべきか判断するために読むのは基本的にこの field なので、何をするスキルか、いつ使うかを明確かつ包括的に書く。
+- Body (Markdown): スキルが trigger された後にだけ読み込まれる手順と guidance。
 
 #### Agents metadata (recommended)
 
-- UI-facing metadata for skill lists and chips
-- Read references/openai_yaml.md before generating values and follow its descriptions and constraints
-- Create: human-facing `display_name`, `short_description`, and `default_prompt` by reading the skill
-- Generate deterministically by passing the values as `--interface key=value` to `scripts/generate_openai_yaml.py` or `scripts/init_skill.py`
-- On updates: validate `agents/openai.yaml` still matches SKILL.md; regenerate if stale
-- Only include other optional interface fields (icons, brand color) if explicitly provided
-- See references/openai_yaml.md for field definitions and examples
+`agents/openai.yaml` は skill list や chip に出る UI 向け metadata である。
+
+- 値を生成する前に `references/openai_yaml.md` を読み、その field 説明と制約に従う。
+- スキル本文を読んで、人間向けの `display_name`、`short_description`、`default_prompt` を作る。
+- `scripts/generate_openai_yaml.py` または `scripts/init_skill.py` に `--interface key=value` として渡し、決定論的に生成する。
+- 更新時は `agents/openai.yaml` が `SKILL.md` と一致しているか確認し、古ければ再生成する。
+- icons や brand color など任意 field は、ユーザーが明示的に提供した場合だけ含める。
 
 #### Bundled Resources (optional)
 
 ##### Scripts (`scripts/`)
 
-Executable code (Python/Bash/etc.) for tasks that require deterministic reliability or are repeatedly rewritten.
+決定論的な信頼性が必要な処理、または毎回同じ code を書き直しがちな処理を入れる。
 
-- **When to include**: When the same code is being rewritten repeatedly or deterministic reliability is needed
-- **Example**: `scripts/rotate_pdf.py` for PDF rotation tasks
-- **Benefits**: Token efficient, deterministic, may be executed without loading into context
-- **Note**: Scripts may still need to be read by Codex for patching or environment-specific adjustments
+- 例: PDF 回転用の `scripts/rotate_pdf.py`。
+- 利点: token efficient、決定論的、context に読み込まず実行できる。
+- script は patch や環境差分対応のために Codex が読む場合がある。
 
 ##### References (`references/`)
 
-Documentation and reference material intended to be loaded as needed into context to inform Codex's process and thinking.
+Codex が作業中に必要に応じて読む documentation や reference material を入れる。
 
-- **When to include**: For documentation that Codex should reference while working
-- **Examples**: `references/finance.md` for financial schemas, `references/mnda.md` for company NDA template, `references/policies.md` for company policies, `references/api_docs.md` for API specifications
-- **Use cases**: Database schemas, API documentation, domain knowledge, company policies, detailed workflow guides
-- **Benefits**: Keeps SKILL.md lean, loaded only when Codex determines it's needed
-- **Best practice**: If files are large (>10k words), include grep search patterns in SKILL.md
-- **Avoid duplication**: Information should live in either SKILL.md or references files, not both. Prefer references files for detailed information unless it's truly core to the skill—this keeps SKILL.md lean while making information discoverable without hogging the context window. Keep only essential procedural instructions and workflow guidance in SKILL.md; move detailed reference material, schemas, and examples to references files.
+- 例: database schema、API documentation、domain knowledge、company policy、detailed workflow guide。
+- 大きい file は `SKILL.md` に検索 pattern や読むべき箇所を示す。
+- 情報は `SKILL.md` か references のどちらか一方に置く。重複を避ける。
+- `SKILL.md` には core workflow と essential instruction を残し、詳細な schema や例は references に移す。
 
 ##### Assets (`assets/`)
 
-Files not intended to be loaded into context, but rather used within the output Codex produces.
+context に読むためではなく、Codex が output を作るときに使う file を入れる。
 
-- **When to include**: When the skill needs files that will be used in the final output
-- **Examples**: `assets/logo.png` for brand assets, `assets/slides.pptx` for PowerPoint templates, `assets/frontend-template/` for HTML/React boilerplate, `assets/font.ttf` for typography
-- **Use cases**: Templates, images, icons, boilerplate code, fonts, sample documents that get copied or modified
-- **Benefits**: Separates output resources from documentation, enables Codex to use files without loading them into context
+- 例: `assets/logo.png`、PowerPoint template、HTML/React boilerplate、font file。
+- template、image、icon、boilerplate code、sample document など、コピーまたは変更して成果物に使うものに向いている。
 
 #### What to Not Include in a Skill
 
-A skill should only contain essential files that directly support its functionality. Do NOT create extraneous documentation or auxiliary files, including:
+スキルには、その機能を直接支える必須 file だけを含める。次のような補助 document は作らない。
 
-- README.md
-- INSTALLATION_GUIDE.md
-- QUICK_REFERENCE.md
-- CHANGELOG.md
-- etc.
+- `README.md`
+- `INSTALLATION_GUIDE.md`
+- `QUICK_REFERENCE.md`
+- `CHANGELOG.md`
 
-The skill should only contain the information needed for an AI agent to do the job at hand. It should not contain auxiliary context about the process that went into creating it, setup and testing procedures, user-facing documentation, etc. Creating additional documentation files just adds clutter and confusion.
+スキルは AI agent が仕事をするために必要な情報だけを含める。作成過程、setup/test 手順、user-facing documentation などを余分に置くと混乱と clutter が増える。
 
 ### Progressive Disclosure Design Principle
 
-Skills use a three-level loading system to manage context efficiently:
+スキルは context を効率的に使うため、3段階で読み込む。
 
-1. **Metadata (name + description)** - Always in context (~100 words)
-2. **SKILL.md body** - When skill triggers (<5k words)
-3. **Bundled resources** - As needed by Codex (Unlimited because scripts can be executed without reading into context window)
+1. Metadata (`name` + `description`): 常に context にある。
+2. `SKILL.md` body: スキルが trigger されたときに読む。
+3. Bundled resources: Codex が必要と判断したときだけ読む、または script として実行する。
+
+`SKILL.md` body は essentials に絞り、500行未満を目安にする。長くなりそうな場合は別 file に分ける。分割した file は `SKILL.md` から直接参照し、いつ読むべきかを明確に書く。
+
+複数の variation、framework、option を扱うスキルでは、core workflow と selection guidance だけを `SKILL.md` に残し、variant-specific detail は reference file に移す。
 
 #### Progressive Disclosure Patterns
 
-Keep SKILL.md body to the essentials and under 500 lines to minimize context bloat. Split content into separate files when approaching this limit. When splitting out content into other files, it is very important to reference them from SKILL.md and describe clearly when to read them, to ensure the reader of the skill knows they exist and when to use them.
-
-**Key principle:** When a skill supports multiple variations, frameworks, or options, keep only the core workflow and selection guidance in SKILL.md. Move variant-specific details (patterns, examples, configuration) into separate reference files.
-
-**Pattern 1: High-level guide with references**
+Pattern examples:
 
 ```markdown
 # PDF Processing
@@ -163,143 +148,81 @@ Extract text with pdfplumber:
 - **Examples**: See [EXAMPLES.md](EXAMPLES.md) for common patterns
 ```
 
-Codex loads FORMS.md, REFERENCE.md, or EXAMPLES.md only when needed.
+domain や framework ごとに参照を分ける場合:
 
-**Pattern 2: Domain-specific organization**
-
-For Skills with multiple domains, organize content by domain to avoid loading irrelevant context:
-
-```
+```text
 bigquery-skill/
-├── SKILL.md (overview and navigation)
-└── reference/
-    ├── finance.md (revenue, billing metrics)
-    ├── sales.md (opportunities, pipeline)
-    ├── product.md (API usage, features)
-    └── marketing.md (campaigns, attribution)
-```
-
-When a user asks about sales metrics, Codex only reads sales.md.
-
-Similarly, for skills supporting multiple frameworks or variants, organize by variant:
-
-```
-cloud-deploy/
-├── SKILL.md (workflow + provider selection)
+├── SKILL.md
 └── references/
-    ├── aws.md (AWS deployment patterns)
-    ├── gcp.md (GCP deployment patterns)
-    └── azure.md (Azure deployment patterns)
+    ├── finance.md
+    ├── sales.md
+    ├── product.md
+    └── marketing.md
 ```
 
-When the user chooses AWS, Codex only reads aws.md.
+guideline:
 
-**Pattern 3: Conditional details**
-
-Show basic content, link to advanced content:
-
-```markdown
-# DOCX Processing
-
-## Creating documents
-
-Use docx-js for new documents. See [DOCX-JS.md](DOCX-JS.md).
-
-## Editing documents
-
-For simple edits, modify the XML directly.
-
-**For tracked changes**: See [REDLINING.md](REDLINING.md)
-**For OOXML details**: See [OOXML.md](OOXML.md)
-```
-
-Codex reads REDLINING.md or OOXML.md only when the user needs those features.
-
-**Important guidelines:**
-
-- **Avoid deeply nested references** - Keep references one level deep from SKILL.md. All reference files should link directly from SKILL.md.
-- **Structure longer reference files** - For files longer than 100 lines, include a table of contents at the top so Codex can see the full scope when previewing.
+- 深い参照の入れ子を避ける。reference file は `SKILL.md` から直接 link する。
+- 100行を超える reference file には、preview で全体像が分かるよう冒頭に目次を置く。
 
 ## Skill Creation Process
 
-Skill creation involves these steps:
+スキル作成は次の順序で進める。明確な理由がある場合だけ step を skip する。
 
-1. Understand the skill with concrete examples
-2. Plan reusable skill contents (scripts, references, assets)
-3. Initialize the skill (run init_skill.py)
-4. Edit the skill (implement resources and write SKILL.md)
-5. Validate the skill (run quick_validate.py)
-6. Iterate based on real usage and forward-test complex skills.
-
-Follow these steps in order, skipping only if there is a clear reason why they are not applicable.
+1. 具体例でスキルを理解する。
+2. 再利用可能な内容を計画する。
+3. スキルを初期化する。
+4. スキルを編集し、resources を実装する。
+5. スキルを検証する。
+6. 実利用や forward-test から反復する。
 
 ### Skill Naming
 
-- Use lowercase letters, digits, and hyphens only; normalize user-provided titles to hyphen-case (e.g., "Plan Mode" -> `plan-mode`).
-- When generating names, generate a name under 64 characters (letters, digits, hyphens).
-- Prefer short, verb-led phrases that describe the action.
-- Namespace by tool when it improves clarity or triggering (e.g., `gh-address-comments`, `linear-address-issue`).
-- Name the skill folder exactly after the skill name.
+- lowercase letters、digits、hyphens のみを使う。ユーザー提供 title は hyphen-case に正規化する。例: `Plan Mode` -> `plan-mode`。
+- 生成名は64文字未満にする。
+- action を表す短い verb-led phrase を優先する。
+- triggering の明瞭さが上がる場合は tool 名で namespace する。例: `gh-address-comments`、`linear-address-issue`。
+- skill folder 名は skill name と完全に同じにする。
 
-### Step 1: Understanding the Skill with Concrete Examples
+### Step 1: Concrete Examples
 
-Skip this step only when the skill's usage patterns are already clearly understood. It remains valuable even when working with an existing skill.
+使用 pattern が既に明確な場合だけ skip する。既存スキルの更新でも、この step は有用なことが多い。
 
-To create an effective skill, clearly understand concrete examples of how the skill will be used. This understanding can come from either direct user examples or generated examples that are validated with user feedback.
+スキルがどう使われるかを、ユーザーの例またはユーザー feedback で検証した仮例から把握する。質問は一度に多くしすぎず、最重要のものから始める。
 
-For example, when building an image-editor skill, relevant questions include:
+例:
 
-- "What functionality should the image-editor skill support? Editing, rotating, anything else?"
-- "Can you give some examples of how this skill would be used?"
-- "I can imagine users asking for things like 'Remove the red-eye from this image' or 'Rotate this image'. Are there other ways you imagine this skill being used?"
-- "What would a user say that should trigger this skill?"
-- "Where should I create this skill? If you do not have a preference, I will place it in `$CODEX_HOME/skills` (or `~/.codex/skills` when `CODEX_HOME` is unset) so Codex can discover it automatically."
+- どの機能を支援すべきか。
+- どんな依頼文で使われる想定か。
+- 何が trigger になり、何は trigger にならないか。
+- どこに作成するか。指定がなければ `$CODEX_HOME/skills`、未設定なら `~/.codex/skills` を既定にして Codex が自動発見できるようにする。
 
-To avoid overwhelming users, avoid asking too many questions in a single message. Start with the most important questions and follow up as needed for better effectiveness.
+機能範囲が明確になったらこの step を終える。
 
-Conclude this step when there is a clear sense of the functionality the skill should support.
+### Step 2: Plan Reusable Contents
 
-### Step 2: Planning the Reusable Skill Contents
+各具体例について次を分析する。
 
-To turn concrete examples into an effective skill, analyze each example by:
+1. その例を scratch から実行するには何が必要か。
+2. 反復実行時に役立つ scripts、references、assets は何か。
 
-1. Considering how to execute on the example from scratch
-2. Identifying what scripts, references, and assets would be helpful when executing these workflows repeatedly
+例:
 
-Example: When building a `pdf-editor` skill to handle queries like "Help me rotate this PDF," the analysis shows:
+- `pdf-editor`: PDF 回転で同じ code を毎回書き直すため、`scripts/rotate_pdf.py` が有用。
+- `frontend-webapp-builder`: boilerplate を毎回作るため、`assets/hello-world/` template が有用。
+- `big-query`: schema と relationship を毎回再発見するため、`references/schema.md` が有用。
 
-1. Rotating a PDF requires re-writing the same code each time
-2. A `scripts/rotate_pdf.py` script would be helpful to store in the skill
+### Step 3: Initialize the Skill
 
-Example: When designing a `frontend-webapp-builder` skill for queries like "Build me a todo app" or "Build me a dashboard to track my steps," the analysis shows:
+新規作成では、必ず `init_skill.py` を実行する。既存スキルを更新する場合だけこの step を skip する。
 
-1. Writing a frontend webapp requires the same boilerplate HTML/React each time
-2. An `assets/hello-world/` template containing the boilerplate HTML/React project files would be helpful to store in the skill
-
-Example: When building a `big-query` skill to handle queries like "How many users have logged in today?" the analysis shows:
-
-1. Querying BigQuery requires re-discovering the table schemas and relationships each time
-2. A `references/schema.md` file documenting the table schemas would be helpful to store in the skill
-
-To establish the skill's contents, analyze each concrete example to create a list of the reusable resources to include: scripts, references, and assets.
-
-### Step 3: Initializing the Skill
-
-At this point, it is time to actually create the skill.
-
-Skip this step only if the skill being developed already exists. In this case, continue to the next step.
-
-Before running `init_skill.py`, ask where the user wants the skill created. If they do not specify a location, default to `$CODEX_HOME/skills`; when `CODEX_HOME` is unset, fall back to `~/.codex/skills` so the skill is auto-discovered.
-
-When creating a new skill from scratch, always run the `init_skill.py` script. The script conveniently generates a new template skill directory that automatically includes everything a skill requires, making the skill creation process much more efficient and reliable.
-
-Usage:
+`init_skill.py` 実行前に作成先を確認する。指定がなければ `$CODEX_HOME/skills`、未設定なら `~/.codex/skills` を使う。
 
 ```bash
 scripts/init_skill.py <skill-name> --path <output-directory> [--resources scripts,references,assets] [--examples]
 ```
 
-Examples:
+例:
 
 ```bash
 scripts/init_skill.py my-skill --path "${CODEX_HOME:-$HOME/.codex}/skills"
@@ -307,110 +230,105 @@ scripts/init_skill.py my-skill --path "${CODEX_HOME:-$HOME/.codex}/skills" --res
 scripts/init_skill.py my-skill --path ~/work/skills --resources scripts --examples
 ```
 
-The script:
+script は次を作成する。
 
-- Creates the skill directory at the specified path
-- Generates a SKILL.md template with proper frontmatter and TODO placeholders
-- Creates `agents/openai.yaml` using agent-generated `display_name`, `short_description`, and `default_prompt` passed via `--interface key=value`
-- Optionally creates resource directories based on `--resources`
-- Optionally adds example files when `--examples` is set
+- 指定 path 配下の skill directory。
+- proper frontmatter と TODO placeholder を含む `SKILL.md` template。
+- `--interface key=value` で渡された `display_name`、`short_description`、`default_prompt` を使う `agents/openai.yaml`。
+- `--resources` に応じた resource directory。
+- `--examples` がある場合の example file。
 
-After initialization, customize the SKILL.md and add resources as needed. If you used `--examples`, replace or delete placeholder files.
+初期化後、`SKILL.md` を具体化し、必要な resources を追加する。`--examples` を使った場合は placeholder file を置き換えるか削除する。
 
-Generate `display_name`, `short_description`, and `default_prompt` by reading the skill, then pass them as `--interface key=value` to `init_skill.py` or regenerate with:
+`display_name`、`short_description`、`default_prompt` はスキルを読んで生成し、`init_skill.py` に `--interface key=value` で渡す。後から再生成する場合:
 
 ```bash
 scripts/generate_openai_yaml.py <path/to/skill-folder> --interface key=value
 ```
 
-Only include other optional interface fields when the user explicitly provides them. For full field descriptions and examples, see references/openai_yaml.md.
+任意の interface field は、ユーザーが明示した場合だけ含める。field 説明と例は `references/openai_yaml.md` を参照する。
 
 ### Step 4: Edit the Skill
 
-When editing the (newly-generated or existing) skill, remember that the skill is being created for another instance of Codex to use. Include information that would be beneficial and non-obvious to Codex. Consider what procedural knowledge, domain-specific details, or reusable assets would help another Codex instance execute these tasks more effectively.
+スキルは別の Codex instance が使うためのものとして書く。Codex にとって有益で非自明な procedural knowledge、domain-specific detail、reusable asset を含める。
 
-After substantial revisions, or if the skill is particularly tricky, you should use subagents to forward-test the skill on realistic tasks or artifacts. When doing so, pass the artifact under validation rather than your diagnosis of what is wrong, and keep the prompt generic enough that success depends on transferable reasoning rather than hidden ground truth.
+大きな revision の後、またはスキルが難しい場合は、現実的な task や artifact で subagent に forward-test させる。検証では診断結果ではなく artifact を渡し、成功が hidden ground truth ではなく transferable reasoning に依存するようにする。
 
 #### Start with Reusable Skill Contents
 
-To begin implementation, start with the reusable resources identified above: `scripts/`, `references/`, and `assets/` files. Note that this step may require user input. For example, when implementing a `brand-guidelines` skill, the user may need to provide brand assets or templates to store in `assets/`, or documentation to store in `references/`.
+先に計画した `scripts/`、`references/`、`assets/` から実装する。brand guideline などでは、ユーザーから asset や documentation を受け取る必要がある場合がある。
 
-Added scripts must be tested by actually running them to ensure there are no bugs and that the output matches what is expected. If there are many similar scripts, only a representative sample needs to be tested to ensure confidence that they all work while balancing time to completion.
+追加した script は実際に実行して bug がなく期待 output と一致することを確認する。類似 script が多い場合は代表的な sample の検証でよい。
 
-If you used `--examples`, delete any placeholder files that are not needed for the skill. Only create resource directories that are actually required.
+`--examples` を使った場合、不要な placeholder file は削除する。resource directory は本当に必要なものだけ作る。
 
 #### Update SKILL.md
 
-**Writing Guidelines:** Always use imperative/infinitive form.
+writing は命令形・不定詞的な形を使う。
 
 ##### Frontmatter
 
-Write the YAML frontmatter with `name` and `description`:
-
-- `name`: The skill name
-- `description`: This is the primary triggering mechanism for your skill, and helps Codex understand when to use the skill.
-  - Include both what the Skill does and specific triggers/contexts for when to use it.
-  - Include all "when to use" information here - Not in the body. The body is only loaded after triggering, so "When to Use This Skill" sections in the body are not helpful to Codex.
-  - Example description for a `docx` skill: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. Use when Codex needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks"
-
-Do not include any other fields in YAML frontmatter.
+- YAML frontmatter には `name` と `description` を書く。
+- `name`: skill name。
+- `description`: スキルの primary triggering mechanism。何をするか、どんな context で使うかを含める。
+- 「いつ使うか」はすべて `description` に入れる。body は trigger 後にしか読まれないため、body の "When to Use This Skill" section は trigger には役立たない。
+- YAML frontmatter に他の field を含めない。
 
 ##### Body
 
-Write instructions for using the skill and its bundled resources.
+- スキルと bundled resources の使い方を書く。
+- すべてを本文に詰め込まず、詳細は references や scripts に分ける。
+- path、command、制約、検証手順は具体的に書く。
 
-### Step 5: Validate the Skill
+### Step 5: Validate
 
-Once development of the skill is complete, validate the skill folder to catch basic issues early:
+開発完了後、basic issue を早期に見つけるため skill folder を検証する。
 
 ```bash
 scripts/quick_validate.py <path/to/skill-folder>
 ```
 
-The validation script checks YAML frontmatter format, required fields, and naming rules. If validation fails, fix the reported issues and run the command again.
+validation script は YAML frontmatter format、required fields、naming rules を確認する。失敗したら報告内容を修正し、再実行する。
 
 ### Step 6: Iterate
 
-After testing the skill, you may detect the skill is complex enough that it requires forward-testing; or users may request improvements.
+実利用後、または user feedback 後に次の流れで反復する。
 
-User testing often this happens right after using the skill, with fresh context of how the skill performed.
+1. スキルを現実の task に使う。
+2. つまずきや非効率を観察する。
+3. `SKILL.md` または bundled resources の更新点を特定する。
+4. 変更を実装して再テストする。
+5. 妥当であれば forward-test する。
 
-**Forward-testing and iteration workflow:**
+## Forward-Testing
 
-1. Use the skill on real tasks
-2. Notice struggles or inefficiencies
-3. Identify how SKILL.md or bundled resources should be updated
-4. Implement changes and test again
-5. Forward-test if it is reasonable and appropriate
+forward-test では、subagent を新しい task を受けた agent として扱う。subagent に「スキルをレビューして」と言うのではなく、ユーザーが依頼するのと近い形で task を渡す。
 
-## Forward-testing
+良い prompt の形:
 
-To forward-test, launch subagents as a way to stress test the skill with minimal context.
-Subagents should *not* know that they are being asked to test the skill.  They should be treated as
-an agent asked to perform a task by the user.  Prompts to subagents should look like:
-  `Use $skill-x at /path/to/skill-x to solve problem y`
-Not:
-  `Review the skill at /path/to/skill-x; pretend a user asks you to...`
+```text
+Use $skill-x at /path/to/skill-x to solve problem y
+```
 
-Decision rule for forward-testing:
-  - Err on the side of forward-testing
-  - Ask for approval if you think there's a risk that forward-testing would:
-    * take a long time,
-    * require additional approvals from the user, or
-    * modify live production systems
+避ける prompt:
 
-  In these cases, show the user your proposed prompt and request (1) a yes/no decision, and
-  (2) any suggested modifictions.
+```text
+Review the skill at /path/to/skill-x; pretend a user asks you to...
+```
 
-Considerations when forward-testing:
-   - use fresh threads for independent passes
-   - pass the skill, and a request in a similar way the user would.
-   - pass raw artifacts, not your conclusions
-   - avoid showing expected answers or intended fixes
-   - rebuild context from source artifacts after each iteration
-   - review the subagent's output and reasoning and emitted artifacts
-   - avoid leaving artifacts the agent can find on disk between iterations;
-     clean up subagents' artifacts to avoid additional contamination.
+decision rule:
 
-If forward-testing only succeeds when subagents see leaked context, tighten the skill or the
-forward-testing setup before trusting the result.
+- 迷う場合は forward-testing 寄りにする。
+- 長時間かかる、追加 approval が必要、live production system を変更する可能性がある場合は、ユーザーに proposed prompt を示し、yes/no と修正案を確認する。
+
+注意:
+
+- independent pass には fresh thread を使う。
+- skill と request を、実際のユーザー依頼に近い形で渡す。
+- conclusion ではなく raw artifact を渡す。
+- expected answer、intended fix、事前診断を見せない。
+- 各 iteration 後に source artifact から context を再構築する。
+- subagent の output、reasoning、emitted artifact を確認する。
+- iteration 間で subagent の artifact が残り、次の検証を汚染しないよう cleanup する。
+
+subagent が leaked context を見たときだけ成功するなら、その結果を信用する前にスキルまたは forward-testing setup を修正する。

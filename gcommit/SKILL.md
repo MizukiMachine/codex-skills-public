@@ -5,11 +5,11 @@ description: "Git作業ツリーを確認し、新しいブランチを切って
 
 # Git Commit Skill
 
-Create safe, intentional Git commits from the current working tree. Never stage broad file sets blindly.
+現在の作業ツリーから、安全で意図のはっきりした Git commit を作る。広い file set を不用意に stage しない。
 
-## Workflow
+## ワークフロー
 
-1. Inspect changes.
+1. 変更を確認する。
 
    ```bash
    git status --short
@@ -18,57 +18,57 @@ Create safe, intentional Git commits from the current working tree. Never stage 
    git ls-files --others --exclude-standard
    ```
 
-2. Review the diff before staging.
-   - Inspect all changed tracked files.
-   - Inspect untracked files that may be committed.
-   - Preserve unrelated user changes. Do not revert files to clean the tree.
+2. stage 前に diff を読む。
+   - 変更済み tracked files をすべて確認する
+   - commit 対象になりそうな untracked files を確認する
+   - 無関係なユーザー変更は保持する。tree をきれいにする目的で戻さない
 
-3. Run the safety check before staging.
-   - Apply the allowlist in the Safety Check section before matching sensitive patterns.
-   - Compare the remaining candidate files against the sensitive and discouraged file patterns below.
-   - If any candidate matches, stop and ask the user whether to include it.
-   - Exclude files the user rejects.
+3. stage 前に safety check を実行する。
+   - path-based sensitive pattern に照合する前に allowlist を適用する
+   - 残った candidate files を sensitive / discouraged patterns と照合する
+   - 該当 file があれば止まり、含めるかユーザーに確認する
+   - ユーザーが拒否した file は除外する
 
-4. Create a branch.
-   - Infer a short Conventional Commits type and scope from the whole change.
-   - Use `<type>/<short-summary>`, for example `feat/skill-cleanup`, `fix/auth-validation`, or `chore/config-update`.
-   - Keep branch names roughly 30 characters or less.
-   - If already on an appropriate task branch, ask before creating another branch only when switching would be risky or surprising.
+4. branch を作る。
+   - 変更全体から短い Conventional Commits の type と scope を推測する
+   - `<type>/<short-summary>` を使う。例: `feat/skill-cleanup`, `fix/auth-validation`, `chore/config-update`
+   - branch name はおおむね30文字以内にする
+   - すでに適切な task branch にいる場合、切り替えが危険または意外なときだけ確認する
 
-5. Group commits.
-   - Use one commit when there are 10 or fewer candidate files and the change is one logical unit.
-   - For 11 or more files, split by directory, change type, or logical feature.
-   - Each commit message must use Conventional Commits:
+5. commit を分ける。
+   - candidate files が10個以下で1つの論理単位なら1 commit にする
+   - 11個以上なら directory、change type、logical feature で分ける
+   - commit message は Conventional Commits にする
 
    ```text
    <type>(<scope>): <summary>
    ```
 
-6. Stage explicit paths only.
+6. 明示 path だけを stage する。
 
    ```bash
    git add <file1> <file2>
    git commit -m "<type>(<scope>): <summary>"
    ```
 
-7. Verify and report.
+7. 検証して報告する。
 
    ```bash
    git log --oneline -<N>
    git status --short
    ```
 
-   Since command output is not automatically visible to the user, summarize the branch name, commit hashes/messages, and final status in the final response.
+   コマンド出力はユーザーに自動表示されないため、最終回答では branch name、commit hash/message、最終 status を要約する。
 
 ## Safety Check
 
-Ask before committing any matching file.
+次に該当する file は commit 前に必ず確認する。
 
-Apply this allowlist before path-based sensitive-file matching:
+path-based sensitive-file matching の前に、この allowlist を適用する。
 
-- Environment templates and schemas are not sensitive based on their path alone: `.env.example`, `.env.*.example`, `.env.template`, `.env.schema`, `.env.sample`, `.env.d.ts`.
-- Do not flag allowlisted environment template/schema files only because they match `.env.*`.
-- If an allowlisted file contains an actual secret value in the diff, treat that content as sensitive and ask before committing it.
+- 環境変数テンプレートと schema は path だけでは sensitive とみなさない: `.env.example`, `.env.*.example`, `.env.template`, `.env.schema`, `.env.sample`, `.env.d.ts`
+- allowlisted environment template/schema files は `.env.*` に一致するだけでは flag しない
+- allowlisted file の diff に実 secret value が含まれる場合、その内容は sensitive として扱い、確認する
 
 Sensitive files:
 
@@ -80,7 +80,7 @@ Sensitive files:
 | Cloud credentials | `service-account*.json`, `*.gpg`, `*.kubeconfig` |
 | Terraform state | `*.tfstate`, `*.tfstate.backup` |
 
-Usually discouraged files:
+通常は避ける files:
 
 | Pattern | Examples |
 |---|---|
@@ -94,19 +94,19 @@ Usually discouraged files:
 
 | Type | Use |
 |---|---|
-| `feat` | New feature or new capability |
-| `fix` | Bug fix |
-| `refactor` | Behavior-preserving code restructure |
-| `docs` | Documentation only |
-| `chore` | Config, metadata, cleanup, maintenance |
-| `style` | Formatting, whitespace, naming-only changes |
-| `test` | Tests only or test infrastructure |
+| `feat` | 新機能または新しい capability |
+| `fix` | バグ修正 |
+| `refactor` | 挙動を変えないコード整理 |
+| `docs` | ドキュメントのみ |
+| `chore` | 設定、metadata、cleanup、maintenance |
+| `style` | formatting、whitespace、naming-only changes |
+| `test` | tests only または test infrastructure |
 
-## Prohibitions
+## 禁止事項
 
-- Do not use `git add .`.
-- Do not use `git add -A`.
-- Do not use `git commit --amend` unless the user explicitly asks for amend.
-- Do not commit sensitive or discouraged files without explicit user approval.
-- Do not push unless the user explicitly asks.
-- Do not omit the final branch, commit list, and status report.
+- `git add .` を使わない
+- `git add -A` を使わない
+- ユーザーが明示しない限り `git commit --amend` しない
+- explicit approval なしに sensitive または discouraged files を commit しない
+- ユーザーが明示しない限り push しない
+- 最終 branch、commit list、status report を省略しない

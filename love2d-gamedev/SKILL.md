@@ -3,37 +3,37 @@ name: love2d-gamedev
 description: "LÖVE/Love2Dゲーム開発とiOSデプロイを扱う。main.lua/conf.lua、主要コールバック、ゲーム処理、アセット、.loveパッケージ化、Xcode統合で使う。"
 ---
 
-# Love2D Game Development
+# Love2D ゲーム開発
 
-## Overview
+## 概要
 
-Build polished 2D games with LÖVE/Love2D (Lua), including a practical workflow for iOS builds via Xcode.
+LÖVE/Love2D (Lua) で完成度の高い 2D ゲームを作る。Xcode 経由の iOS ビルド実務も含めて扱う。
 
-## Quick Reference
+## クイックリファレンス
 
-| Topic | Read when you need… |
+| トピック | 読む場面 |
 |-------|---------------------|
-| [Core Architecture](references/core-architecture.md) | Game loop, callbacks, module patterns |
-| [Project Structure](references/project-structure.md) | File layout, `conf.lua`, distribution |
-| [Graphics & Drawing](references/graphics-drawing.md) | Rendering, transforms, scaling |
-| [Animation](references/animation.md) | Sprite sheets, quads, frame timing |
-| [Tiles & Maps](references/tiles-maps.md) | Tile maps, level loading |
-| [Collision](references/collision.md) | AABB/circle/SAT patterns |
-| [Audio](references/audio.md) | SFX/music, volume, pooling |
-| [Libraries](references/libraries.md) | Common community libs |
-| [iOS Overview](references/ios/overview.md) | Mobile workflow and pitfalls |
-| [iOS Setup](references/ios/setup.md) | Xcode/Love2D iOS source/libs, signing |
-| [iOS Touch Controls](references/ios/touch-controls.md) | Multitouch, virtual controls |
-| [iOS Xcode Project](references/ios/xcode-project.md) | pbxproj structure/editing |
+| [Core Architecture](references/core-architecture.md) | game loop、callback、module pattern |
+| [Project Structure](references/project-structure.md) | ファイル構成、`conf.lua`、配布 |
+| [Graphics & Drawing](references/graphics-drawing.md) | 描画、transform、scaling |
+| [Animation](references/animation.md) | sprite sheet、quad、frame timing |
+| [Tiles & Maps](references/tiles-maps.md) | tile map、level loading |
+| [Collision](references/collision.md) | AABB、circle、SAT pattern |
+| [Audio](references/audio.md) | SFX/music、volume、pooling |
+| [Libraries](references/libraries.md) | よく使う community library |
+| [iOS Overview](references/ios/overview.md) | mobile workflow と落とし穴 |
+| [iOS Setup](references/ios/setup.md) | Xcode/Love2D iOS source/libs、signing |
+| [iOS Touch Controls](references/ios/touch-controls.md) | multitouch、virtual controls |
+| [iOS Xcode Project](references/ios/xcode-project.md) | pbxproj 構造と編集 |
 
-## Core Rules of Thumb
+## 基本原則
 
-- Treat `dt` as mandatory for anything time-based (movement, timers, animation).
-- Load assets once in `love.load()`, not in `love.update()`/`love.draw()`.
-- Prefer locals + modules over globals; keep state explicit.
-- Avoid hard-coded pixels for UI/layout; anchor/scale to `love.graphics.getDimensions()`.
+- 移動、タイマー、アニメーションなど時間ベースの処理では `dt` を必ず使う
+- アセットは `love.load()` で一度だけ読み込み、`love.update()` や `love.draw()` で読み込まない
+- globals より locals と modules を優先し、状態を明示する
+- UI/layout に固定ピクセルを多用せず、`love.graphics.getDimensions()` に基づいて anchor/scale する
 
-### The Minimal Loop
+### 最小ループ
 
 ```lua
 function love.load()
@@ -49,27 +49,28 @@ function love.draw()
 end
 ```
 
-## Workflow: Desktop Dev Loop
+## デスクトップ開発ループ
 
-1. Run the game on desktop frequently while iterating.
-2. Keep iOS-only code isolated (e.g., `touch.lua` gated by `love.system.getOS()`).
-3. Use `dt` everywhere; verify gameplay at low FPS (simulate heavy load).
+1. 実装中はデスクトップで頻繁にゲームを実行する
+2. iOS 専用コードは分離する。例: `love.system.getOS()` で gated した `touch.lua`
+3. どこでも `dt` を使い、低 FPS でもプレイフィールを確認する
 
-## Workflow: iOS Build/Deploy Loop
+## iOS ビルド / デプロイループ
 
-Use the helper scripts in `scripts/` to reliably rebuild `game.love` and copy it into an Xcode project (or a staging folder).
+`.love` アーカイブの再生成と Xcode プロジェクトへのコピーには `scripts/` の helper を使う。
 
-1. Build/update the `.love` archive:
+1. `.love` archive を作成または更新する
    - `python3 scripts/make_game_love.py --src /path/to/game --out /path/to/game.love`
-2. Copy into the iOS app bundle resources folder (or your preferred destination):
+2. iOS app bundle resources などの配置先へコピーする
    - `python3 scripts/sync_game_love.py --love /path/to/game.love --dest /path/to/xcode/project/resources/`
-3. Build/run in Xcode; fix signing, deployment target, and bundle resource issues as needed.
+3. Xcode で build/run し、signing、deployment target、bundle resource の問題を直す
 
-For details and troubleshooting patterns, read:
+詳細とトラブルシューティングは次を読む。
+
 - [iOS Overview](references/ios/overview.md)
 - [iOS Setup](references/ios/setup.md)
 - [iOS Xcode Project](references/ios/xcode-project.md)
 
-## Notes
+## メモ
 
-If you’re implementing a feature and it touches one of these areas, load the corresponding reference doc and apply its patterns rather than inventing a new architecture.
+実装対象が上記トピックに触れる場合は、対応する参照 doc を読み、既存パターンを適用する。必要のない新規アーキテクチャを作らない。

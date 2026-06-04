@@ -5,57 +5,57 @@ description: "現在の作業ブランチをdevelopへ --no-ff でマージす�
 
 # Git Merge Skill
 
-Merge a source branch into `develop` with `--no-ff`, while blocking direct `main`/`master` merge targets and avoiding pushes.
+source branch を `develop` へ `--no-ff` で merge する。`main` / `master` への直接 merge は止め、push は行わない。
 
-## Workflow
+## ワークフロー
 
-1. Identify the source branch.
+1. source branch を確認する。
 
    ```bash
    git branch --show-current
    git status --short
    ```
 
-   If the working tree has uncommitted changes, stop and ask the user whether to commit/stash first. Do not start a merge over unrelated uncommitted work.
+   working tree に未 commit 変更がある場合は止まり、commit/stash するかユーザーに確認する。無関係な未 commit 変更の上で merge を始めない。
 
-2. Block unsafe source states.
-   - If the current branch is `main` or `master`, stop with:
+2. 危険な source 状態を止める。
+   - current branch が `main` または `master` の場合は、次のエラーで止まる
 
    ```text
    エラー: main/master からの直接マージ運用は禁止されています。release ブランチ等を経由してください。
    ```
 
-   - If the current branch is `develop`, stop and ask which source branch should be merged.
+   - current branch が `develop` の場合は、どの source branch を merge するか確認する
 
-3. Ensure `develop` exists.
+3. `develop` が存在するか確認する。
 
    ```bash
    git branch --list develop
    ```
 
-   If it does not exist, create it from the current branch:
+   存在しない場合は current branch から作成する。
 
    ```bash
    git branch develop
    ```
 
-   Tell the user that `develop` was created.
+   `develop` を作成したことをユーザーに伝える。
 
-4. Switch to `develop`.
+4. `develop` へ切り替える。
 
    ```bash
    git checkout develop
    ```
 
-5. Merge with `--no-ff`.
+5. `--no-ff` で merge する。
 
    ```bash
    git merge --no-ff <source-branch> -m "merge: <source-branch> into develop"
    ```
 
-   If the user supplied a merge message, use that message instead.
+   ユーザーが merge message を指定した場合はそれを使う。
 
-6. Verify and report.
+6. 検証して報告する。
 
    ```bash
    git log --oneline -5
@@ -63,11 +63,11 @@ Merge a source branch into `develop` with `--no-ff`, while blocking direct `main
    git status --short
    ```
 
-   Since command output is not automatically visible to the user, summarize the current branch, merge commit, recent log entries, and final status.
+   コマンド出力はユーザーに自動表示されないため、current branch、merge commit、recent log entries、final status を要約する。
 
 ## Conflict Handling
 
-If conflicts occur, do not abort automatically. Report the conflicted files and leave the repository in the merge-conflict state for the user to resolve.
+conflict が起きた場合、自動で abort しない。conflicted files を報告し、リポジトリは merge-conflict 状態のまま残す。
 
 ```text
 マージコンフリクトが発生しました:
@@ -76,10 +76,10 @@ If conflicts occur, do not abort automatically. Report the conflicted files and 
 解決後に git add と git commit で完了するか、git merge --abort で中止してください。
 ```
 
-## Prohibitions
+## 禁止事項
 
-- Do not merge into `main` or `master`.
-- Do not use `--ff` or `--ff-only`; always use `--no-ff`.
-- Do not push unless the user explicitly asks.
-- Do not abort a conflicted merge unless the user explicitly asks.
-- Do not omit the final branch, recent log, and status report.
+- `main` または `master` へ merge しない
+- `--ff` や `--ff-only` を使わない。常に `--no-ff`
+- ユーザーが明示しない限り push しない
+- ユーザーが明示しない限り conflicted merge を abort しない
+- final branch、recent log、status report を省略しない

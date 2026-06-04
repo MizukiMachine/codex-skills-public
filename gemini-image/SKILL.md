@@ -7,98 +7,100 @@ metadata:
 
 # Gemini Image
 
-Use this skill when the user wants image generation or editing with Google's Gemini image models, or when the task requires deliberate model selection, multi-image references, multi-turn refinement, or grounded image generation.
+Google の Gemini image models で画像生成・編集を行うとき、または model selection、multi-image references、multi-turn refinement、grounded image generation が必要なときに使う。
 
-## Philosophy: One API, Three Models, Pick With Intent
+## 考え方: 1 API、3 model、意図して選ぶ
 
-Google ships image generation through the same `generateContent` endpoint as the rest of Gemini. The decision space is not "which prompt" first — it is "which model, which `imageConfig`, which references, and is thinking worth its tokens."
+Gemini は他の Gemini と同じ `generateContent` endpoint で画像生成する。最初の判断は prompt ではなく、model、`imageConfig`、references、thinking の必要性。
 
-**Before generating, ask:**
-- What is the deliverable: concept art, marketing visual, product render, edit pass, infographic, screenshot, or character-consistent set?
-- Which model fits: Pro (thinking, premium fidelity), 3.1 Flash (best all-around, widest aspect ratios, search grounding with images), or 2.5 Flash / Nano Banana (cheapest and fastest, 1K cap)?
-- What must stay stable across calls: character identity, palette, layout, brand text, or aspect ratio?
-- Does the task need reasoning over the prompt (multi-step layout, infographic, world building) or is a direct render enough?
-- Is one image the goal, or does the user actually need a multi-turn chat for iterative editing?
+**生成前に確認すること:**
 
-**Core principles**:
-1. **Model selection is a parameter**: 3 Pro, 3.1 Flash, and 2.5 Flash are not interchangeable — they differ in resolution ceiling, reference capacity, aspect ratios, and whether thinking is on.
-2. **`imageConfig` is part of the prompt**: `aspectRatio` and `imageSize` materially change framing, token cost, and asset usefulness.
-3. **References have roles**: when sending multiple input images, label each image's job in the prompt rather than dumping a stack.
-4. **Thinking is paid compute**: enable it for layout-heavy or reasoning-heavy briefs, skip it for direct renders.
-5. **Truth over theater**: only claim an image was generated after the API was actually called and bytes were written to disk.
+- deliverable は concept art、marketing visual、product render、edit pass、infographic、screenshot、character-consistent set のどれか
+- model は Pro、3.1 Flash、2.5 Flash / Nano Banana のどれが合うか
+- calls 間で character identity、palette、layout、brand text、aspect ratio の何を安定させるか
+- multi-step layout、infographic、world building など reasoning が必要か、direct render で足りるか
+- 1枚が goal か、iterative editing の multi-turn chat が必要か
 
-## Working With Gemini Image Models
+**基本原則**
 
-The Gemini API exposes image generation through `POST /v1beta/models/{model}:generateContent`. Image output is opted in via `generationConfig.responseModalities = ["TEXT", "IMAGE"]`. Image bytes come back inline as base64 in `candidates[0].content.parts[].inlineData`.
+1. **model selection は parameter**: 3 Pro、3.1 Flash、2.5 Flash は resolution ceiling、reference capacity、aspect ratios、thinking の有無が違う
+2. **`imageConfig` も prompt の一部**: `aspectRatio` と `imageSize` は framing、token cost、asset usefulness を変える
+3. **references には role を付ける**: multiple input images はそれぞれの役割を prompt で label する
+4. **thinking は有料 compute**: layout-heavy / reasoning-heavy brief では有効、direct render では省く
+5. **生成事実を正直に扱う**: API を実行し bytes を file に書いた後だけ generated と伝える
 
-Three image models are available:
+## Gemini Image Models
 
-- `gemini-3-pro-image-preview` — Pro tier, thinking on by default, up to 4K, up to 6 object + 5 character refs.
-- `gemini-3.1-flash-image-preview` — best all-around, up to 4K, 14 aspect ratios, up to 10 object + 4 character refs, web + image search grounding.
-- `gemini-2.5-flash-image` — Nano Banana; speed and cost optimized, 1K cap, up to 3 reference images, no thinking.
+Gemini API は `POST /v1beta/models/{model}:generateContent` で image generation を expose する。image output は `generationConfig.responseModalities = ["TEXT", "IMAGE"]` で opt-in。image bytes は `candidates[0].content.parts[].inlineData` に base64 で返る。
 
-All outputs carry a SynthID watermark. Transparent backgrounds are not supported. Audio and video inputs are not accepted by these models.
+利用可能な image models:
 
-Read these references intentionally:
+- `gemini-3-pro-image-preview`: Pro tier。thinking on by default。最大 4K、最大 6 object + 5 character refs
+- `gemini-3.1-flash-image-preview`: balanced default。最大 4K、14 aspect ratios、最大 10 object + 4 character refs、web + image search grounding
+- `gemini-2.5-flash-image`: Nano Banana。speed / cost optimized、1K cap、最大 3 reference images、thinking なし
 
-- `references/gemini-image-models.md` for model variants, `imageConfig`, reference limits, and pricing-shaped token costs
-- `references/gemini-prompting-guide.md` for prompt structure, multi-image references, multi-turn editing, thinking, and grounding
+すべて SynthID watermark 付き。transparent backgrounds は非対応。audio / video inputs は受け付けない。
 
-### When To Use This Skill
+読む references:
 
-- The user asks for Gemini image generation or Nano Banana.
-- The user wants to edit an image conversationally with Gemini.
-- The user needs character or product consistency across several renders using reference images.
-- The user wants a grounded image (e.g., real-world product, recent event, location) via Google Search.
-- The user wants a runnable wrapper around `generateContent` for image output.
-- The user is comparing Gemini against `gpt-image-2`, `gpt-image-1.5`, or fal-hosted models.
+- `references/gemini-image-models.md`: model variants、`imageConfig`、reference limits、pricing-shaped token costs
+- `references/gemini-prompting-guide.md`: prompt structure、multi-image references、multi-turn editing、thinking、grounding
 
-If the user is building a Next.js or web app around these models, prefer the existing `nano-banana-builder` skill for full-stack patterns. This skill stays at the API/CLI layer.
+## 使う場面
 
-### Model Selection
+- Gemini image generation または Nano Banana を求められた
+- Gemini で conversational image editing が必要
+- reference images を使って character / product consistency を保ちたい
+- Google Search による grounded image が必要
+- image output 用 `generateContent` wrapper が必要
+- Gemini と `gpt-image-2`、`gpt-image-1.5`、fal-hosted models を比較する
+
+Next.js / web app をこれら model で作る場合は、full-stack patterns 用に `nano-banana-builder` を優先する。この skill は API/CLI layer に留める。
+
+## Model Selection
 
 | Need | Recommended model |
 |---|---|
-| Highest fidelity, complex layout, infographics, multi-step reasoning | `gemini-3-pro-image-preview` |
-| Most aspect ratios, most references, image-search grounding, balanced cost | `gemini-3.1-flash-image-preview` |
-| Cheap iteration, quick drafts, simple prompts at 1K | `gemini-2.5-flash-image` |
-| Transparent cutouts | None — use `gpt-image-1.5` or another model |
-| Native sprite art / pixel art | None — use `retro-diffusion` or `gpt-image-2` |
+| highest fidelity、complex layout、infographics、multi-step reasoning | `gemini-3-pro-image-preview` |
+| most aspect ratios、most references、image-search grounding、balanced cost | `gemini-3.1-flash-image-preview` |
+| cheap iteration、quick drafts、simple prompts at 1K | `gemini-2.5-flash-image` |
+| transparent cutouts | なし。`gpt-image-1.5` などを使う |
+| native sprite art / pixel art | なし。`retro-diffusion` または `gpt-image-2` を使う |
 
-### API Choice
+## API Choice
 
-- Use `generateContent` for one-shot generation, edits, and reference-driven composition.
-- Use the chat session pattern (Python `client.chats.create`, JS `ai.chats.create`) for multi-turn iterative editing where each turn refines the prior image.
-- Use the **Batch API** when you need many images and can tolerate up to a 24-hour turnaround for higher rate limits.
-- Use the bundled scripts when the user wants a direct local wrapper.
+- one-shot generation、edits、reference-driven composition には `generateContent`
+- multi-turn iterative editing には chat session pattern (Python `client.chats.create`, JS `ai.chats.create`)
+- many images かつ 24h turnaround を許容する場合は Batch API
+- direct local wrapper が必要なら同梱 scripts
 
 ## Generation Workflow
 
-1. Identify the deliverable, invariants, and target aspect ratio / size.
-2. Pick the model: 3 Pro for premium reasoning, 3.1 Flash for balanced default, 2.5 Flash for cheap drafts.
-3. Draft the prompt with the order that matches the brief:
-   - intended use or asset type
+1. deliverable、invariants、target aspect ratio / size を特定する
+2. model を選ぶ。premium reasoning は 3 Pro、balanced default は 3.1 Flash、cheap drafts は 2.5 Flash
+3. prompt を brief に合わせた順序で書く
+   - intended use / asset type
    - subject
-   - scene or backdrop
-   - composition or camera framing
+   - scene / backdrop
+   - composition / camera framing
    - style / material / era
    - lighting / color treatment
-   - text requirements (verbatim, in quotes)
+   - text requirements。verbatim は quotes
    - exact constraints and exclusions
-4. Choose `imageConfig` deliberately:
-   - `aspectRatio`: pick from the model's supported list (see `references/gemini-image-models.md`)
-   - `imageSize`: `"1K"`, `"2K"` (3.x only), `"4K"` (3.x only), or `"512"` / `"0.5K"` (3.1 Flash only)
-5. Decide if thinking helps:
-   - 3 Pro: thinking is on by default; use `thinkingConfig.thinkingLevel: "minimal"` for direct renders
-   - 3.1 Flash: thinking is opt-in; set `thinkingLevel: "High"` for layout-heavy work
-   - 2.5 Flash: no thinking
-6. If grounding is needed (real product, recent event, real place), add `tools: [{"google_search": {}}]`.
-7. If `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is available, run `scripts/gemini_image_generate.py`.
-8. Save outputs to a user-visible path and report the file path and the model used.
+4. `imageConfig` を意図して選ぶ
+   - `aspectRatio`: model の supported list から選ぶ
+   - `imageSize`: `"1K"`、3.x の `"2K"` / `"4K"`、3.1 Flash の `"512"` / `"0.5K"`
+5. thinking の必要性を決める
+   - 3 Pro: default on。direct render では `thinkingConfig.thinkingLevel: "minimal"`
+   - 3.1 Flash: opt-in。layout-heavy work では `"High"`
+   - 2.5 Flash: thinking なし
+6. grounding が必要なら `tools: [{"google_search": {}}]` を追加する
+7. `GEMINI_API_KEY` または `GOOGLE_API_KEY` があれば `scripts/gemini_image_generate.py` を実行する
+8. outputs を user-visible path に保存し、file path と model を報告する
 
 ### Prompt Scaffold
 
-Use a compact spec like this when the brief benefits from structure:
+brief が構造化で良くなる場合は、次の compact spec を使う。
 
 ```text
 Intended use:
@@ -113,47 +115,46 @@ Constraints:
 Avoid:
 ```
 
-For the actual API request, this maps to a single string in `contents[0].parts[0].text` plus the `imageConfig` block.
+actual API request では、これは `contents[0].parts[0].text` の string と `imageConfig` block へ map する。
 
 ### Prompt Construction
 
-Prefer production-oriented prompts:
+production-oriented prompts を優先する。
 
 ```text
 Editorial overhead shot of a single matcha latte on a pale linen runner, ceramic cup with a thin gold rim, faint steam, scattered loose-leaf tea, warm afternoon window light from the left, magazine-style negative space on the right for headline text, no people, no logos.
 ```
 
-For text-heavy or layout-sensitive work, structure the prompt as a design spec rather than a mood description, and quote any literal copy verbatim.
+text-heavy / layout-sensitive work では mood description ではなく design spec として書き、literal copy は必ず引用する。
 
-For iterations, change one axis at a time:
-- subject pose or framing
-- material or palette
+iteration は1軸ずつ変える。
+
+- subject pose / framing
+- material / palette
 - lighting direction
 - background treatment
 - density of detail
 
 ## Edit Workflow
 
-Gemini handles edits in two ways:
+Gemini の edit は2種類。
 
-- **Single-call edit**: send the source image(s) plus the edit instruction in one `generateContent` request.
-- **Chat-based edit**: open a chat session and send the source image, then refine with follow-up text turns. Each turn returns a new image; the model carries visual context.
+- **Single-call edit**: source image(s) と edit instruction を1回の `generateContent` に送る
+- **Chat-based edit**: chat session を開き source image を送り、text turns で refinement する。各 turn は新 image を返し、model が visual context を保持する
 
-For edits and reference-image workflows:
+edits / reference-image workflows:
 
-1. Send the minimum set of images needed.
-2. Label image roles in the prompt explicitly:
+1. 必要最小限の images を送る
+2. prompt で role を明示する
    - `image 1 = identity anchor`
    - `image 2 = layout/pose reference`
    - `image 3 = palette/material reference`
-3. State both:
-   - what must change
-   - what must stay unchanged
-4. Prefer small deltas over wholesale reinterpretation when continuity matters.
-5. For character or product consistency across many outputs, send the same identity anchor image in every call and keep the anchor language in the prompt verbatim.
-6. Use `scripts/gemini_image_edit.py` for local edit requests.
+3. change list と preserve list を両方書く
+4. continuity が重要なら wholesale reinterpretation より small deltas
+5. consistency set では同じ identity anchor を毎回送り、anchor language も verbatim で保つ
+6. local edit requests は `scripts/gemini_image_edit.py` を使う
 
-Example edit prompt:
+edit prompt example:
 
 ```text
 Use image 1 as the identity anchor and image 2 as the composition guide. Keep the same character face, hair color, jacket pattern, and proportions from image 1. Change only the background to a rainy night street with neon signage, and match the three-quarter framing from image 2. Keep aspect ratio 16:9. Do not redesign the jacket, do not add new characters, do not add text.
@@ -161,55 +162,42 @@ Use image 1 as the identity anchor and image 2 as the composition guide. Keep th
 
 ### Multi-Turn Chat Editing
 
-For iterative refinement, use a chat session instead of repeated one-shot calls. The model keeps prior images and prompts as context, which is stronger for "now make it...", "and add...", "go back to the previous version but..." workflows.
+iterative refinement では repeated one-shot calls ではなく chat session を使う。model が prior images と prompts を context として保持するため、"now make it..."、"and add..."、"go back to the previous version but..." のような workflows に強い。
 
-Practical rule: if the user is going to ask for more than one revision, open a chat. Otherwise, one-shot.
+practical rule: ユーザーが複数 revision を求めそうなら chat を開く。そうでなければ one-shot。
 
-## `imageConfig` Choices That Matter
+## 重要な `imageConfig`
 
 ### Aspect Ratio
 
 - `gemini-3.1-flash-image-preview`: 1:1, 1:4, 1:8, 2:3, 3:2, 3:4, 4:1, 4:3, 4:5, 5:4, 8:1, 9:16, 16:9, 21:9
-- `gemini-3-pro-image-preview` and `gemini-2.5-flash-image`: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
+- `gemini-3-pro-image-preview` / `gemini-2.5-flash-image`: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
 
-Pick the aspect ratio based on the deliverable:
-- 1:1 for icons, product tiles, social squares.
-- 16:9 for hero images, screenshots, marketing banners.
-- 9:16 for vertical mobile, story content.
-- 21:9 for cinematic plates.
-- 4:5 for editorial portraits.
-- 1:4, 1:8, 4:1, 8:1 (3.1 Flash only) for ribbons, banners, vertical strips.
+usage に合わせて選ぶ。icons は 1:1、heroes は 16:9、mobile/story は 9:16、cinematic は 21:9、editorial portraits は 4:5。3.1 Flash の 1:4 / 1:8 / 4:1 / 8:1 は ribbons や strips に使える。
 
 ### Image Size
 
-- `"512"` or `"0.5K"`: drafts and thumbnails (3.1 Flash only).
-- `"1K"`: standard, available on all three models.
-- `"2K"`: detailed work, 3.x models only.
-- `"4K"`: final assets, 3.x models only.
+- `"512"` / `"0.5K"`: drafts and thumbnails。3.1 Flash only
+- `"1K"`: standard。全 models
+- `"2K"`: detailed work。3.x only
+- `"4K"`: final assets。3.x only
 
-Token cost scales with size. Stay at `1K` while exploring; bump to `2K` or `4K` only when detail materially matters.
+token cost は size に比例する。探索中は `1K`、detail が重要になってから `2K` / `4K`。
 
 ### Thinking
 
-- `thinkingLevel: "minimal"` — fastest, weakest reasoning.
-- `thinkingLevel: "High"` — stronger layout planning, more tokens.
-- 3 Pro: thinking is on by default; explicitly set `"minimal"` to disable.
-- 3.1 Flash: thinking is opt-in.
-- 2.5 Flash: no thinking knob.
-
-Thinking tokens are billed regardless of `includeThoughts` visibility.
+- `thinkingLevel: "minimal"`: fastest, weakest reasoning
+- `thinkingLevel: "High"`: stronger layout planning, more tokens
+- 3 Pro は default on、3.1 Flash は opt-in、2.5 Flash は knob なし
+- thinking tokens は `includeThoughts` 表示有無に関係なく billed
 
 ### Grounding
 
-Add `tools: [{"google_search": {}}]` to ground the image on real-world facts retrieved via Google Search. Useful for real products, recent events, real places, real public figures' likenesses (with care).
+`tools: [{"google_search": {}}]` を追加すると Google Search で grounding できる。real products、recent events、real places、public figures likenesses で有用。ただし 3.1 Flash は web + image search、3 Pro / 2.5 Flash は web search only。image search path は people images を取得できない。
 
-- 3.1 Flash: web + image search.
-- 3 Pro and 2.5 Flash: web search only.
-- The image search path cannot retrieve images of people.
+## 同梱 scripts
 
-## Using The Bundled Scripts
-
-Generate one or more images:
+生成:
 
 ```bash
 GEMINI_API_KEY=... \
@@ -221,7 +209,7 @@ python3 .agents/skills/gemini-image/scripts/gemini_image_generate.py \
   --out-dir tmp/matcha
 ```
 
-Edit from one or more reference images:
+reference images から edit:
 
 ```bash
 GEMINI_API_KEY=... \
@@ -238,62 +226,69 @@ python3 .agents/skills/gemini-image/scripts/gemini_image_edit.py \
 Useful flags:
 
 - `--thinking-level minimal|High`
-- `--google-search` (enables grounding)
+- `--google-search`
 - `--filename-prefix hero`
 - `--print-json`
-- `--n 1` (request multiple candidates by repeating the call; the API returns one image per `generateContent` request)
+- `--n 1`
 
-The scripts call `POST /v1beta/models/{model}:generateContent` with `responseModalities=["TEXT","IMAGE"]`, decode the inline base64, and write image files to disk.
+scripts は `POST /v1beta/models/{model}:generateContent` を `responseModalities=["TEXT","IMAGE"]` 付きで呼び、inline base64 を decode して files を書く。
 
-## Anti-Patterns To Avoid
+## 避けること
 
-❌ **Anti-pattern: defaulting every request to 3 Pro**
-Why bad: Pro thinking burns tokens on briefs that don't need reasoning. Drafts, simple subjects, and quick iterations don't benefit.
-Better: start with 3.1 Flash. Move to 3 Pro when layout, infographics, or multi-step reasoning matter.
+**every request を 3 Pro にする**
 
-❌ **Anti-pattern: requesting transparent backgrounds**
-Why bad: Gemini image models do not produce transparent backgrounds.
-Better: render on a flat color and key it out downstream, or switch to `gpt-image-1.5` for native transparent assets.
+問題: Pro thinking は simple drafts や quick iterations では token cost を増やすだけになりやすい。
+改善: まず 3.1 Flash を使い、layout、infographics、multi-step reasoning が必要なときだけ 3 Pro に上げる。
 
-❌ **Anti-pattern: piling on reference images**
-Why bad: each reference inflates input tokens and dilutes the model's focus. 2.5 Flash caps at 3 total; even 3.1 Flash works best with a tight set.
-Better: send the minimum identity / layout / palette anchors needed, and label each image's role in the prompt.
+**transparent backgrounds を求める**
 
-❌ **Anti-pattern: one-shotting a six-revision request**
-Why bad: each one-shot call loses the visual context from the prior version, and small deltas drift.
-Better: open a chat session for iterative refinement; the model keeps the prior image as context.
+問題: Gemini image models は transparent backgrounds を生成しない。
+改善: flat color で render して downstream で key out するか、native transparency が必要なら `gpt-image-1.5` などに切り替える。
 
-❌ **Anti-pattern: leaving thinking at default for direct renders**
-Why bad: 3 Pro defaults to thinking on; a literal product shot pays for reasoning it doesn't need.
-Better: set `thinkingLevel: "minimal"` when the brief is direct.
+**reference images を積みすぎる**
 
-❌ **Anti-pattern: forcing 4K early**
-Why bad: 4K multiplies token cost without helping ideation.
-Better: explore at 1K, lock the prompt, then upscale by re-rendering at 2K or 4K once.
+問題: input tokens が増え、model focus が薄まり、2.5 Flash では上限にも当たりやすい。
+改善: identity / layout / palette anchors など必要最小限にし、各 image の role を prompt で label する。
 
-❌ **Anti-pattern: using a Gemini image as evidence of facts**
-Why bad: even with Google Search grounding, the rendered image is a stylized reconstruction, not a citation.
-Better: ground when the image must reflect a real subject, but treat it as illustration, not source-of-truth.
+**six-revision request を one-shot で処理する**
 
-❌ **Anti-pattern: claiming success before the API ran**
-Why bad: a proposed prompt is not a generated asset.
-Better: run the script if credentials are available, or clearly say generation was not executed and explain why.
+問題: repeated one-shot calls は prior visual context を失い、small deltas が drift する。
+改善: iterative refinement では chat session を使い、model に prior image context を保持させる。
 
-❌ **Anti-pattern: ignoring the SynthID watermark for redistribution decisions**
-Why bad: every Gemini image carries an invisible SynthID watermark.
-Better: surface this when the user asks about provenance, attribution, or "is this AI-generated."
+**direct render で thinking default のままにする**
+
+問題: literal product shot などは reasoning を必要とせず、thinking token cost だけ増える。
+改善: direct brief では `thinkingLevel: "minimal"` を設定する。
+
+**初期から 4K**
+
+問題: 4K は token cost と latency を増やし、ideation には過剰。
+改善: exploration は 1K、prompt lock 後に 2K / 4K へ上げる。
+
+**Gemini image を fact evidence として扱う**
+
+問題: Google Search grounding があっても rendered image は stylized reconstruction であり citation ではない。
+改善: real subject を反映する必要があるときだけ grounding し、事実の根拠は別に cite する。
+
+**API 実行前に成功したと言う**
+
+問題: prompt proposal と generated asset は別物。
+改善: credentials があれば script を実行し、なければ generation 未実行と理由を明示する。
+
+**SynthID watermark を無視する**
+
+問題: Gemini images には invisible SynthID watermark が付くため、provenance や redistribution 判断に影響する。
+改善: provenance、attribution、AI-generated 여부が話題なら明示する。
 
 ## Variation Guidance
 
-**IMPORTANT**: Do not collapse every Gemini request into one polished house style.
+- deliverable で model choice を変える。drafts は 2.5 Flash、balanced は 3.1 Flash、premium/complex は 3 Pro
+- usage で aspect ratio を変える
+- stage で image size を変える。explore は 1K、lock-in 後に 2K/4K
+- literal product shot、stylized illustration、infographic で prompt structure を変える
+- consistent set を意図する場合だけ identity anchors を再利用する
 
-- Vary model choice by deliverable: drafts on 2.5 Flash, balanced work on 3.1 Flash, premium and complex layouts on 3 Pro.
-- Vary aspect ratio by usage: square for icons, 16:9 for heroes, 9:16 for mobile, 21:9 for cinematic, 4:5 for editorial.
-- Vary image size by stage: 1K while exploring, 2K/4K only at lock-in.
-- Vary prompt structure by brief: a literal product shot needs tighter constraints; a stylized illustration needs more rendering direction; an infographic needs explicit text and layout.
-- Reuse identity anchors only when the user is intentionally building a consistent set.
-
-## References
+## 参照
 
 - Model variants and parameters: `references/gemini-image-models.md`
 - Prompting patterns: `references/gemini-prompting-guide.md`
@@ -301,8 +296,6 @@ Better: surface this when the user asks about provenance, attribution, or "is th
 - Runnable editor: `scripts/gemini_image_edit.py`
 - Official guide: https://ai.google.dev/gemini-api/docs/image-generation
 
-## Remember
+## 覚えておくこと
 
-This skill should make Gemini image generation operational, not ceremonial.
-
-Pick the model, set `imageConfig` and thinking with intent, run the API when credentials exist, and report the real output path and model back to the user.
+Gemini image generation を儀式ではなく実務にする。model、`imageConfig`、thinking を意図して選び、credentials があるなら API を実行し、real output path と model を報告する。

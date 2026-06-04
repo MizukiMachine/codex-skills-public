@@ -7,32 +7,32 @@ metadata:
 
 # Favicon Generator
 
-## What It Does
+## できること
 
-Creates production-ready favicon suites that match an app's existing brand identity. It can generate PNG, ICO, and SVG assets, preview icons at real browser sizes, and update framework metadata such as Next.js `metadata.icons` or standard HTML `<link>` tags.
+app の既存 brand identity に合う production-ready favicon suite を作る。PNG、ICO、SVG assets を生成し、実際の browser size で preview し、Next.js `metadata.icons` や標準 HTML `<link>` tags など framework metadata を更新できる。
 
-## Reference Files
+## 参照ファイル
 
 | Topic | File | Use When |
 |-------|------|----------|
-| Rendering effects | [references/effects-guide.md](references/effects-guide.md) | You need implementation details for shadows, glow, highlight, noise, scaling, or color handling |
-| Python generator | [scripts/generate_favicon.py](scripts/generate_favicon.py) | You need deterministic files in a project directory or CI-friendly generation |
-| Browser studio | [scripts/generate_favicon.html](scripts/generate_favicon.html) | You need quick visual exploration, manual tuning, or side-by-side previews |
+| Rendering effects | [references/effects-guide.md](references/effects-guide.md) | shadow、glow、highlight、noise、scaling、color handling の実装詳細が必要なとき |
+| Python generator | [scripts/generate_favicon.py](scripts/generate_favicon.py) | project directory または CI-friendly な deterministic files が必要なとき |
+| Browser studio | [scripts/generate_favicon.html](scripts/generate_favicon.html) | quick visual exploration、manual tuning、side-by-side previews が必要なとき |
 
-## Operating Model
+## 基本方針
 
-Favicons are small brand artifacts, not decorations. The priority order is:
+favicon は小さな brand artifact で、ただの装飾ではない。優先順位は次の通り。
 
-1. Match the project's real brand mark, icon library, and colors.
-2. Stay readable at 16px and 32px.
-3. Add polish through subtle layered effects.
-4. Produce the complete asset set and wire it into the app.
+1. project の実際の brand mark、icon library、colors に合わせる
+2. 16px と 32px でも読めるようにする
+3. subtle layered effects で polish を足す
+4. complete asset set を生成し、app に wiring する
 
-Use the same logo/icon the app already uses when it exists. If there is no brand icon, choose a simple letter, Lucide icon, or emoji that maps to the product's function and audience.
+既存 logo/icon があるならそれを使う。brand icon がない場合は、product の機能と audience に合う simple letter、Lucide icon、emoji を選ぶ。
 
-## Discovery First
+## まず調査する
 
-Before generating, inspect the target project:
+生成前に対象 project を確認する。
 
 ```bash
 rg "from.*lucide-react|from.*@lucide" --type ts --type tsx
@@ -41,18 +41,18 @@ rg "favicon|apple-touch-icon|manifest|metadata" .
 rg "primary|brand|--.*color|themeColor" .
 ```
 
-Extract:
+確認するもの:
 
-- Existing logo or brand icon
-- Current favicon files and where public assets live
-- Brand colors from CSS variables, Tailwind config, theme files, or design tokens
-- Framework entry point for icon metadata
+- 既存 logo または brand icon
+- 現在の favicon files と public assets の配置先
+- CSS variables、Tailwind config、theme files、design tokens 由来の brand colors
+- icon metadata を置く framework entry point
 
-Do not invent a generic icon when the codebase already has a recognizable brand mark.
+コードベースに recognizable brand mark がある場合、generic icon を作らない。
 
-## Generation Options
+## 生成方法
 
-Use the CLI for final project assets:
+最終 project assets には CLI を使う。
 
 ```bash
 python3 /home/mizuki2/.codex/skills/favicon-generator/scripts/generate_favicon.py \
@@ -75,7 +75,7 @@ python3 -m pip install Pillow
 python3 -m pip install cairosvg
 ```
 
-If the local Python has no `pip` or you want an isolated one-off run, use `uv`:
+local Python に `pip` がない、または isolated one-off run をしたい場合は `uv` を使う。
 
 ```bash
 uv run --with Pillow --with cairosvg python \
@@ -83,7 +83,7 @@ uv run --with Pillow --with cairosvg python \
   --lucide rocket --style vibrant --output ./public
 ```
 
-Use the browser studio when visual iteration matters:
+visual iteration が重要なときは browser studio を使う。
 
 ```bash
 xdg-open /home/mizuki2/.codex/skills/favicon-generator/scripts/generate_favicon.html
@@ -106,11 +106,11 @@ Built-in Lucide icons:
 
 `package-plus`, `rocket`, `zap`, `star`, `heart`, `code`, `box`, `compass`, `flame`, `globe`, `layers`, `music`, `send`, `shield`, `sparkles`, `sun`, `target`, `terminal`, `wand`
 
-If the project uses a Lucide icon that is not built in, read its definition from `node_modules/lucide-react/dist/esm/icons/<icon-name>.js`, extract the SVG path elements, and add a local one-off entry to the generator or create a small project-specific script.
+project が built-in ではない Lucide icon を使っている場合は、`node_modules/lucide-react/dist/esm/icons/<icon-name>.js` から SVG path elements を読み、generator に one-off entry を追加するか、project-specific script を作る。
 
-## Output Contract
+## 出力契約
 
-The CLI writes:
+CLI は次を書き出す。
 
 ```text
 output/
@@ -126,7 +126,7 @@ output/
 └── favicon-512x512.png
 ```
 
-Place these in the app's public/static asset directory unless the framework requires a different location.
+framework が別の場所を要求しない限り、app の public/static asset directory に置く。
 
 ## Integration
 
@@ -168,20 +168,18 @@ PWA manifest:
 }
 ```
 
-## Quality Check
+## 品質確認
 
-Before finishing:
+- `favicon-16x16.png` と `favicon-32x32.png` を確認し、mark が潰れるなら単純化する
+- 生成 file が framework の served asset directory にあるか確認する
+- metadata または link tags が生成 paths を指しているか確認する
+- project に brand tokens がある場合は default template colors より brand colors を優先する
+- noise と glow は subtle に保ち、polish 以上の視覚ノイズにしない
 
-- Inspect `favicon-16x16.png` and `favicon-32x32.png`; simplify if the mark blurs together.
-- Confirm generated files are in the framework's served asset directory.
-- Confirm metadata or link tags point to the generated paths.
-- Prefer brand colors over default template colors when the project exposes brand tokens.
-- Keep noise and glow subtle; they should add polish, not visual clutter.
+## 避けること
 
-## Avoid
-
-- Replacing a real brand icon with a generic monogram without a reason.
-- Generating only a 512px icon and skipping browser-tab sizes.
-- Assuming a large-preview icon will work at 16px.
-- Using arbitrary blue/purple gradients when the project has defined colors.
-- Updating unrelated branding or layout files while integrating favicons.
+- 理由なく real brand icon を generic monogram に置き換える
+- 512px icon だけを生成し、browser-tab sizes を省く
+- large-preview icon が 16px でも機能すると仮定する
+- project に定義色があるのに arbitrary blue/purple gradients を使う
+- favicon integration 中に無関係な branding/layout files を更新する

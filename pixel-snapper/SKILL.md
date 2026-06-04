@@ -5,109 +5,107 @@ description: "ピクセルアートPNGをクリーンアップし、ネイティ
 
 # Pixel Snapper
 
-## Purpose
+## 目的
 
-Turn raster images that look like pixel art into usable pixel-art assets. Use the right path for the asset: recover a hidden low-resolution grid, run Sprite Fusion's grid snapper, or preserve a fixed animation canvas while pixelating and quantizing frames.
+ピクセルアート風の raster images を、使える pixel-art assets に整える。asset に応じて hidden low-resolution grid の復元、Sprite Fusion の grid snapper、または fixed animation canvas を保った pixelate/quantize を選ぶ。
 
-## Operating Model
+## 基本方針
 
-Pixel-art cleanup is not one operation. Choose the workflow by the output contract:
+pixel-art cleanup は単一操作ではない。output contract に応じて workflow を選ぶ。
 
 | Need | Use | Output Size |
 |------|-----|-------------|
-| Recover the native grid from upscaled or AI-faked pixel art | `scripts/pixel_snapper.py` | Discovered from the source |
-| Recover frames from a sheet with known rows/columns | `scripts/pixel_snapper_sheet.py` | Discovered per frame, then reassembled |
-| Use Hugo-Dz/Sprite Fusion grid snapping on a single image, tile, map, texture, or sample | `scripts/spritefusion_snapper.py` | Derived by upstream; padded to source aspect by default |
-| Convert animation frames while keeping one canvas size and stable character scale | `scripts/fixed_canvas_pixelate.py` | Explicit `--size N` or `--size WxH` |
-| Validate batch dimensions, visible RGB palette, and alpha behavior | `scripts/inspect_png_batch.py` | Report/fail based on invariants |
+| upscaled / AI-faked pixel art から native grid を復元 | `scripts/pixel_snapper.py` | source から発見 |
+| known rows/columns の sheet から frames を復元 | `scripts/pixel_snapper_sheet.py` | frame ごとに発見後、再 assembly |
+| single image、tile、map、texture、sample に Sprite Fusion grid snapping を使う | `scripts/spritefusion_snapper.py` | upstream 由来。既定で source aspect に pad |
+| canvas size と character scale を固定して animation frames を変換 | `scripts/fixed_canvas_pixelate.py` | explicit `--size N` or `--size WxH` |
+| batch dimensions、visible RGB palette、alpha behavior を検証 | `scripts/inspect_png_batch.py` | invariants に基づく report/fail |
 
-Prioritize:
+優先順位:
 
-1. Correct asset contract: native-grid discovery for exploratory cleanup, fixed canvas for game animation.
-2. Visual readability: smallest palette that preserves the design.
-3. Alpha integrity: preserve soft alpha unless the user explicitly asks for hard-edged cutouts.
-4. Reproducibility: keep originals and write experiments to new output paths before promoting assets.
+1. 正しい asset contract: exploratory cleanup は native-grid discovery、game animation は fixed canvas
+2. visual readability: design を保つ最小 palette
+3. alpha integrity: ユーザーが hard-edged cutouts を明示しない限り soft alpha を保持
+4. reproducibility: originals を残し、experiments は new output paths に書いてから採用する
 
-## Reference Files
+## 参照ファイル
 
 | Topic | File | Use When |
 |-------|------|----------|
-| Native grid recovery algorithm | [algorithm.md](references/algorithm.md) | Debugging hidden-grid recovery or changing internal tunables |
-| Native grid examples | [usage-examples.md](references/usage-examples.md) | Running sweeps, upscales, and known-layout sheet recovery |
-| Sprite Fusion upstream | [spritefusion-upstream.md](references/spritefusion-upstream.md) | Needing exact upstream CLI, verified commit, or WASM details |
+| Native grid recovery algorithm | [algorithm.md](references/algorithm.md) | hidden-grid recovery の debug または internal tunables 変更 |
+| Native grid examples | [usage-examples.md](references/usage-examples.md) | sweeps、upscales、known-layout sheet recovery |
+| Sprite Fusion upstream | [spritefusion-upstream.md](references/spritefusion-upstream.md) | exact upstream CLI、verified commit、WASM details が必要なとき |
 
-## Before Starting
+## 開始前に確認すること
 
-Answer these before final conversion:
+- input は fake/upscaled pixel art、already-native pixel art、continuous-tone image、game animation batch のどれか
+- output size は discovery してよいか、全 frames を fixed size と stable in-game scale にする必要があるか
+- single image、PNG frame folder、known rows/columns の spritesheet のどれか
+- desired color count は何か。AI native-grid recovery では `256` 付近から始め、strict retro cleanup では `8`、`16`、`32` を比較する
+- source が soft alpha を使っているか。使っている場合は既定で alpha levels を保持する
 
-- Is the input fake/upscaled pixel art, already-native pixel art, a continuous-tone image, or a game animation batch?
-- Is output size allowed to be discovered, or must every frame have a fixed size and stable in-game scale?
-- Is this a single image, a folder of PNG frames, or a spritesheet with known rows/columns?
-- What color count is desired? For AI native-grid recovery, start near `256`; for strict retro cleanup compare `8`, `16`, and `32`.
-- Does the source use soft alpha? If yes, preserve alpha levels by default.
-
-Ask a short tradeoff question before a final batch conversion when the mode is unclear:
+mode が曖昧な final batch conversion の前には短く確認する。
 
 ```text
-Which tradeoff should I optimize?
-1. Native/Sprite Fusion grid-snap: prioritize visual grid cleanup; output dimensions may vary by image.
-2. Fixed-canvas animation output: keep every frame the same size with stable character scale.
-3. Build comparison samples from representative frames first.
+どのトレードオフを優先しますか?
+1. Native/Sprite Fusion grid-snap: 視覚的なgrid cleanupを優先。画像ごとに出力寸法が変わる場合があります。
+2. Fixed-canvas animation output: すべてのframeを同じサイズに保ち、character scaleを安定させます。
+3. 代表frameから比較サンプルを先に作ります。
 ```
 
-Proceed without asking when the user supplied the mode, output path, size/color requirements, or when the task is a single image where discovered output dimensions are clearly acceptable.
+ユーザーが mode、output path、size/color requirements を指定している場合や、single image で discovered output dimensions が明らかに許容される場合は質問せず進める。
 
-## Workflow
+## ワークフロー
 
-1. Classify the asset and output contract. Do not run grid-derived batch output as final animation frames unless varying dimensions and offsets are acceptable.
-2. Record source facts: file count, PNG dimensions, rows/columns for known sheets, visible alpha behavior, and intended output path.
-3. Choose the script:
-   - Hidden grid from fake/upscaled pixel art: `pixel_snapper.py`.
-   - Known-layout sheet: `pixel_snapper_sheet.py`.
-   - Sprite Fusion grid cleanup where grid-derived output is acceptable: `spritefusion_snapper.py`.
-   - Fixed-size frame batch: `fixed_canvas_pixelate.py`.
-4. Choose palette size. For unknown style, create representative samples rather than guessing.
-5. Calibrate on one or a few representative frames before a full batch.
-6. Run final conversion into a new output path. Avoid overwriting source assets.
-7. Verify with checks matched to the chosen workflow, then compare visually against the source.
+1. asset と output contract を分類する。varying dimensions / offsets が許容されない限り、grid-derived batch output を final animation frames として使わない
+2. source facts を記録する: file count、PNG dimensions、known sheet の rows/columns、visible alpha behavior、intended output path
+3. script を選ぶ
+   - fake/upscaled pixel art の hidden grid: `pixel_snapper.py`
+   - known-layout sheet: `pixel_snapper_sheet.py`
+   - grid-derived output が許容される Sprite Fusion cleanup: `spritefusion_snapper.py`
+   - fixed-size frame batch: `fixed_canvas_pixelate.py`
+4. palette size を選ぶ。不明な style は representative samples を作る
+5. full batch 前に1枚または代表 frame で calibrate する
+6. final conversion は new output path に実行する。source assets を上書きしない
+7. workflow に合った checks で検証し、source と視覚比較する
 
-## Commands
+## コマンド
 
-Recover a hidden native grid from an AI or upscaled pixel-art PNG:
+AI または upscaled pixel-art PNG から hidden native grid を復元:
 
 ```bash
 uv run "<skill>/scripts/pixel_snapper.py" "input.png" "output.png" --k-colors 256
 ```
 
-Recover a known-layout spritesheet:
+known-layout spritesheet を復元:
 
 ```bash
 uv run "<skill>/scripts/pixel_snapper_sheet.py" \
   "sheet.png" "sheet-snapped.png" --cols 4 --rows 4 --k-colors 256
 ```
 
-Run Sprite Fusion grid snapping on one image:
+1枚に Sprite Fusion grid snapping を実行:
 
 ```bash
 python3 "<skill>/scripts/spritefusion_snapper.py" \
   --input "input.png" --output "output.png" --colors 16
 ```
 
-Override Sprite Fusion grid size only after auto-detection fails:
+auto-detection 失敗時だけ Sprite Fusion grid size を上書き:
 
 ```bash
 python3 "<skill>/scripts/spritefusion_snapper.py" \
   --input "input.png" --output "output.png" --colors 16 --pixel-size 8
 ```
 
-Generate fixed-canvas animation frames:
+fixed-canvas animation frames を生成:
 
 ```bash
 python3 "<skill>/scripts/fixed_canvas_pixelate.py" \
   --input-dir "input_frames" --output-dir "output_frames" --size 512 --colors 16
 ```
 
-Verify a fixed-frame output batch:
+fixed-frame output batch を検証:
 
 ```bash
 python3 "<skill>/scripts/inspect_png_batch.py" \
@@ -119,68 +117,63 @@ python3 "<skill>/scripts/inspect_png_batch.py" \
 
 ## Animation Frame Contract
 
-For character animations, frame sequences, action folders, or spritesheet-derived frames:
+character animations、frame sequences、action folders、spritesheet-derived frames では次を守る。
 
-- Source frame count must match output frame count.
-- Relative paths should match unless the user requested a new structure.
-- Required output frame dimensions must be known before final batch conversion.
-- All final frame PNGs must have the same dimensions when used as fixed-frame animation assets.
-- Character scale must come from the original source canvas, not per-image visible bounds.
-- Do not crop to visible pixels unless the user accepts anchor/offset handling.
-- Preserve soft alpha by default; use hard alpha only when requested.
-- Validate visible RGB colors separately from RGBA values because one RGB color can appear at many alpha levels.
+- source frame count と output frame count が一致する
+- ユーザーが新構造を求めない限り relative paths を一致させる
+- final batch conversion 前に required output frame dimensions がわかっている
+- fixed-frame animation assets として使う final PNGs はすべて同じ寸法にする
+- character scale は per-image visible bounds ではなく original source canvas から来る
+- anchor/offset handling をユーザーが受け入れない限り visible pixels へ crop しない
+- 既定で soft alpha を保持する。hard alpha は要求時のみ
+- 1つの RGB color が多数の alpha levels に現れ得るため、visible RGB colors は RGBA values と別に検証する
 
-If the user asks for "low-resolution pixel art" and game-ready animation frames, prefer fixed-canvas pixelation over raw grid snapping unless the engine has deliberate per-frame offsets and anchors.
+ユーザーが "low-resolution pixel art" かつ game-ready animation frames を求めた場合、engine が deliberate per-frame offsets/anchors を持たない限り raw grid snapping より fixed-canvas pixelation を優先する。
 
-## Verification
+## 検証
 
-For single-image native or Sprite Fusion output:
+single-image native / Sprite Fusion output:
 
-- Check that the output dimensions are plausible, not just nonzero.
-- Inspect a nearest-neighbor upscale at `x8` or `x16`.
-- Compare source and output side by side.
-- Re-run from the original source when changing color count or grid parameters.
+- output dimensions が plausible か確認する
+- nearest-neighbor upscale at `x8` or `x16` で見る
+- source と output を並べて比較する
+- color count や grid parameters を変える場合は original source から再実行する
 
-For frame batches:
+frame batches:
 
-- Run `inspect_png_batch.py` with `--require-single-size` when fixed frames are required.
-- Confirm source/output file count and relative path parity.
-- Confirm visible RGB count is at or below the requested palette size.
-- Confirm soft alpha was not collapsed to one opaque alpha value unless requested.
+- fixed frames が必要なら `inspect_png_batch.py` に `--require-single-size` を付ける
+- source/output file count と relative path parity を確認する
+- visible RGB count が requested palette size 以下か確認する
+- request されていない限り soft alpha が1つの opaque alpha value に collapsed していないか確認する
 
-## Anti-Patterns
+## 避けること
 
-**Treating pixel snapping as a generic downscaler**
+**pixel snapping を generic downscaler として使う**
 
-Bad: Run a hidden-grid snapper on a photograph, painting, or smooth illustration.
+問題: 写真や smooth illustration には grid-like pixel-art structure がなく、snapper は artifact を作る。
+改善: pixel-art structure がある場合だけ使い、continuous-tone images には通常 resizing を使う。
 
-Better: Use pixel snapping only when a grid-like pixel-art structure exists. Use normal resizing for continuous-tone images.
+**native-grid output resolution を直接指定しようとする**
 
-**Trying to set native-grid output resolution**
+問題: native grid recovery は source の hidden grid を見つける処理で、任意 resolution 指定とは別。
+改善: 先に native grid を recover し、必要な倍数へ nearest-neighbor upscale する。
 
-Bad: Ask `pixel_snapper.py` for a specific width/height.
+**raw grid-derived output を animation frames として出荷する**
 
-Better: Snap first to recover the native grid, then nearest-neighbor upscale to the needed multiple.
+問題: frame dimensions や offsets が揃わず、runtime animation jitter を起こす。
+改善: dimensions と scale が必要なら fixed-canvas pixelation を使う。
 
-**Shipping raw grid-derived output as animation frames**
+**palette cleanup で alpha を flatten する**
 
-Bad: Batch Sprite Fusion outputs and assume equal frame dimensions.
+問題: soft transparent edges が opaque halo や black fringe になる。
+改善: alpha を保持し、visible RGB count を alpha levels と別に見る。
 
-Better: Calibrate, inspect dimensions, and use fixed-canvas pixelation when frame size and character scale must remain stable.
+**derivative outputs を再 snap する**
 
-**Flattening alpha during palette cleanup**
+問題: derivative を繰り返し snap すると detail と palette が劣化する。
+改善: original source から1つの workflow を再実行し、parameters を調整する。
 
-Bad: Convert soft transparent edges into opaque black or hard halos.
-
-Better: Preserve alpha, and inspect visible RGB counts separately from alpha levels.
-
-**Re-snapping derivative outputs**
-
-Bad: Run snapper output through another snapper pass.
-
-Better: Keep the original source and re-run one workflow from that source with adjusted settings.
-
-## Troubleshooting
+## トラブルシューティング
 
 | Symptom | Likely Cause | First Fix |
 |---------|--------------|-----------|

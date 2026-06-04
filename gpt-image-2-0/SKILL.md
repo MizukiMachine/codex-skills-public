@@ -7,79 +7,79 @@ metadata:
 
 # GPT Image 2.0
 
-Use this skill when the user wants actual image generation or image editing with OpenAI `gpt-image-2`, or when the task needs strong prompting and deliberate output controls for that model.
+OpenAI `gpt-image-2` で実際に画像生成や画像編集を行うとき、またはこの model に合わせた強い prompt と output controls が必要なときに使う。
 
-## Philosophy: Treat Image Work Like A Spec, Not A Vibe
+## 考え方: 雰囲気ではなく仕様として扱う
 
-`gpt-image-2` is strongest when the request behaves like a production brief. The job is to translate intent into a spec the model can reliably execute: subject, framing, materials, constraints, output size, and edit boundaries.
+`gpt-image-2` は production brief のように request を整理したときに強い。subject、framing、materials、constraints、output size、edit boundaries を含む、model が実行しやすい spec に変換する。
 
-**Before generating, ask:**
-- What is the deliverable: concept art, icon, product render, scene plate, marketing image, or reference-driven edit?
-- What must stay stable: identity, camera angle, silhouette, text, palette, proportions, or brand cues?
-- What is the output optimized for: fast iteration, final review, web delivery, or a specific pixel size?
-- Is the user asking for one image, or for a reusable system of related images?
+**生成前に確認すること:**
 
-**Core principles**:
-1. **Specification beats adjective piles**: clear subject/composition/output constraints are stronger than mood-word spam.
-2. **Parameters are part of the creative brief**: `size`, `quality`, `output_format`, `output_compression`, and `background` materially change the result.
-3. **Edits need preserve-language**: for image edits, state what changes and what must remain untouched.
-4. **Truth over theater**: only claim an image exists after the API was actually called and files were written.
+- deliverable は concept art、icon、product render、scene plate、marketing image、reference-driven edit のどれか
+- identity、camera angle、silhouette、text、palette、proportions、brand cues など何を安定させるべきか
+- output は fast iteration、final review、web delivery、specific pixel size のどれに最適化するか
+- 1枚の image か、関連する image system か
 
-## Working With GPT Image 2
+**基本原則**
 
-OpenAI documents `gpt-image-2` as the current state-of-the-art GPT Image model for generation and editing. As of April 21, 2026, the model page lists alias `gpt-image-2` and snapshot `gpt-image-2-2026-04-21`. The guide also documents several differences from older GPT Image workflows:
+1. **形容詞の羅列より仕様**: 明確な subject/composition/output constraints が強い
+2. **parameters も creative brief の一部**: `size`、`quality`、`output_format`、`output_compression`、`background` は結果を大きく変える
+3. **edit では preserve-language を書く**: 何を変え、何を変えないかを明示する
+4. **生成事実を正直に扱う**: API を実行して files を書いた後だけ、生成済みと伝える
 
-- arbitrary image sizes are supported, subject to model constraints
-- image inputs are always processed at high fidelity
-- JPEG and WebP support explicit compression control
-- transparent backgrounds are not supported for `gpt-image-2`
+## GPT Image 2 の扱い
 
-Read these references intentionally:
+OpenAI は `gpt-image-2` を generation / editing 用の current state-of-the-art GPT Image model としている。2026-04-21 時点の model page では alias `gpt-image-2`、snapshot `gpt-image-2-2026-04-21`。older workflows との差分:
 
-- `references/openai-gpt-image-2.md` for model and API constraints
-- `references/openai-prompting-guide.md` for prompt structure, text-heavy workflows, multi-image prompting, and iteration patterns
+- model constraints 内で arbitrary image sizes を support
+- image inputs は常に high fidelity で処理
+- JPEG / WebP は explicit compression control を support
+- `gpt-image-2` は transparent backgrounds 非対応
 
-### When To Use This Skill
+意図して読む references:
 
-- The user asks for OpenAI image generation or edits.
-- The user wants a prompt for `gpt-image-2`.
-- The user needs a runnable Images API script for generation or edits.
-- The task benefits from large custom dimensions such as `2048x2048` or `3840x2160`.
-- The user wants multi-image reference edits where identity and composition must be split across different source images.
+- `references/openai-gpt-image-2.md`: model / API constraints
+- `references/openai-prompting-guide.md`: prompt structure、text-heavy workflows、multi-image prompting、iteration patterns
 
-### API Choice
+## 使う場面
 
-- Use the Images API when the job is one prompt in, one image result out.
-- Use the Responses API when the task is conversational, tool-driven, or part of a longer multimodal exchange.
-- Use the bundled scripts in this skill when the user wants a direct, local wrapper around `POST /v1/images/generations` or `POST /v1/images/edits`.
+- user が OpenAI image generation / edits を求める
+- `gpt-image-2` 用 prompt が必要
+- Images API の runnable script が必要
+- `2048x2048` や `3840x2160` など large custom dimensions が役立つ
+- identity と composition を複数 source images に分ける multi-image reference edits が必要
+
+## API Choice
+
+- one prompt in, one image result out なら Images API
+- conversational、tool-driven、longer multimodal exchange なら Responses API
+- local wrapper で `POST /v1/images/generations` または `POST /v1/images/edits` を直接叩くなら同梱 scripts
 
 ## Generation Workflow
 
-1. Identify the deliverable, invariants, and output target.
-2. Choose the prompt format that is easiest to maintain. A short labeled spec is usually better than a long paragraph for production work.
-3. For prompt scaffolding, prefer this order when relevant:
-   - intended use or asset type
-   - scene or backdrop
+1. deliverable、invariants、output target を特定する
+2. maintain しやすい prompt format を選ぶ。production work では labeled spec が長文より扱いやすい
+3. prompt scaffolding は必要に応じて次の順にする
+   - intended use / asset type
+   - scene / backdrop
    - subject
-   - composition or camera framing
-   - style/material/era
-   - lighting/color treatment
+   - composition / camera framing
+   - style / material / era
+   - lighting / color treatment
    - text requirements
    - exact constraints and exclusions
-4. If the request is text-heavy, layout-sensitive, or reference-driven, read `references/openai-prompting-guide.md` before drafting the final prompt.
-5. Normalize detailed prompts instead of expanding them. Only add tasteful augmentation when the user's request is underspecified and the extra detail materially improves the result.
-6. Choose output controls deliberately:
-   - `size`: `auto` or any `WIDTHxHEIGHT` that satisfies the documented `gpt-image-2` limits
-   - `quality`: `low`, `medium`, `high`, or `auto`
-   - `output_format`: `png`, `webp`, or `jpeg`
-   - `output_compression`: `0-100` for `jpeg` or `webp`
-   - `background`: `opaque` or `auto`
-7. If image generation is requested and `OPENAI_API_KEY` is available, use `scripts/gpt_image_generate.py`.
-8. Save outputs to a user-visible path and report exactly what was generated.
+4. text-heavy、layout-sensitive、reference-driven の場合は final prompt 前に `references/openai-prompting-guide.md` を読む
+5. 詳細 prompt は膨らませず normalize する。ユーザー指定が薄く、改善に意味がある場合だけ上品に補う
+6. output controls を意図して選ぶ
+   - `size`: `auto` または documented `gpt-image-2` limits を満たす `WIDTHxHEIGHT`
+   - `quality`: `low`, `medium`, `high`, `auto`
+   - `output_format`: `png`, `webp`, `jpeg`
+   - `output_compression`: `jpeg` / `webp` 用 `0-100`
+   - `background`: `opaque` または `auto`
+7. generation requested で `OPENAI_API_KEY` がある場合は `scripts/gpt_image_generate.py` を使う
+8. outputs は user-visible path に保存し、何を生成したか正確に報告する
 
 ### Prompt Scaffold
-
-Use a compact spec like this when the task benefits from structure:
 
 ```text
 Intended use:
@@ -95,71 +95,52 @@ Constraints:
 Avoid:
 ```
 
-For detailed prompting patterns by task type, read `references/openai-prompting-guide.md`.
+task type ごとの詳細 pattern は `references/openai-prompting-guide.md` を読む。
 
 ### Prompt Construction
 
-Prefer production-oriented prompts:
+production-oriented prompts を優先する。
 
 ```text
 Create a polished isometric apothecary counter prop for a fantasy management game. Brass scale, labeled glass jars, dark walnut wood, neatly arranged herbs, centered composition, soft studio lighting, readable silhouette, no text, no frame, no watermark.
 ```
 
-For layout-sensitive work, structure the prompt like a design spec:
-
-- intended use
-- scene/background treatment
-- subject and focal object
-- camera/framing
-- rendering direction
-- literal constraints
-- exclusions
-
-For iterations, change one axis at a time:
-
-- silhouette
-- framing
-- material treatment
-- lighting
-- palette
-- density of detail
+layout-sensitive work では design spec のように構造化する。iteration は silhouette、framing、material treatment、lighting、palette、detail density のように1軸ずつ変える。
 
 ## Edit Workflow
 
-`gpt-image-2` always processes image inputs at high fidelity. That makes edits stronger, but it also means reference-image edits can cost more than older low-fidelity edit flows.
+`gpt-image-2` は image inputs を常に high fidelity で処理する。edit は強くなるが、reference-image edits は older low-fidelity flows より cost が上がる場合がある。
 
-For edits and reference-image workflows:
+edits / reference-image workflows:
 
-1. Send the minimum set of images needed for the task.
-2. Label image roles in the prompt explicitly, for example:
+1. task に必要な最小 image set だけ送る
+2. prompt で role を明示する
    - `image 1 = identity anchor`
    - `image 2 = pose/layout reference`
    - `image 3 = texture/material reference`
-3. State both:
-   - what must change
-   - what must stay unchanged
-4. If the user needs a controlled retouch, prefer a small delta over a complete reinterpretation.
-5. If the edit involves text replacement, localization, or layout preservation, read `references/openai-prompting-guide.md` and treat the prompt like a preservation spec.
-6. Use `scripts/gpt_image_edit.py` for local edit requests.
+3. 何を変えるか、何を変えないかを両方書く
+4. controlled retouch では reinterpretation より small delta を優先する
+5. text replacement、localization、layout preservation では `references/openai-prompting-guide.md` を読み、preservation spec として書く
+6. local edit requests は `scripts/gpt_image_edit.py` を使う
 
-Example edit prompt:
+Example:
 
 ```text
 Use image 1 as the identity anchor and image 2 as the composition guide. Keep the same bottle shape, label placement, and cork silhouette from image 1. Change only the glass color to smoky teal, add faint condensation, and match the three-quarter tabletop framing from image 2. Do not add extra props, text, or background clutter.
 ```
 
-## Output Controls That Matter
+## 重要な Output Controls
 
 ### Size
 
-OpenAI’s guide documents these `gpt-image-2` constraints for explicit `WIDTHxHEIGHT` sizes:
+explicit `WIDTHxHEIGHT` は次を満たす。
 
 - maximum edge length `<= 3840`
 - both edges must be multiples of `16`
 - aspect ratio must not exceed `3:1`
 - total pixels must be between `655,360` and `8,294,400`
 
-Popular documented sizes include:
+popular documented sizes:
 
 - `1024x1024`
 - `1536x1024`
@@ -172,30 +153,25 @@ Popular documented sizes include:
 
 ### Quality
 
-- Use `low` for drafts, thumbnails, and cheap iteration.
-- Use `medium` for normal design iteration.
-- Use `high` for final assets when detail materially matters.
-- Use `auto` when the brief does not justify forcing a quality level.
+- `low`: drafts、thumbnails、cheap iteration
+- `medium`: normal design iteration
+- `high`: detail が重要な final assets
+- `auto`: quality を固定する理由がない brief
 
-### Format And Compression
+### Format / Compression
 
-- `png`: lossless default, best when you want maximum fidelity.
-- `jpeg`: smaller and faster; OpenAI notes JPEG is faster than PNG.
-- `webp`: good when you want stronger compression with modern web delivery.
-- `output_compression`: use only with `jpeg` or `webp`.
+- `png`: lossless default、最大 fidelity
+- `jpeg`: smaller and faster。OpenAI notes JPEG is faster than PNG
+- `webp`: modern web delivery 向け compression
+- `output_compression`: `jpeg` / `webp` のみ
 
 ### Background
 
-For `gpt-image-2`, use:
+`gpt-image-2` では `opaque` または `auto`。transparent backgrounds は非対応。
 
-- `opaque`
-- `auto`
+## 同梱 scripts
 
-Transparent backgrounds are not supported by this model.
-
-## Using The Bundled Scripts
-
-Generate one or more images:
+生成:
 
 ```bash
 OPENAI_API_KEY=... \
@@ -208,7 +184,7 @@ python3 .codex/skills/gpt-image-2-0/scripts/gpt_image_generate.py \
   --output-compression 80
 ```
 
-Edit from multiple reference images:
+複数 reference images から edit:
 
 ```bash
 OPENAI_API_KEY=... \
@@ -228,46 +204,53 @@ Useful flags:
 - `--user trace-id-123`
 - `--print-json`
 
-## Anti-Patterns To Avoid
+## 避けること
 
-❌ **Anti-pattern: treating `gpt-image-2` like a transparent-cutout model**
-Why bad: OpenAI explicitly documents that transparent backgrounds are not supported for this model.
-Better: use `opaque` or `auto`, or choose a different model when transparency is a hard requirement.
+**transparent-cutout model のように扱う**
 
-❌ **Anti-pattern: forcing huge images by default**
-Why bad: larger images raise cost and latency without helping every task.
-Better: start with `1024x1024`, `1536x1024`, `1024x1536`, or `low` quality when exploring.
+問題: この model は transparent background 非対応。
+改善: hard requirement が native transparency なら別 model を使う。通常は flat background + post-processing を検討する。
 
-❌ **Anti-pattern: using `output_compression` with `png`**
-Why bad: compression control is documented for `jpeg` and `webp`, not `png`.
-Better: use `jpeg` or `webp` when compression is part of the requirement.
+**huge images を既定にする**
 
-❌ **Anti-pattern: sending too many reference images**
-Why bad: edits already run at high-fidelity image input, so extra references increase complexity and cost.
-Better: send the minimum set of anchors needed and label each image’s role clearly.
+問題: large size / high quality は cost と latency を上げ、exploration を遅くする。
+改善: 探索では `1024x1024`、`1536x1024`、`1024x1536`、`low` から始める。
 
-❌ **Anti-pattern: prompt salad**
-Why bad: contradictory style and composition cues weaken adherence.
-Better: specify one clear composition and one dominant rendering direction.
+**`png` に `output_compression` を使う**
 
-❌ **Anti-pattern: freehanding every prompt from scratch**
-Why bad: prompt quality drifts and production prompts become hard to maintain.
-Better: use the compact prompt scaffold in this skill, then consult `references/openai-prompting-guide.md` for text-heavy, multi-image, and sketch-to-render cases.
+問題: compression control は `jpeg` / `webp` 専用。
+改善: `png` では `output_compression` を使わず、圧縮が必要なら `jpeg` / `webp` を選ぶ。
 
-❌ **Anti-pattern: claiming success before the API ran**
-Why bad: a proposed prompt is not a generated asset.
-Better: run the script if credentials are available, or clearly report that generation was not executed.
+**reference images を送りすぎる**
+
+問題: complexity と cost が増え、model focus が薄まる。
+改善: 必要最小限の references にし、identity、layout、palette など role を明示する。
+
+**prompt salad**
+
+問題: 矛盾する style / composition cues は adherence を弱める。
+改善: one composition と one dominant rendering direction に整理する。
+
+**毎回 prompt をゼロから書く**
+
+問題: iteration が比較不能になり、production prompt を保守しにくい。
+改善: compact scaffold と references を使い、変更軸だけを調整する。
+
+**API 実行前に成功したと言う**
+
+問題: prompt proposal と generated asset は別物。
+改善: API を実行し output path を確認してから成功を報告する。
 
 ## Variation Guidance
 
-**IMPORTANT**: Do not collapse every request into one polished house style.
+すべてを同じ polished style にしない。
 
-- Vary prompt emphasis by deliverable: product render, icon, character art, scene art, and edit requests need different structure.
-- Vary size and format based on usage: web delivery, review images, marketing crops, and large art boards have different needs.
-- Vary the level of specification: a literal product shot needs tighter control than loose concept exploration.
-- Reuse a visual direction only when the user is intentionally building a consistent set.
+- product render、icon、character art、scene art、edit requests で prompt emphasis を変える
+- web delivery、review images、marketing crops、large art boards で size/format を変える
+- literal product shot は tight control、concept exploration は loose control
+- consistent set を意図している場合だけ visual direction を再利用する
 
-## References
+## 参照
 
 - API/model notes: `references/openai-gpt-image-2.md`
 - Prompting patterns: `references/openai-prompting-guide.md`
@@ -278,8 +261,6 @@ Better: run the script if credentials are available, or clearly report that gene
 - Official Images API reference: https://developers.openai.com/api/reference/resources/images
 - Official prompting guide: https://developers.openai.com/cookbook/examples/multimodal/image-gen-models-prompting-guide
 
-## Remember
+## 覚えておくこと
 
-This skill should make `gpt-image-2` operational, not ceremonial.
-
-Turn the request into a concrete spec, choose the parameters intentionally, run the API when possible, and report the real output path back to the user.
+`gpt-image-2` を儀式ではなく実務にする。request を concrete spec にし、parameters を意図して選び、可能なら API を実行し、real output path を報告する。

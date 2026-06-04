@@ -3,23 +3,23 @@ name: diagram
 description: "コードベース解析からMermaidの図を作る。アーキテクチャ図、構成図、シーケンス図、ER図、状態図、データフロー図を求められたときに使う。"
 ---
 
-# Architecture Diagram Generator
+# アーキテクチャ図生成
 
-Create accurate Mermaid architecture diagrams from repository analysis. Prefer diagrams grounded in actual files, manifests, routes, models, dependencies, config, and runtime entry points.
+リポジトリ分析に基づいて、正確な Mermaid 図を作る。実際のファイル、manifest、ルート、モデル、依存関係、設定、実行エントリポイントを根拠にする。
 
-## Workflow
+## ワークフロー
 
-1. Gather structure.
-   - Read the workspace directly and use repository files as the source of truth.
-   - Read manifests and config files: `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `tsconfig.json`, framework config, Docker/Kubernetes files, OpenAPI specs, route files, and model/schema files.
-   - Cross-check directory boundaries, imports, routes, commands, jobs, data models, and infrastructure files.
+1. 構造を集める。
+   - ワークスペースを直接読み、リポジトリファイルを唯一の情報源として扱う
+   - `package.json`、`Cargo.toml`、`go.mod`、`pyproject.toml`、`tsconfig.json`、フレームワーク設定、Docker/Kubernetes、OpenAPI、ルート、モデル、スキーマを読む
+   - ディレクトリ境界、import、ルート、コマンド、ジョブ、データモデル、インフラを突き合わせる
 
-2. Classify the project before drawing.
-   - Type: backend API, full-stack app, microservices, CLI/library, desktop app, mobile app, infrastructure/tooling, or mixed.
-   - Size: estimate from file count, module count, routes, models, commands, and dependency complexity.
-   - Main modules: derive from directory boundaries, imports, routes, services, and data/model ownership.
+2. 描く前にプロジェクトを分類する。
+   - 種類: backend API、full-stack app、microservices、CLI/library、desktop app、mobile app、infrastructure/tooling、mixed
+   - 規模: ファイル数、モジュール数、ルート、モデル、コマンド、依存関係から見積もる
+   - 主要モジュール: ディレクトリ境界、import、ルート、サービス、データ所有から導く
 
-3. Explain the diagram selection criteria to the user before or with the generated diagrams.
+3. 図の選択基準をユーザーへ説明する。
 
    ```markdown
    ## 図の選択基準
@@ -40,9 +40,9 @@ Create accurate Mermaid architecture diagrams from repository analysis. Prefer d
    | ... | ... |
    ```
 
-4. Select diagrams by fit.
+4. 適合する図を選ぶ。
 
-   | Project type | Recommended diagrams |
+   | プロジェクト種別 | 推奨図 |
    |---|---|
    | Backend API | System Context, Container, Component, Sequence, ER, Deployment |
    | Full-stack | System Context, Container, Component, Data Flow, Sequence, ER, Deployment |
@@ -51,39 +51,38 @@ Create accurate Mermaid architecture diagrams from repository analysis. Prefer d
    | Desktop/Mobile | System Context, Component, Data Flow, State |
    | Infrastructure/tooling | Deployment, Dependency, Data Flow |
 
-5. Generate Mermaid files.
-   - Default output directory: `diagrams/` in the workspace unless the user specifies another path.
-   - Use one `.mmd` file per diagram.
-   - Use bilingual labels when helpful: Japanese / English.
-   - Use actual module, function, class, route, table, and service names from the codebase.
-   - Use subgraphs for logical boundaries.
-   - Use `[TAG]` text markers instead of emoji, for example `[CLI]`, `[API]`, `[DB]`, `[User]`, `[Service]`.
-   - Do not use emoji in Mermaid files. Mermaid CLI/Puppeteer rendering is unreliable with them.
-   - Keep Mermaid node ids ASCII and stable.
-   - Use pastel colors and readable text colors.
-   - Read `references/mermaid-patterns.md` for templates when choosing syntax.
+5. Mermaid ファイルを生成する。
+   - 既定の出力先はワークスペース内の `diagrams/`
+   - 図ごとに1つの `.mmd` ファイルを作る
+   - 必要なら日本語 / English の併記ラベルにする
+   - 実際のモジュール、関数、クラス、ルート、テーブル、サービス名を使う
+   - 論理境界は subgraph で表す
+   - emoji は使わず、`[CLI]`、`[API]`、`[DB]`、`[User]`、`[Service]` のようなタグを使う
+   - Mermaid の node id は ASCII で安定させる
+   - 読みやすいパステル色と文字色を使う
+   - 構文テンプレートが必要なら `references/mermaid-patterns.md` を読む
 
-6. Render PNGs when possible.
+6. 可能なら PNG をレンダリングする。
 
    ```bash
    python scripts/render_diagrams.py <output_dir> --scale 4
    ```
 
-   Run the bundled script from this skill directory, or copy/use it with an explicit path. It requires `mmdc` from `@mermaid-js/mermaid-cli`. If `mmdc` is unavailable, keep the `.mmd` files and report that PNG rendering was skipped.
+   スクリプトはこのスキルディレクトリから実行するか、明示パスで使う。`@mermaid-js/mermaid-cli` の `mmdc` が必要。使えない場合は `.mmd` を残し、PNG は未生成と報告する。
 
-7. Create an index for the generated artifacts.
-   - Add `diagrams/README.md` only as an output index for the generated diagrams.
-   - Include each diagram filename, what it shows, and what source evidence it is based on.
+7. 生成物の index を作る。
+   - `diagrams/README.md` は生成図の index としてのみ追加する
+   - 各図のファイル名、何を示すか、どのソース根拠に基づくかを書く
 
-## Accuracy Rules
+## 正確性ルール
 
-- Do not invent components just to make a complete-looking diagram.
-- Mark uncertain parts as inferred in diagram labels or the accompanying explanation.
-- Prefer fewer accurate diagrams over many shallow diagrams.
-- Cross-check sequence and data-flow diagrams against actual routes, handlers, commands, jobs, or process traces.
-- For ER diagrams, use real schema/model definitions. If the repository has no persistent data model, skip ER and explain why.
+- 見栄えのために存在しないコンポーネントを作らない
+- 不確かな部分は図ラベルまたは説明で inferred と明示する
+- 浅い図を大量に作るより、少数の正確な図を優先する
+- sequence と data-flow は実際の route、handler、command、job、処理トレースで照合する
+- ER 図は実スキーマまたはモデル定義に基づける。永続データモデルがない場合は省略し、理由を説明する
 
-## Resources
+## リソース
 
-- `scripts/render_diagrams.py`: batch-render `.mmd` files to PNG with Mermaid CLI.
-- `references/mermaid-patterns.md`: templates for C4, layered, component, data-flow, sequence, ER, state, deployment, and dependency diagrams.
+- `scripts/render_diagrams.py`: Mermaid CLI で `.mmd` を PNG にまとめてレンダリングする
+- `references/mermaid-patterns.md`: C4、layered、component、data-flow、sequence、ER、state、deployment、dependency のテンプレート
