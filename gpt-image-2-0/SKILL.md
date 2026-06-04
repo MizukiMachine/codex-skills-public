@@ -1,6 +1,6 @@
 ---
 name: gpt-image-2-0
-description: "OpenAI gpt-image-2を使った画像生成・編集、任意サイズの出力、プロンプト設計、複数画像参照、商品レンダー、コンセプトアート、アイコン、APIベースの画像ワークフローで使う。"
+description: "OpenAI gpt-image-2で画像生成・編集ワークフローを組む。任意サイズ、複数参照画像、透明背景、商品レンダー、コンセプトアート、API利用の相談で使う。"
 metadata:
   short-description: "OpenAI GPT Image 2の生成、編集、プロンプト、APIラッパー"
 ---

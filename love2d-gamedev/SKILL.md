@@ -1,6 +1,6 @@
 ---
 name: love2d-gamedev
-description: "LÖVE/Love2Dゲーム開発とiOSデプロイをエンドツーエンドで扱う。Love2Dプロジェクト（`main.lua`, `conf.lua`）、主要callback（`love.load`, `love.update`, `love.draw`）、ゲームプレイmechanics、graphics/animation/tiles/collision/audio、`.love`アーカイブのパッケージング、Love2DゲームをXcode iOSアプリへ統合する作業（bundle resources、touch controls、signing/build troubleshooting）で使う。"
+description: "LÖVE/Love2Dゲーム開発とiOSデプロイを扱う。main.lua/conf.lua、主要コールバック、ゲーム処理、アセット、.loveパッケージ化、Xcode統合で使う。"
 ---
 
 # Love2D Game Development

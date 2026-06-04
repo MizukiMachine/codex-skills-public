@@ -1,6 +1,6 @@
 ---
 name: aseprite-inference
-description: "Asepriteファイル（.ase/.aseprite、よくあるtypo .aes）から構造とmetadataを推定する。ヘッダー、フレーム、チャンク（layers、cels、tags、slices、palettes、tilesets）を解析し、duration/boundsを計算して、エンジンやツール向けJSONを生成する。"
+description: "Asepriteファイルからレイヤー、セル、タグ、パレットなどの構造を解析する。フレーム範囲や再生時間を推定し、エンジン向けJSONを作るときに使う。"
 metadata:
   short-description: "Asepriteファイルからmetadataを推定"
 ---

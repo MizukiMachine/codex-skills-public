@@ -1,6 +1,6 @@
 ---
 name: elevenlabs-tts
-description: "Node/Python/WebアプリでのElevenLabs text-to-speech統合を構築・トラブルシュートする。認証、音声/モデル選択、streamingとbatch生成、レイテンシ、フォールバック処理、安全なAPIキー構成を扱う。"
+description: "ElevenLabsの音声読み上げをNode/Python/Webアプリに統合する。認証、音声・モデル選択、ストリーミング、バッチ生成、レイテンシ対策で使う。"
 metadata:
   short-description: "ElevenLabs TTS実装フレームワーク"
 ---

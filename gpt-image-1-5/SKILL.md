@@ -1,6 +1,6 @@
 ---
 name: gpt-image-1-5
-description: "OpenAI gpt-image-1.5を使った画像生成リクエスト、プロンプト設計、透明背景アセット、スタイル制御イラスト、コンセプトアート、アイコン、Images API経由の画像生成で使う。"
+description: "OpenAI gpt-image-1.5で画像生成ワークフローを組む。透明背景、スタイル制御イラスト、コンセプトアート、アイコン、Images API利用の相談で使う。"
 metadata:
   short-description: "OpenAI GPT Image 1.5の生成、プロンプト、APIラッパー"
 ---

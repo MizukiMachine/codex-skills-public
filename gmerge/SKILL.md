@@ -1,6 +1,6 @@
 ---
 name: gmerge
-description: "現在の作業元ブランチを `git merge --no-ff` で `develop` にマージする。gm、$gm、ブランチのマージ、developへのマージ、git merge、マージして、developにマージ、ブランチをマージなどを求められたときに使う。mainまたはmasterへの直接マージはブロックする。"
+description: "現在の作業ブランチをdevelopへ --no-ff でマージする。gm、$gm、ブランチのマージ、developへのマージを頼まれたときに使う。main/masterへの直接マージは止める。"
 ---
 
 # Git Merge Skill

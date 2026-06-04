@@ -1,6 +1,6 @@
 ---
 name: favicon-generator
-description: "洗練されたfavicon、アプリアイコン、ブラウザタブアイコン、サイトアイコン、PWAアイコン一式を生成する。新規favicon、差し替え用favicon、フレームワークのアイコンmetadata、既存プロジェクトのfaviconアイデンティティレビューが必要なときに使う。Python CLI、ブラウザプレビュー、レイヤー効果ガイド、テンプレート、Lucideアイコン、文字モノグラム、絵文字モードを含む。"
+description: "Webサイトやアプリ向けのfavicon・PWAアイコン一式を生成する。既存ブランドに合わせた差し替え、ブラウザプレビュー、フレームワークのメタデータ更新で使う。"
 metadata:
   short-description: "favicon一式を生成"
 ---

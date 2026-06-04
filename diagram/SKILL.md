@@ -1,6 +1,6 @@
 ---
 name: diagram
-description: "コードベース解析からMermaidでソフトウェアのアーキテクチャ図や挙動図を生成する。architecture diagram、system diagram、C4 model、layered architecture、component diagram、data flow、sequence diagram、ER diagram、state diagram、deployment diagram、dependency diagram、または「アーキテクチャ図」「構成図」「シーケンス図」「ER図」「C4モデル」「diagram」を求められたときに使う。"
+description: "コードベース解析からMermaidの図を作る。アーキテクチャ図、構成図、シーケンス図、ER図、状態図、データフロー図を求められたときに使う。"
 ---
 
 # Architecture Diagram Generator

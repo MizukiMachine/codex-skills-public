@@ -1,6 +1,6 @@
 ---
 name: mcp-server-configurator
-description: "MCPサーバーのドキュメントやURLから、Codex用の正しい`mcp_servers`設定（stdioまたはhttp）を作成する。安全な認証設定と検証手順を含む。"
+description: "MCPサーバーのドキュメントやURLからCodex用のmcp_servers設定を作る。stdio/http、認証、検証手順を整理するときに使う。"
 metadata:
   short-description: "Codex向けMCPサーバー設定"
 ---
