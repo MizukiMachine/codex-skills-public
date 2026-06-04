@@ -1,6 +1,6 @@
 ---
 name: og-image-creator
-description: "Webプロジェクト向けに、ブランドに合ったOpen Graph画像とSNSプレビュー画像を生成、レビュー、統合する。OG画像、SNSカード、`og:image` や `twitter:image` metadataの追加、ソーシャル共有画像の監査、Next.js/Astro/React/Gatsby/static HTML/blog/docs/product/landing page向けのルート対応OG画像パイプライン作成を求められたときに使う。"
+description: "Webプロジェクト向けのOpen Graph画像とSNSプレビュー画像を作成・統合する。ブランド反映、メタデータ追加、共有画像の監査、ルート別OG画像生成で使う。"
 ---
 
 # OG Image Creator

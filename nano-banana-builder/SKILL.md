@@ -1,6 +1,6 @@
 ---
 name: nano-banana-builder
-description: "Google GeminiのNano Banana / Nano Banana Pro画像生成APIを使ったフルスタックWebアプリを構築する。Next.jsの画像ジェネレーター、エディター、ギャラリー、gemini-2.5-flash-imageまたはgemini-3-pro-image-previewモデルを統合するWebアプリで使う。Reactコンポーネント、server actions、API routes、storage、rate limiting、本番デプロイパターンを扱う。"
+description: "Nano Banana/Gemini画像生成APIを使うフルスタックWebアプリを構築する。Next.jsの生成・編集・ギャラリー、APIルート、ストレージ、レート制限、本番運用で使う。"
 metadata:
   short-description: "Gemini画像アプリ（Nano Banana）を構築"
 ---

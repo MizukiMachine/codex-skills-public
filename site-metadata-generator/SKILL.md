@@ -1,6 +1,6 @@
 ---
 name: site-metadata-generator
-description: "Webプロジェクトのsite metadataを生成、監査、実装する。SEO meta tag、Open Graph/Twitter card、canonical URL、robots.txt、sitemap、Schema.org JSON-LDを含む。SEO改善、metadata追加、ソーシャル共有プレビュー作成、`sitemap.xml` 生成、構造化データ追加、crawlability監査、Next.js/Astro/Gatsby/React/Vue/Nuxt/static HTMLでのmetadata実装を求められたときに使う。"
+description: "WebプロジェクトのSEO・SNS向けメタデータを生成・監査・実装する。Open Graph、Twitterカード、canonical、robots、sitemap、構造化データで使う。"
 ---
 
 # Site Metadata Generator

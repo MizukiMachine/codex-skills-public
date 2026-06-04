@@ -1,6 +1,6 @@
 ---
 name: retro-diffusion
-description: "Retro Diffusionを使ったピクセルアート画像生成、img2img編集、スプライトシート、参照画像からのプラットフォーマー歩行サイクル・ターンアラウンド・アクションシートなどのアニメーション実験で使う。"
+description: "Retro Diffusionでピクセルアート画像やスプライトシートを生成・編集する。参照画像から歩行サイクルやターンアラウンドなどのアニメーション素材を試すときに使う。"
 metadata:
   short-description: "Retro Diffusionの画像・アニメーションワークフロー"
 ---

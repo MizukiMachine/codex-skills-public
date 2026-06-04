@@ -1,6 +1,6 @@
 ---
 name: phaser-gamedev
-description: "Phaser 3またはPhaser 4の2Dブラウザゲームを構築、デバッグ、最適化、移行する。Phaser scene、game config、spritesheet、animation、input、Arcade/Matter physics、Tiled tilemap、UI panel、nine-slice、performance、asset pipeline、Phaser 3/4互換性を扱うときに使う。"
+description: "Phaser 3/4の2Dブラウザゲームを構築・デバッグ・最適化する。シーン、入力、物理、タイルマップ、UI、アニメーション、移行相談で使う。"
 ---
 
 # Phaser Game Development

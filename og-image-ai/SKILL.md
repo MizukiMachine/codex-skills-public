@@ -1,6 +1,6 @@
 ---
 name: og-image-ai
-description: "OpenAI GPT ImageモデルによるAIイラストと、Pillowによる決定的なテキスト合成を組み合わせて、Open Graph画像やSNSプレビュー画像を生成する。創造的/テーマ性のあるOG画像、イラスト入りブログ/記事カード、製品/ランディングページのSNSカード、`og-analysis.json` からのバッチ生成、または決定的な `og-image-creator` パイプラインのAI生成版が必要なときに使う。"
+description: "AIイラストとPillowのテキスト合成でOpen Graph画像を生成する。記事カード、製品ページ、SNSプレビュー、og-analysis.jsonの一括処理で使う。"
 metadata:
   short-description: "AIイラストのOG画像を生成"
 ---

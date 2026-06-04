@@ -1,6 +1,6 @@
 ---
 name: x-api-builder
-description: Posts、Users、Likes、Bookmarks、Likes Streamsを含む本番向けX API統合を構築する。正しい認証/スコープ、field expansion戦略、stream partition処理、TypeScript XDKマッピング、従量課金管理を扱う。
+description: "X APIを使った本番向け統合を構築する。投稿、ユーザー、いいね、ブックマーク、ストリーム、認証スコープ、フィールド展開、従量課金管理で使う。"
 metadata:
   short-description: "本番向けX API統合ビルダー"
 ---

@@ -1,6 +1,6 @@
 ---
 name: capture
-description: "セッションのプロンプト、計画、学びを標準ディレクトリに保存する。タスクのまとめ、計画後、作業完了後、ユーザーがsave/capture/logを求めたときに使う。"
+description: "セッションの要約や学びを標準ディレクトリへ保存する。ユーザーにsave/capture/logや作業記録を頼まれたときに使う。"
 ---
 
 # Capture

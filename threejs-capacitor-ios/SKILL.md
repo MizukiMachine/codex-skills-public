@@ -1,6 +1,6 @@
 ---
 name: threejs-capacitor-ios
-description: "ViteとSwift Package Managerを使ったCapacitor iOS上のThree.jsアプリを構築・出荷する。GLTF読み込み、assets_indexアニメーションUI、OrbitControlsのマウス/タッチ割り当て、WKWebViewライフサイクル、iOS sync/run/signingのトラブルシュートを扱う。"
+description: "Capacitor iOS上のThree.jsアプリをViteとSwift Package Managerで構築・出荷する。GLTF表示、操作UI、WKWebView、iOS同期・署名まわりの不具合調査で使う。"
 metadata:
   short-description: "Three.js + Capacitor iOS ワークフロー"
 ---

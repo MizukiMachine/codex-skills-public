@@ -1,6 +1,6 @@
 ---
 name: blender-mcp-sprite-renderer
-description: "Blender MCPでMixamoまたはFBXのキャラクターアニメーションを、ゲーム用2DスプライトPNGシーケンスとしてレンダリングする。ただしインポート/レンダリング前に、必ず画像解像度の選択または確認とキャプチャ規則の確認を行う。CodexにBlender/Blender MCPでゲーム用の横視点アニメーションフレームをキャプチャ、レンダリング、一括書き出し、整列、正規化、プレビュー、再レンダリングさせる依頼で使う。特に1024x1024透明PNG、一定のキャラクターサイズ、初期フレームアンカー、カメラ構図、左右向き、ループ/単発アクションに対応する。"
+description: "Blender MCPでMixamo/FBXキャラクターを2Dゲーム用スプライトPNGとしてレンダリングする。解像度とキャプチャ規則を確認し、横視点フレームの書き出し、整列、正規化、プレビューに使う。"
 ---
 
 # Blender MCP Sprite Renderer

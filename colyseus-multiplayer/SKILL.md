@@ -1,6 +1,6 @@
 ---
 name: colyseus-multiplayer
-description: "Colyseusでauthoritative multiplayerゲームを構築する。room設計、schema state sync、matchmaking、reconnect、auth、deployment、Phaser/Three.js/PixiJS/ReactまたはカスタムWebクライアントとのブラウザエンジン統合を扱う。"
+description: "Colyseusでサーバー権威型のマルチプレイヤーゲームを構築する。ルーム設計、Schema状態同期、マッチメイキング、再接続、認証、デプロイ、Webクライアント統合で使う。"
 metadata:
   short-description: "Colyseusの設計、状態同期、デプロイ、エンジン統合"
 ---

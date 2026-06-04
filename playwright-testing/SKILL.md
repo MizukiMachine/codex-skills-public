@@ -1,6 +1,6 @@
 ---
 name: playwright-testing
-description: "フロントエンドテストを計画・実装・デバッグする。unit/integration/E2E/visual/a11y、Playwright MCPブラウザ自動化、Vitest/Jest/RTL、flaky test調査、CI安定化、Phaserなどcanvas/WebGLゲームの決定的入力とscreenshot/state assertionsを扱う。トリガー: \"test\", \"E2E\", \"flaky\", \"visual regression\", \"Playwright\", \"game testing\"。"
+description: "フロントエンドのテストを計画・実装・デバッグする。Playwright、Vitest/Jest、アクセシビリティ、視覚回帰、不安定テスト調査、canvas/WebGLゲームテストで使う。"
 metadata:
   short-description: "フロントエンドテスト: Playwright、Vitest、flaky調査、ゲームテスト"
 ---
