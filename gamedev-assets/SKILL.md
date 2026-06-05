@@ -104,6 +104,9 @@ asset index / manifest は game art の single source of truth。centralized loa
     "root": "assets/game",
     "defaultFps": 10
   },
+  "backgrounds": {
+    "clouds": { "path": "Backgrounds/clouds.png", "width": 256, "height": 128 }
+  },
   "tilesets": {
     "desert": {
       "path": "Tilesets/desert.png",
@@ -115,10 +118,17 @@ asset index / manifest は game art の single source of truth。centralized loa
       "rows": 6
     }
   },
+  "images": {
+    "deco": {
+      "bush": { "path": "Deco/bush.png", "width": 32, "height": 16 }
+    }
+  },
   "spritesheets": {
     "enemies": {
       "chicken": {
         "path": "Enemies/chicken.png",
+        "width": 224,
+        "height": 64,
         "frameWidth": 32,
         "frameHeight": 32,
         "columns": 7,
@@ -363,15 +373,27 @@ outputs:
 
 ## Tilemap Debugging (Love2D test scenes)
 
-engine 内で tile sizes / grids が合わない場合は repo built-in Love2D scenes を使う。
+engine 内で tile sizes / tileset grids が合わない場合は、この repo の built-in Love2D scenes で検証する:
+
+- tileset grid math（tileW/tileH、columns/rows、margin/spacing）
+- cursor が keypress ごとに正確に 1 cell 動くこと
+- 保存した `.lua` map が同一に load し直せること
+
+repo root から実行:
 
 ```bash
 love .
 ```
 
-- `1` Tileset Inspector
-- `2` Tilemap Editor
-- `Ctrl+S` save、`Ctrl+L` load、`F5` / `F9` も可
+Controls:
+
+- `1` Tileset Inspector: arrows で selection cell を1つずつ移動、`[`/`]` で tileset 切替、`g` で grid、`+/-` で zoom
+- `2` Tilemap Editor:
+  - arrows で map cursor を1 cell ずつ移動
+  - `WASD` で tileset sheet 上の palette（選択 tile）を移動
+  - `Space/Enter` で paint、`X/Backspace` で erase
+  - `Ctrl+S` quick-save、`Ctrl+L` quick-load（`F5`/`F9` も可）
+  - 保存した map は Love の save directory 内の `maps/` に出力される（保存後に表示）
 
 ## Tools
 
@@ -411,8 +433,13 @@ spritesheet grid 内の visible alpha bounds を audit し、baseline-corrected 
 - engine origins は正しいが visual foot placement が違う
 
 ```bash
+# frame ごとの alpha bounds、visible bottom pixel、必要な shift を報告する。
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py public/assets/kaede --frame 256x256 --json tmp/kaede-baselines.json
+
+# visible な feet が y=255 に来る修正コピーを書き出す。
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py public/assets/kaede --frame 256x256 --target-bottom 255 --out-dir tmp/kaede-baseline-fixed
+
+# source が idle/standing 想定のときは、任意で horizontal center も正規化する。
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py public/assets/kaede/idle-n.png --frame 256x256 --target-bottom 255 --target-center-x 128 --out tmp/idle-n-fixed.png
 ```
 

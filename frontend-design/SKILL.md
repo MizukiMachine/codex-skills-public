@@ -36,12 +36,12 @@ product、audience、workflow に合う意図的な frontend code を作る。�
 ## Design Contracts
 
 - local design system を source of truth にする。Storybook、Figma notes、`DESIGN.md`、component docs、shadcn config、CSS variables、theme tokens があれば先に確認する
-- design system がなければ compact token set を先に定義する: color roles、type scale、spacing、radius、elevation、motion、interaction states
+- design system がなければ compact token set を先に定義する: color roles、type scale、spacing、radius、elevation、motion、interaction states。CSS variables、Tailwind theme values、または project の equivalent で実装する
 - scope は requested surface に閉じる。既存 stack で対応できる限り framework/router/styling system/UI library を置き換えない
 - canvas、3D、game、map、video、editor surfaces では visual layer と DOM UI を1つの composition として扱う。safe zones、z-index、pointer events、focus、resize rules を先に決める
 - 可能な範囲で WCAG 2.2 AA を目指す: semantic structure、labels、keyboard flow、focus、contrast、target size、error identification、reduced motion
 - inspiration は local principles に変換する。proprietary brand / UI / asset set は user が所有または提供している場合だけ使う
-- typography、motion、density、palette、spacing の targeted refinement では、その dimension に絞り、無関係な structure は保つ
+- typography、motion、density、palette、spacing の targeted refinement では、その dimension に絞り、直接 conflict しない限り無関係な structure は保つ
 
 ## Discovery First
 
@@ -75,9 +75,9 @@ greenfield page/app では workspace が示す最も単純な stack を選ぶ。
 1. screen job と design direction を短い phrase で定義する。surface type、audience、density、palette、typography、imagery、motion、product-specific move を含める
 2. token contract を合わせる / 作る。color roles、type scale、spacing、radius、elevation、focus ring、disabled、motion rules を決める
 3. interaction surface を map する: navigation、actions、controls、data states、feedback、keyboard、touch、responsive behavior
-4. canvas/3D/media/map/game/editor では primary visual layer を先に確保し、HUD / rails / toolbars / modals / status bars を safe zones に置く
+4. canvas/3D/media/map/game/editor では primary visual layer を先に確保し、HUD / rails / toolbars / modals / status bars を stable な safe zones に置き、どの layer が pointer/keyboard input を持つか決める
 5. project native style で実装する。local components、CSS variables、Tailwind utilities、icon libraries、accessibility primitives、framework patterns を再利用する
-6. 適切な visual assets を使う。product、venue、person、object、game、website experiences には real/generated visual signals が必要
+6. 適切な visual assets を使う。product、venue、person、object、game、website experiences には abstract placeholder ではなく real/generated visual signals が必要。raster assets が必要で無い場合は、可能なら image-generation workflow を使う
 7. hover、focus-visible、active、disabled、loading、empty、error、selected、drag/resize などの states を polish する
 8. aspect ratio、min/max、grid tracks、container queries、fixed control dimensions などで layout を stable にする
 9. desktop/mobile で視覚確認し、overlap、clip、bad wrap、layout shift、blank rendering を修正する
@@ -88,9 +88,9 @@ greenfield page/app では workspace が示す最も単純な stack を選ぶ。
 |---------|-------------|
 | SaaS, CRM, admin, finance, operations | quiet、dense、scan-friendly、restrained color、tables/forms、predictable navigation |
 | Creative tool or editor | working canvas、compact controls、icon buttons + tooltips、stable toolbars、no marketing copy |
-| Canvas, 3D, map, media app | primary visual layer first、safe-zone DOM controls、pointer-event contract、responsive framing |
+| Canvas, 3D, map, media app | primary visual layer first、safe-zone DOM controls、pointer-event contract、responsive framing、readable overlays |
 | Consumer app | expressive brand moments、warm feedback、clear task progression、mobile ergonomics |
-| Landing/product page | first viewport で brand/product/place/person を明示し、next section を少し見せる |
+| Landing/product page | first viewport で brand/product/place/person を明示し、next section を少し見せる。generic split hero cards を避ける |
 | Portfolio/editorial/culture | strong typography、art direction、image rhythm、intentional whitespace |
 | Game/playful | immediate playable surface、readable HUD、custom assets、responsive input、pause/game-over/settings |
 
@@ -98,24 +98,26 @@ greenfield page/app では workspace が示す最も単純な stack を選ぶ。
 
 generic "modern" ではなく specific visual concept を選ぶ。quiet でも loud でも、surface に合って deliberate であること。
 
-- **Brutally minimal**: sparse structure、precise spacing、strong type contrast
-- **Editorial / magazine-like**: display type、image rhythm、asymmetric pacing
+product が支えられる場合は強い方向性を使う:
+
+- **Brutally minimal**: sparse structure、precise spacing、strong type contrast、few effects
+- **Editorial / magazine-like**: expressive display type、image rhythm、asymmetric pacing
 - **Industrial / technical**: exposed grids、utility color、monospaced accents、dense controls
-- **Luxury / refined**: restrained palette、quality imagery、subtle motion
-- **Playful / toy-like**: saturated accents、tactile controls、bouncy feedback
+- **Luxury / refined**: restrained palette、high-quality imagery、subtle motion、careful proportion
+- **Playful / toy-like**: saturated accents、tactile controls、bouncy feedback、custom assets
 - **Retro-futuristic / solarpunk / cyberpunk / art deco / Memphis / brutalist**: product に合うか user が求めた場合だけ
 
-user が aesthetic を指定したら、color、typography、layout rhythm、texture、motion、component detailing をその theme に lock する。
+Theme-locking rule: user が aesthetic を指定したら、color、typography、layout rhythm、texture、motion、component detailing をその theme に lock する。実装の複雑さは concept に合わせる ― maximal な方向性はより richer な layer と motion を要し、refined で minimal な方向性はより厳格な spacing、contrast、抑制を要する。
 
 ## Typography / Theme
 
-- typography を design system の中核として扱う
-- existing fonts がある場合は再利用する。greenfield でも Inter/Roboto/Arial/system に無自覚に寄せない
+- typography を design system の中核として扱い、afterthought にしない。display、body、numeric、code styles を意図的に選ぶ
+- project に brand や performance budget があれば existing fonts を再利用する。greenfield では、product が utilitarian neutrality を求めない限り Inter/Roboto/Arial/system fonts に無自覚に寄せない
 - serif + geometric sans、display + restrained body、mono accents + readable UI face など、必要なら contrast を作る
-- heroes/editorial では weight/scale contrast、dashboards/editors では compact/stable type scale
+- heroes/editorial surfaces/brand moments では strong な weight/scale contrast、dashboards/editors/operational tools では compact/stable type scale
 - font loading は project の仕組みに合わせる。offline/privacy/performance が問題なら remote dependency を避ける
 - colors、radius、shadow、type scale、focus、disabled、motion は variables/tokens にする
-- palette は domain、materials、imagery、aesthetic から引く。single hue family に寄せない
+- palette は domain、product materials、imagery、named aesthetic から引く。dominant roles + sharp accents を使い、臆病な evenly distributed palettes を避ける
 
 ## Targeted Refinement
 
@@ -136,20 +138,20 @@ user が aesthetic を指定したら、color、typography、layout rhythm、tex
 - forms は persistent labels、helper text、inline validation、submit feedback、destructive confirmation
 - dialogs/popovers/menus/drawers は focus、Escape、outside click、scroll lock、return focus を管理
 - keyboard/touch を first-class に扱う。visible focus、logical tab order、touch targets、no hover-only affordances
-- layered canvas/HUD では passive overlay を `pointer-events: none` にし、controls だけ `pointer-events: auto`
+- layered canvas/HUD では passive overlay region を `pointer-events: none` にし、controls だけ `pointer-events: auto` に戻す。decorative layers が gameplay、map、editor、camera input を奪わないようにする
 
 ## Visual Rules
 
 - domain に合う aesthetic にする。operational software を marketing hero にしない
-- clear aesthetic direction に commit し、必要な強度で実装する
-- distinctive typography は使えるが、existing font loading/performance を尊重する
-- palettes は contrast、purposeful accents、semantic roles を持たせる
-- familiar tool actions は icons を優先し、project icon library を使う
+- clear aesthetic direction に commit し、domain に応じた restraint または intensity で実装する。minimal designs は precision を、maximal designs は orchestration を要する
+- distinctive typography は使えるが、existing font loading/performance を尊重する。無関係な project 間で同じ popular choices に収束させない
+- palettes は real contrast、purposeful accents、semantic roles を持たせる。1つの hue family だけで作る one-note themes を避ける
+- familiar な symbol がある tool actions は icons を優先し、hand-drawn inline SVG ではなく project の icon library（多くは Lucide）を使う
 - modes は segmented controls、booleans は toggles/checkboxes、numbers は sliders/inputs、views は tabs、options は menus
-- HUDs/dashboards/previews/counters/meters/keycaps は bounded dimensions、tabular numerals、stable viewBoxes、wrapping rules
+- HUDs/dashboards/previews/counters/meters/keycaps は fixed/bounded dimensions、tabular numerals、stable SVG/canvas viewBoxes、localization と long labels に耐える wrapping rules
 - cards は repeated items、modals、framed tools に限定する。cards inside cards や floating page sections を避ける
 - card radii は design system が求めない限り控えめ
-- motion は meaningful state change や spatial orientation に使い、散らばった animation を避ける
+- motion は meaningful state change、spatial orientation、high-impact reveals に使い、workflow を邪魔する散らばった animation を避ける
 - visible in-app text で features / shortcuts / styling を説明しない。onboarding が本当に必要な場合だけ
 - mobile/desktop で text が container に収まるようにする。viewport-width font scaling や negative letter spacing で無理に演出しない
 
@@ -162,7 +164,7 @@ user が aesthetic を指定したら、color、typography、layout rhythm、tex
 - primary task completion が明確で、不要に複数 primary actions を競合させない
 - design tokens / local primitives を使い、one-off hardcode を避ける
 - interactive/data-driven surface では loading、empty、error、disabled、selected、focused、active、hover、mobile、long content を扱う
-- accessibility basics: semantic elements、labels、contrast、focus-visible、keyboard、reduced motion、screen-reader names
+- accessibility basics: semantic elements、labels、contrast、focus-visible、keyboard operation、reduced motion、icon-only controls の screen-reader names
 - long names、localized text、many/few items、missing images、slow network、narrow screens に耐える
 - assets、fonts、animation、shadows、effects が readability/performance を損なわない
 
@@ -170,58 +172,58 @@ user が aesthetic を指定したら、color、typography、layout rhythm、tex
 
 **generic AI aesthetic**
 
-問題: purple-blue gradients、glass cards、floating blobs、generic typography は domain signal を弱め、どの product にも見える。
-改善: product domain、existing brand、workflow density から visual language を作る。
+問題: purple-blue gradients、glass cards、floating blobs、同じ rounded cards、generic な Inter/Roboto/system typography、stock-like copy、predictable layouts、domain signal なし。
+改善: まず product context を抽出し、specific visual concept を選んで、layout、typography、assets、interaction states、copy density を通じて実装する。
 
 **theme as decoration**
 
-問題: aesthetic 名だけで color を変えても、layout、type、motion、interaction が product と結びつかない。
-改善: typography、spacing、component shape、state behavior まで theme concept に合わせる。
+問題: aesthetic 名を付けても color だけ変え、default の layout、type、motion、component shapes はそのままにする。
+改善: palette、typography、spacing rhythm、imagery、texture、motion、control details にわたって theme を lock する。
 
 **uncontrolled maximalism**
 
-問題: effects、custom cursors、animations が task と競合し、readability や input を邪魔する。
-改善: primary workflow を優先し、motion / effects は state feedback や hierarchy に必要な範囲に絞る。
+問題: 多数の effects、patterns、overlaps、custom cursors、animations を足して task と競合させる。
+改善: high-impact な expressive move を1〜2個だけ選び、interaction、readability、performance を保つ。
 
 **over-broad refinement**
 
-問題: typography、color、motion、mobile polish の依頼で全体を作り替えると、既存の構造や user intent を壊す。
-改善: requested surface と affected components に scoped changes を入れる。
+問題: user が typography、color、motion、mobile polish だけを依頼したのに page 全体を作り替える。
+改善: 依頼された design dimension に絞り、それを deeply に調整し、無関係な structure はそのまま残す。
 
 **decorative dashboard**
 
-問題: oversized hero、ornamental cards、weak tables/forms は operational tool の scanning と repeated action を妨げる。
-改善: dense but organized information、clear controls、predictable navigation を優先する。
+問題: operations 画面に oversized hero text、ornamental cards、sparse fake metrics、weak tables/forms。
+改善: navigation、filtering、scanning、comparison、status、dense controls、fast repeated actions を優先する。
 
 **app 依頼に marketing page を返す**
 
-問題: usable workflow が first viewport にないと、user は実際の tool/game/editor を使えない。
-改善: landing copy ではなく actual app/game/editor/workflow を初期画面に置く。
+問題: tool を提供せず tool を説明する landing page。
+改善: usable な app、game、editor、workflow を first viewport に置く。explanatory content は actual task に役立つ場合だけ追加する。
 
 **HUD pasted over a scene**
 
-問題: safe space なしの overlay は subject を隠し、pointer/keyboard input を妨げる。
-改善: canvas composition、HUD safe areas、pointer routing、z-index を一体で設計する。
+問題: floating panels、status bars、controls を safe space を確保せず canvas の後に配置するため、subject を隠したり、誤って input を奪ったり、短い viewport で崩れたりする。
+改善: canvas/media framing と DOM HUD を一体で設計する。safe zones を確保し、pointer events を意図的に route し、pause/settings/error states を test し、overlay があるときは camera や visual composition を調整する。
 
 **unstable responsive design**
 
-問題: clipping、hover での size change、mobile overlap、ideal content length 依存は production UI を壊す。
-改善: stable dimensions、responsive constraints、wrapped text、mobile screenshots で検証する。
+問題: text clipping、hover で buttons が大きくなる、controls の size 変化、mobile overlap、ideal content length への依存。
+改善: stable dimensions、responsive constraints、wrapping rules、realistic な viewport sizes での screenshot checks を使う。
 
 **token drift**
 
-問題: existing tokens があるのに hardcoded colors/spacing/radii/shadows を足すと design system が崩れる。
-改善: existing tokens / CSS variables / theme scale を使い、必要な token だけ追加する。
+問題: established tokens と primitives がある project に hardcoded colors、spacing、radii、shadows、custom controls を足す。
+改善: existing tokens を拡張するか existing primitives を組み合わせる。例外が必要なら local に留め、理由を説明する。
 
 **incomplete state surface**
 
-問題: happy path の static mock data だけでは loading、empty、error、disabled、selected、focused の UX が壊れる。
-改善: expected states を実装し、controls と feedback を stateful にする。
+問題: static mock data で happy path だけを設計する。
+改善: loading、empty、error、disabled、focused、long-content、mobile の states を実装するか、少なくとも考慮する。
 
 **unverified polish**
 
-問題: page を開かず CSS changes を出すと overlap、contrast、responsive failures を見逃す。
-改善: browser で rendering を確認し、desktop/mobile screenshot または smoke test を残す。
+問題: page を開かずに CSS changes を ship する。
+改善: app を実行し、desktop/mobile screenshot を確認し、interactions を test し、見える defects を修正する。
 
 ## Review Mode
 
