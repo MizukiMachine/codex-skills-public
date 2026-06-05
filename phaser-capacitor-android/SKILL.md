@@ -125,10 +125,12 @@ tilemaps、atlases、spritesheets、physics、general gameplay は `phaser-gamed
 - major rewrite 前に `game.loop.actualFps`、active objects、physics bodies、tweens、timers、particles、loader/cache size を測定
 - object churn、collision explosions、oversized textures、culling を先に直す
 - every frame で sprites/text/graphics/tweens/sounds を作らない
+- repeat spawns には object pools を使う
 - scene shutdown で timers、listeners、subscriptions を止める
-- loader errors を surface する
+- Phaser loader errors を listen し、失敗した key または URL を surface する
 - app backgrounding で simulation/audio を pause
-- Android では WebGL context loss を想定する
+- Android では WebGL context loss を想定する。特に custom pipelines、render textures、large textures で起きやすい
+- touch、orientation、audio、performance が重要な場合は real device または emulator で app を検証する
 
 ### Capacitor Android Integration
 

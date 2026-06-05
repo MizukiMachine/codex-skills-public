@@ -38,6 +38,8 @@ Codex は既にかなり賢いという前提で、Codex がまだ持ってい�
 - Medium freedom: 推奨 pattern はあるが多少の variation が必要な場合。pseudocode や parameter 付き script が向いている。
 - Low freedom: 操作が壊れやすく、順序や一貫性が重要な場合。具体的な script と少数 parameter が向いている。
 
+Codex が経路を進む様子をイメージするとよい。崖に挟まれた狭い橋には specific な guardrail（low freedom）が要り、開けた野原なら多くの route を選べる（high freedom）。
+
 ### Protect Validation Integrity
 
 subagent が使える環境では、現実的なタスクでスキルが機能するか、疑わしい問題が本当にあるかを検証するために subagent を使ってよい。目的は別エージェントが事前に漏れた答えを再構成できるかではなく、スキルが一般化するかを知ることである。
@@ -95,7 +97,7 @@ skill-name/
 Codex が作業中に必要に応じて読む documentation や reference material を入れる。
 
 - 例: database schema、API documentation、domain knowledge、company policy、detailed workflow guide。
-- 大きい file は `SKILL.md` に検索 pattern や読むべき箇所を示す。
+- 大きい file（10k words 超）は `SKILL.md` に grep 検索 pattern を含める。
 - 情報は `SKILL.md` か references のどちらか一方に置く。重複を避ける。
 - `SKILL.md` には core workflow と essential instruction を残し、詳細な schema や例は references に移す。
 
@@ -121,17 +123,17 @@ context に読むためではなく、Codex が output を作るときに使う 
 
 スキルは context を効率的に使うため、3段階で読み込む。
 
-1. Metadata (`name` + `description`): 常に context にある。
-2. `SKILL.md` body: スキルが trigger されたときに読む。
-3. Bundled resources: Codex が必要と判断したときだけ読む、または script として実行する。
-
-`SKILL.md` body は essentials に絞り、500行未満を目安にする。長くなりそうな場合は別 file に分ける。分割した file は `SKILL.md` から直接参照し、いつ読むべきかを明確に書く。
-
-複数の variation、framework、option を扱うスキルでは、core workflow と selection guidance だけを `SKILL.md` に残し、variant-specific detail は reference file に移す。
+1. Metadata (`name` + `description`): 常に context にある（約100 words）。
+2. `SKILL.md` body: スキルが trigger されたときに読む（5k words 未満）。
+3. Bundled resources: Codex が必要と判断したときだけ読む。script は context に読み込まず実行できるため上限なし。
 
 #### Progressive Disclosure Patterns
 
-Pattern examples:
+`SKILL.md` body は essentials に絞り、context bloat を避けるため500行未満にする。上限に近づいたら別 file に分ける。分割した file は `SKILL.md` から直接参照し、いつ読むべきかを明確に書く。読み手がその存在と使いどころを把握できるようにすることが重要。
+
+**Key principle:** 複数の variation、framework、option を扱うスキルでは、core workflow と selection guidance だけを `SKILL.md` に残し、variant-specific detail（patterns、examples、configuration）は reference file に移す。
+
+**Pattern 1: references を持つ high-level guide**
 
 ```markdown
 # PDF Processing
@@ -148,22 +150,62 @@ Extract text with pdfplumber:
 - **Examples**: See [EXAMPLES.md](EXAMPLES.md) for common patterns
 ```
 
-domain や framework ごとに参照を分ける場合:
+Codex は必要なときだけ FORMS.md、REFERENCE.md、EXAMPLES.md を読む。
+
+**Pattern 2: domain ごとの構成**
+
+複数 domain を持つスキルでは、無関係な context を読まないよう domain ごとに整理する:
 
 ```text
 bigquery-skill/
-├── SKILL.md
-└── references/
-    ├── finance.md
-    ├── sales.md
-    ├── product.md
-    └── marketing.md
+├── SKILL.md (overview and navigation)
+└── reference/
+    ├── finance.md (revenue, billing metrics)
+    ├── sales.md (opportunities, pipeline)
+    ├── product.md (API usage, features)
+    └── marketing.md (campaigns, attribution)
 ```
 
-guideline:
+user が sales metrics を聞いたら、Codex は sales.md だけを読む。
 
-- 深い参照の入れ子を避ける。reference file は `SKILL.md` から直接 link する。
-- 100行を超える reference file には、preview で全体像が分かるよう冒頭に目次を置く。
+同様に、複数の framework や variant を扱うスキルは variant ごとに整理する:
+
+```text
+cloud-deploy/
+├── SKILL.md (workflow + provider selection)
+└── references/
+    ├── aws.md (AWS deployment patterns)
+    ├── gcp.md (GCP deployment patterns)
+    └── azure.md (Azure deployment patterns)
+```
+
+user が AWS を選んだら、Codex は aws.md だけを読む。
+
+**Pattern 3: conditional details**
+
+basic content を見せ、advanced content へ link する:
+
+```markdown
+# DOCX Processing
+
+## Creating documents
+
+Use docx-js for new documents. See [DOCX-JS.md](DOCX-JS.md).
+
+## Editing documents
+
+For simple edits, modify the XML directly.
+
+**For tracked changes**: See [REDLINING.md](REDLINING.md)
+**For OOXML details**: See [OOXML.md](OOXML.md)
+```
+
+Codex は user がその機能を必要とするときだけ REDLINING.md や OOXML.md を読む。
+
+**guideline:**
+
+- **深い参照の入れ子を避ける**: reference file は `SKILL.md` から1階層に保ち、すべて `SKILL.md` から直接 link する。
+- **長い reference file は構造化する**: 100行を超える file には、preview 時に全体像が分かるよう冒頭に目次を置く。
 
 ## Skill Creation Process
 

@@ -108,7 +108,7 @@ default output contract:
 2. remaining preflight questions を聞き、回答を待つ
 3. resolution、PNG transparency、frame count、views、side axis、alignment、loop/action handling、temporary-scene behavior を含む final config を restate し、final start confirmation を取る
 4. Blender MCP が reachable か確認。不可なら local MCP addon/script 付きで Blender を起動して retry
-5. FBX files を identify し、action ではなく character で group 化する
+5. FBX files を identify し、action ではなく character で group 化する。例: すべての `Zombie *.fbx` を1グループ、すべての `Sword And Shield *.fbx` を別グループ
 6. selected rule に従い clip を `loop` / `action` に分類
 7. user が承認した後だけ `references/job-config.md` に従い jobs JSON を作る
 8. final start confirmation 後だけ `scripts/render_aligned_sprites.py --jobs-file <jobs.json>` を実行
@@ -168,9 +168,11 @@ output_dir/
       right_view/
         action_name_right_view_0001.png
         ...
+        action_name_right_view_0016.png
       left_view/
         action_name_left_view_0001.png
         ...
+        action_name_left_view_0016.png
 ```
 
 ## Example Mapping

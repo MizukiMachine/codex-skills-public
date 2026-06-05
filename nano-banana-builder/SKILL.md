@@ -54,7 +54,7 @@ Nano Banana は単なる image API ではなく conversational by design。image
 
 | Use Case | Model | Why |
 |----------|-------|-----|
-| rapid iterations, drafts | `gemini-2.5-flash-image` | fast, lower cost |
+| rapid iterations, drafts | `gemini-2.5-flash-image` | fast (2-5s)、画像あたりのコストが低い |
 | final output, quality | `gemini-3-pro-image-preview` | superior quality, thinking, text rendering |
 | text-heavy images | `gemini-3-pro-image-preview` | better typography, 2K resolution |
 | multi-turn editing | either | both support conversational editing |
@@ -83,7 +83,7 @@ export async function generateImage(prompt: string) {
     }
   })
 
-  return result.files[0]
+  return result.files[0] // { base64, uint8Array, mediaType }
 }
 ```
 

@@ -273,12 +273,19 @@ general lessons:
 問題: strict lockout は待機 UX を悪くし、input / sync の smoke test 機会も減らす。
 改善: movement / warmup attacks は許容し、damage だけ `playing` まで gate するなど product rule を決める。
 
+**match 終了時に tick ごとに replay checkpoint を書く**
+
+問題: 結果処理ループの中で finalization path を毎 tick 強制すると、persistence を圧迫し本当の bug を覆い隠す。
+改善: match-finalization の中で最終 checkpoint を一度だけ強制し、明示的に guard する。
+
 **inactive tab 中の cosmetic events を後で replay**
 
 問題: tab 復帰時に古い particles / sounds / screen flashes がまとめて再生される。
 改善: cosmetic events は stale window を超えたら drop し、durable state だけ resync する。
 
-renderer convenience に trust boundary を決めさせない。
+**NEVER**: renderer の都合で trust boundary を決めさせない。
+**DO NOT**: room を一つの engine の scene graph 中心に設計しない。
+**DON'T**: "ローカルで動いた" を reconnect / auth / deployment が正しい証拠とみなさない。
 
 ## Variation Guidance
 
@@ -295,3 +302,5 @@ favorite boilerplate に収束しない。fairness、scale、simulation complexi
 ## 覚えておくこと
 
 Colyseus は multiplayer truth を clean に所有し、renderer を replaceable に保つと強い。rooms は frontend scenes ではなく rules と player flows で設計する。state は canonical、messages は intentional、engine code は edge に置く。platform が曖昧なら推測せず、health field、startup log、first-write log で runtime を証明する。
+
+Codex は境界が明確であれば並外れた Colyseus 開発ができる。よりクリーンな room model を引き出し、renderer の差し替えを可能にし、創造的な networking のトレードオフを実現し、複数の frontend にまたがって複数の architecture を探索できる。これらの指針は道を照らすものであり、道を塞ぐものではない。

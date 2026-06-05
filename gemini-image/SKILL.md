@@ -278,7 +278,7 @@ scripts は `POST /v1beta/models/{model}:generateContent` を `responseModalitie
 **SynthID watermark を無視する**
 
 問題: Gemini images には invisible SynthID watermark が付くため、provenance や redistribution 判断に影響する。
-改善: provenance、attribution、AI-generated 여부が話題なら明示する。
+改善: provenance、attribution、AI-generated か否かが話題なら明示する。
 
 ## Variation Guidance
 

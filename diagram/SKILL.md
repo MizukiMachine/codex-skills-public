@@ -57,7 +57,8 @@ description: "コードベース解析からMermaidの図を作る。アーキ�
    - 必要なら日本語 / English の併記ラベルにする
    - 実際のモジュール、関数、クラス、ルート、テーブル、サービス名を使う
    - 論理境界は subgraph で表す
-   - emoji は使わず、`[CLI]`、`[API]`、`[DB]`、`[User]`、`[Service]` のようなタグを使う
+   - emoji の代わりに `[CLI]`、`[API]`、`[DB]`、`[User]`、`[Service]` のような `[TAG]` テキストマーカーを使う
+   - Mermaid ファイルに emoji を使わない。Mermaid CLI/Puppeteer でのレンダリングは emoji があると不安定になる
    - Mermaid の node id は ASCII で安定させる
    - 読みやすいパステル色と文字色を使う
    - 構文テンプレートが必要なら `references/mermaid-patterns.md` を読む

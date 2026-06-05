@@ -38,8 +38,8 @@ Retro Diffusion は fal のような provider-agnostic model marketplace では�
 2. **size contracts を守る**: `animation__four_angle_walking` は `48x48`、`animation__8_dir_rotation` は `80x80`、advanced animations は starting frame size に合わせる
 3. **reference cleanliness matters**: `input_image` は transparency なしの RGB。prompt で reference を説明する
 4. **preview だけでなく sheet を capture**: sprite work では `return_spritesheet: true`
-5. **prompt は短く**: advanced animations は service が action text を内部展開する。長い prompt は server-side で失敗し得る
-6. **completion は artifacts で判断**: wrapper が timeout しても run が成功している場合がある
+5. **prompt は短く**: advanced animations は prompt を極めて簡潔に保つ。service が action text を内部展開するため、raw prompt が妥当に見えても長い prompt は server-side で失敗し得る
+6. **completion は CLI message ではなく artifact で判断**: local wrapper が timeout する、final response を drop する、clean completion message を一切出力しない場合でも run は成功している場合がある
 
 ## 提供するもの
 
@@ -118,9 +118,10 @@ multi-direction walking presets:
 
 eight-direction turnaround:
 
-- one-shot directional sheet が欲しいときは `animation__8_dir_rotation` を first probe にする
-- fixed `80x80` として扱う
-- server errors や weak directions が出たら staged `rd_pro__edit` workflow へ切り替える
+- one-shot directional sheet が欲しいときは `animation__8_dir_rotation` を先に試す
+- fixed `80x80` であることを忘れない
+- guaranteed な directional truth ではなく first experiment として扱う
+- server errors や weak directions が出たら、即座に staged `rd_pro__edit` workflow へ切り替える
 - dependable fallback:
   - isometric anchor から cardinals を先に作る
   - same anchor + cardinal sheet を `reference_images` として diagonals を作る
@@ -150,7 +151,16 @@ advanced animation prompts:
 - identity details を過剰に繰り返さない
 - 可能なら full prompt を `300` characters 未満に保つ
 
-ただし guardrails は残す。`side-facing`、`same costume and silhouette`、action disambiguation、`no background clutter` などを削ると別 motion family へ drift し得る。
+実運用上の注意:
+
+- "shorter" は "better" と同じではない
+- character identity をよく保つ run が得られたら、どの clause を安全に消せるか分かっている場合を除き、prompt を過度に単純化しない
+- output を lock する譲れない guardrails は残す:
+  - `side-facing` などの facing / camera orientation
+  - `same costume and silhouette` などの identity preservation
+  - `bow-butt melee attack` などの action disambiguation
+  - `no background clutter` などの cleanup constraints
+- これらの guardrails を外すと、starting frame と references が正しくても Retro Diffusion が全く別の move family に drift しうる
 
 ## Scripts
 
@@ -187,58 +197,58 @@ practical rule: ambiguous transport state は model failure ではない。files
 
 **incompatible animation styles を同一 task として比較する**
 
-問題: fixed `48x48` walker と reference-driven advanced walking sheet は output contract が違う。
-改善: style ごとの size、input、sheet / GIF contract を分けて評価する。
+問題: fixed `48x48` four-angle walker と reference-driven advanced walking sheet は equivalent な outputs ではない。
+改善: 同じ contract ではなく、異なる Retro Diffusion strategies として比較する。
 
 **transparent RGBA sprites を直接 `input_image` に渡す**
 
-問題: alpha が黒や予期しない matte として扱われ、silhouette や色が崩れることがある。
-改善: RGB へ変換し、clean flat background 付きの prepared reference を渡す。
+問題: docs によれば `input_image` は transparency なしの RGB であるべき。
+改善: input を先に RGB へ変換し、subject を clean flat background 上に保つ。
 
 **GIF か spritesheet かを指定せず walk animation を頼む**
 
-問題: downstream extraction / frame comparison の契約が曖昧になる。
-改善: sprite workflow では `return_spritesheet: true` を指定し、artifact を deterministic に扱う。
+問題: downstream で解析しづらい preview format が返ることがある。
+改善: extraction や frame comparison が目的なら `return_spritesheet: true` を要求する。
 
 **advanced animation modes で verbose prompts**
 
-問題: hidden validation limit や prompt expansion と衝突し、server-side failure になることがある。
-改善: action prompt は非常に terse にし、identity / facing / background clauses だけを残す。
+問題: backend が action text を内部で展開し、隠れた `500` 文字の validation limit に達することがある。
+改善: advanced-animation prompt は最小限かつ literal に保つ。
 
 **良い run の後に prompt を単純化しすぎる**
 
-問題: facing、silhouette、action type、background behavior が外れ、次 run で drift する。
-改善: stability に効いた lock clauses は残す。
+問題: "余分な単語" を消すと、model を on-style に保っていた exact な identity / motion constraints まで消してしまうことが多い。
+改善: 慎重に短くしつつ、facing、silhouette、action type、background behavior を lock する clauses は残す。
 
 **wrapper の success message なしで即 retry**
 
-問題: local wrapper が timeout や final response drop を起こしても、artifact は生成済みのことがある。
-改善: retry 前に intended output folder の PNG / GIF / JSON を確認する。
+問題: Retro Diffusion は既に output sheet を生成済みのことがあり、不要な retry は time、money を浪費し source-of-truth の選択を混乱させる。
+改善: まず target output directory と run artifacts を inspect し、本当に second run が必要かを判断する。
 
 **reference image だけで style が保たれると仮定する**
 
-問題: image reference だけでは orientation、identity、action semantics が弱い場合がある。
-改善: prompt でも facing、silhouette、costume、action を補強する。
+問題: prompt が orientation と action semantics を補強しなくなると、`animation__any_animation` でも wrong move family に drift したり inconsistent effects を加えたりしうる。
+改善: starting frame と references に、orientation、identity、action read を保つ compact だが explicit な prompt を組み合わせる。
 
 **larger isometric anchor が常に良いと仮定する**
 
-問題: larger / angled anchor は walk cycle や side-facing motion を不安定にすることがある。
-改善: compact prepared anchor を試し、side-facing / neutral pose を優先する。
+問題: larger references は、特に advanced animation modes で compact prepared anchors より不安定になりうる。
+改善: 承認済み anchor を compact square に downscale してから advanced walking を試す。
 
 **`animation__8_dir_rotation` を canonical turnaround path とみなす**
 
-問題: 8-dir rotation は first probe には有用でも、すべての turnaround に最適とは限らない。
-改善: probe として扱い、必要なら staged `rd_pro__edit` などに切り替える。
+問題: documented な `80x80` size でも server-side で失敗したり、weak directional separation を生じることがある。
+改善: cheap な first probe としてのみ扱い、dependable な turnaround workflow が必要なときは staged `rd_pro__edit` に頼る。
 
 **frame-size contracts を無視する**
 
-問題: style によって size が clamp / ignore され、engine contract とずれる場合がある。
-改善: style ごとの documented size / returned artifact を検証してから runtime asset 化する。
+問題: 一部の style は requested size を silently に clamp / ignore する。
+改善: size / output format が task に合うことを理由に style を選ぶ。
 
 **general-purpose video model として扱う**
 
-問題: Retro Diffusion は sprite-native outputs 用 API で、自由な video generation とは契約が違う。
-改善: sprite / animation / spritesheet artifacts として扱い、motion reference 用 video model と混同しない。
+問題: この API は pixel-art image と animation sheet generation のためのもので、free-camera video のためではない。
+改善: sprite-native outputs に使い、それを後で video-derived workflows と比較する。
 
 ## Variation Guidance
 

@@ -143,3 +143,5 @@ stable output model の例:
 ## 覚えておくこと
 
 speech pipeline は UX と operational constraints から設計する。API call は簡単な部分で、production behavior が本題。
+
+Codex はこの領域で非常に優れた仕事ができる。これらの原則を使って、より良い判断を引き出し、context に適応し、堅牢な voice experience を ship する。

@@ -7,11 +7,13 @@ description: "Phaser 4専用のゲーム開発・移行を扱う。Phaser 4プ�
 
 ## 目的
 
-Phaser 4 browser games の実装、debug、optimization、migration を codebase-aware に行う。ユーザーが Phaser 4 を明示した、codebase が Phaser 4.x と確認できた、または Phaser 3 -> 4 migration の場合に使う。Phaser 3 のみ、または version 不明なら先に `phaser-gamedev` を使う。
+Phaser 4 browser games の実装、debug、optimization、migration を codebase-aware に行う。ユーザーが Phaser 4 を明示した、codebase が Phaser 4.x と確認できた、または Phaser 3 -> 4 migration の場合に使う。working game code、measured asset metadata、explicit な rendering / migration decisions、project scripts または browser smoke test による verification を成果物とする。Phaser 3 のみ、または version 不明なら先に `phaser-gamedev` を使う。
 
 ## Companion Skill
 
 この skill は `phaser-gamedev` を置き換えず、拡張する。Phaser 4 task ではまず `phaser-gamedev/SKILL.md` を必要分読み、version discovery、scene ownership、asset metadata、delta-time simulation、object lifecycle、debug visibility、verification を適用する。その後、この Phaser 4-specific skill で renderer、API、migration、WebGL decisions を扱う。
+
+task が特に必要としない限り、追加の `phaser-gamedev` references を deep-read しない。
 
 ## 基本方針
 
@@ -71,7 +73,15 @@ migration / renderer-sensitive work:
 rg -n "setTintFill|tintFill|BitmapMask|GeometryMask|preFX|postFX|ColorMatrix|Phaser\\.Geom\\.Point|Math\\.TAU|Math\\.PI2|setPipeline\\(['\"]Light2D['\"]\\)|DynamicTexture|RenderTexture|TileSprite|Shader|Pipeline|WebGLRenderer|gl\\." .
 ```
 
-entry point、bundler、`Phaser.GameConfig`、scale mode、renderer type、scenes、assets、physics/input/camera/debug toggles、verification scripts を抽出する。
+以下を抽出する:
+
+- entry point、bundler、`Phaser.GameConfig`、scale mode、renderer type
+- scene list、scene keys、boot/preload flow、UI overlay strategy、restart flow
+- asset locations、loader keys、frame config、atlas JSON、tilesets、Tiled map names
+- physics system、collision setup、input model、camera behavior、debug toggles
+- typecheck、lint、tests、build、dev preview の既存 scripts
+
+rules、controls、art direction、target platform、migration scope が欠けていて、それが実装を実質的に変える場合にのみ質問する。
 
 ## ワークフロー
 
@@ -81,18 +91,18 @@ entry point、bundler、`Phaser.GameConfig`、scale mode、renderer type、scene
 4. animations、tilemaps、UI slices、GPU layer data の前に assets を測定し loader config を固定する
 5. requirement が正当化しない限り standard game objects から始める
 6. collision、tile collision、animation probes、bounds overlays、FPS、batching checks など debug visibility を足す
-7. scripts と browser behavior で検証する
+7. scripts と browser behavior で検証する。playable changes では dev server を起動し、canvas、console、transitions、input、animation、performance を確認する
 
 ## Rendering Path Decisions
 
 | Path | Use When | Avoid When |
 |------|----------|------------|
-| Standard game objects | most gameplay、UI、ordinary sprites、text、interactive entities | huge counts of simple similar quads |
-| `SpriteGPULayer` | starfields、dense background motion、particle-like decoration | rich gameplay logic、frequent edits、multiple textures |
-| `TilemapGPULayer` | very large orthographic tile layers、one tileset | isometric/staggered maps、frequent tile edits、multiple tilesets |
-| `DynamicTexture` / `RenderTexture` | runtime compositing、capture、stamping、generated textures | plain sprite / atlas frame / tint で済む場合 |
-| Filters / lighting | image-space / light-aware / mask-like effects | art、tint、frames で安価に実現できる場合 |
-| Custom shaders / raw WebGL | Phaser objects / filters で表現できない effect | renderer state を不安定に mutate する場合 |
+| Standard game objects | most gameplay、UI、ordinary sprites、text、interactive entities | scene が大量の simple similar quads で支配される場合 |
+| `SpriteGPULayer` | predictable animation を持つ大量の simple quads (starfields、dense background motion、particle-like decoration など) | members が rich gameplay logic、frequent structural edits、multiple texture sources、constant per-member mutation を要する場合 |
+| `TilemapGPULayer` | very large orthographic tile layers、one tileset、high visible tile counts、smooth filtered tile boundaries | isometric/staggered maps、regeneration なしの frequent tile edits、multiple tilesets、small ordinary maps |
+| `DynamicTexture` / `RenderTexture` | runtime compositing、capture、stamping、generated textures、multi-pass setup、reusable rendered output | plain sprite / atlas frame / tint / simple animation で済む場合 |
+| Filters / lighting | effect が image-space / light-aware / mask-like で、追加 render passes に見合う場合 | art、tint、animation frames、より安価な object-level effect で同じ見た目が得られる場合 |
+| Custom shaders / raw WebGL | Phaser objects / filters / supported renderer integration で表現できない effect | code が renderer state を予測不能に mutate する、または Phaser 3 pipeline internals に依存する場合 |
 
 ## Physics System Decisions
 
@@ -170,7 +180,7 @@ if (sprite.filters) {
 |------------------|--------------------|
 | `sprite.setTintFill(color)` | `sprite.setTint(color).setTintMode(Phaser.TintModes.FILL)` |
 | `Math.PI2` | `Math.TAU` |
-| `Math.TAU` used as PI / 2 | `Math.PI_OVER_2` |
+| 旧 code で `Math.TAU` を PI / 2 として使用 | `Math.PI_OVER_2` |
 | `sprite.setPipeline('Light2D')` | `sprite.setLighting(true)` |
 | `preFX` / `postFX` | Phaser 4 filters |
 | `BitmapMask`-style masking | Phaser 4 `Mask` filter or current filter APIs |
@@ -200,25 +210,29 @@ deliverables:
 
 ## 避けること
 
-- **Phaser 4 を drop-in Phaser 3 upgrade として扱う**: renderer / filters / masks / shaders / texture orientation / math constants が変わっている
-- **spritesheet / atlas metadata を推測する**: dimensions、spacing、margin、frame names を測定する
-- **shaders、filters、GPU layers から始める**: requirement が証明されるまで standard objects
-- **gameplay entities を `SpriteGPULayer` に入れる**: rich behavior は normal objects / physics sprites
-- **`TilemapGPULayer` data を regeneration なしで edit**: GPU-side tile data が stale になる
-- **dynamic render targets の `render()` を忘れる**: queued drawing が出ない
-- **lighting / filters を全体に適用する**: batch breaks と fill-rate を増やす
-- **frame metadata 前に animation timing を debug する**: まず frame grid を証明する
-- **raw `gl` calls で renderer state を mutate**: Phaser 4 APIs、`Extern`、filters、render nodes を使う
+| Anti-pattern | 問題 | 改善 |
+|--------------|------|------|
+| Phaser 4 を drop-in Phaser 3 upgrade として扱う | renderer、filters、masks、shaders、texture orientation、math constants が変わっている | まず hotspots を audit し、意図して port する |
+| spritesheet / atlas metadata を推測する | off-by-one frame math が loader config から離れた箇所で animation corruption を起こす | load 前に dimensions、spacing、margin、frame names を測定する |
+| shaders、filters、GPU layers から始める | 早すぎる時点で render-pass コストと debugging complexity を増やす | requirement が advanced rendering を正当化するまで standard objects を使う |
+| gameplay entities を `SpriteGPULayer` に入れる | GPU layer の速度は rich object behavior ではなく constrained members から来る | interactive entities は normal objects / physics sprites のままにする |
+| `TilemapGPULayer` data を regeneration なしで edit | GPU-side tile data が stale になる | edit 後に layer tile data texture を regenerate する |
+| dynamic render targets の `render()` を忘れる | queued drawing commands が表示されない | texture を更新すべき箇所で `render()` を呼ぶ |
+| lighting / filters を全体に適用する | shader / render target の変更が batches を壊し fill-rate を増やす | effect は視覚的に重要な objects / cameras のみに適用する |
+| frame metadata 前に animation timing を debug する | 悪い frame config は skipped / mistimed animation のように見える | まず frame grid を証明する |
+| raw `gl` calls で renderer state を mutate する | Phaser の renderer が desynchronize しうる | Phaser 4 APIs、`Extern`、filters、render nodes を意図して使う |
 
 ## Variation Guidance
 
-- migration: risky APIs を inventory し、behavior を保ってから renderer paths を modernize
-- small game: scenes 少なめ、standard objects、browser verification
-- larger TS project: typed scene data、asset keys、service modules、focused tests
-- mobile: DPR、touch、audio unlock、scale、memory、worst-case FPS
-- pixel art: frames 測定、nearest filtering、camera motion、rounding
-- asset-heavy: atlases / packs、preload progress、pooled objects、stable asset key names
-- performance-heavy: object count、update churn、batch breakers、fill-rate、GPU layer fit を profile
+- migration: risky APIs を先に inventory し、behavior を保ってから renderer paths を選択的に modernize する
+- new small game: scenes を少なく保ち、standard objects を使い、browser で素早く verify する
+- larger TS project: typed scene data、typed asset keys、service modules、focused tests を足す
+- mobile target: constrained device 上で DPR、touch input、audio unlock、scale mode、memory、worst-case FPS を verify する
+- pixel art: frames を測定し、適切な箇所で nearest filtering を使い、camera motion を test し、rounding を意図して適用する
+- asset-heavy game: atlases / packs、preload progress、pooled objects、stable asset key naming を優先する
+- performance-heavy scene: architecture を書き直す前に object count、update churn、batch breakers、fill-rate、GPU layer fit を profile する
+
+すべての Phaser 4 project に固定の game architecture を一つだけ使うことは避ける。controls、level format、asset volume、target device、renderer constraints に形を決めさせる。
 
 ## 検証
 
@@ -230,4 +244,15 @@ npm run build
 npm run dev
 ```
 
-visual / playable changes では canvas、console loader errors、boot/preload/transitions、input、delta/physics movement、collisions、animations、filters/lighting/render textures/GPU layers、object pools、timers/tweens/listeners を確認する。実行できない check は理由と risk を報告する。
+playable / visual changes では game を開いて以下を確認する:
+
+- canvas が nonblank、正しいサイズで、console loader errors がない
+- boot、preload、scene transitions、restart、UI overlays が動く
+- target devices / viewport sizes で input が動く
+- movement が `delta` または physics velocity を使い、可変 frame rate でも安定している
+- collision bodies、tile collisions、object bounds、camera bounds が見える art と一致する
+- animations が意図した frames を使い、bleeding、offset rows、skipped frames、orientation errors がない
+- filters、lighting、render textures、GPU layers が意図どおり render し、target hardware で FPS を破壊しない
+- object pools が inactive objects を再利用し、active bodies、timers、tweens、event listeners を leak しない
+
+check が実行できない場合は、その理由と残る risk を正確に述べる。

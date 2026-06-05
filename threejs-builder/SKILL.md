@@ -60,7 +60,7 @@ Three.js work は scene graph work と rendering verification。visible result �
    - lighting/materials: non-Basic materials に十分な light。意図しない tint を避ける
    - scene graph: related objects を group、geometries/materials を reuse、frame loop は transforms/state updates に絞る
 4. interaction / animation を実装する
-   - render owner は1つ。continuous animation、WebXR、viewer controls では `renderer.setAnimationLoop` を優先
+   - render owner は1つ。continuous animation、WebXR、viewer controls では `renderer.setAnimationLoop` を優先。state changes が rendering を駆動する場合は game engine の `requestAnimationFrame` や on-demand な `renderFrame()` path を使う
    - games では `THREE.Clock` と large `dt` clamp
    - `OrbitControls` は damping/auto-rotate 時だけ update
    - accessibility、localization、focus、long text が必要な UI は DOM HUD にする
@@ -80,7 +80,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 ```
 
-CDN/static HTML では import map を使い、Three.js URL の version と CDN を揃える。
+CDN/static HTML では import map を使い、すべての Three.js URL を同じ version・同じ CDN に揃える。以下の example はそのままコピーして使えるが、project に既存の Three.js version がある場合は、version を混在させずにその version に合わせる。
 
 ```html
 <script type="importmap">
@@ -131,8 +131,8 @@ attachGltfCalibrationHelpers({
 
 **competing render loops**
 
-問題: `setAnimationLoop` と ad hoc rAF effects が競合すると double-render、HUD desync、disposed 後の render が起きる。
-改善: continuous loop owner を1つにし、event-driven rendering でも dispose / cancel を徹底する。
+問題: `setAnimationLoop`、game の `requestAnimationFrame`、ad hoc effect loops を ownership なしで併走させると double-render、HUD state の desync、disposed 後も render し続ける、といったことが起きる。
+改善: continuous loop owner を1つに決めるか、renderer を event-driven にして short で owned な rAF effects だけを使う。すべての loop path を dispose / cancel する。
 
 **Canvas/HUD drift**
 
