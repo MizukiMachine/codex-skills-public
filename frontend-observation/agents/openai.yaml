@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Observation"
+  short_description: "本番品質のフロントエンドUIを設計・改善・検証する"
+  default_prompt: "$frontend-observation を使って、このフロントエンドをコードベースに沿った視覚設計、強いタイポグラフィ、テーマ制御、アクセシブルな状態、ブラウザ検証付きで構築または改善してください。"

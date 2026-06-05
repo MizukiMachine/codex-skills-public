@@ -1,9 +1,9 @@
 ---
-name: frontend-design
+name: frontend-observation
 description: "本番品質のフロントエンドUIを構築・改善・レビューする。既存デザインに沿った視覚設計、アクセシビリティ、レスポンシブ対応、状態設計、ブラウザ検証で使う。"
 ---
 
-# Frontend Design
+# Frontend Observation
 
 ## 目的
 
