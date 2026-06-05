@@ -100,7 +100,7 @@ default output contract:
 - action ごとに camera fit しない。game animation popping の原因になる
 - imported FBX は first-frame foot/ground anchor で align してから measure/render
 - `idle`、`walk`、`run` は loop として evenly sample、duplicated endpoint を除外
-- `attack`、`slash`、`impact`、`hit`、`death` は action として start/final pose を含める
+- `attack`、`slash`、`impact`、`hit`、`death`、`dying` は action として start/final pose を含める
 
 ## ワークフロー
 

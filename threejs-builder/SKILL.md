@@ -50,14 +50,14 @@ Three.js work は scene graph work と rendering verification。visible result �
    - `rg -n "from ['\"]three|GLTFLoader|OrbitControls|WebGLRenderer|setAnimationLoop|requestAnimationFrame|ResizeObserver|pointer-events|data-role|HUD|ui-layer|scene-layer" .`
    - installed `three` と existing build tool を優先する。static HTML では import map を使い、core/addons の version を揃える
 2. 最小で durable な implementation path を選ぶ
-   - existing app: component/module style に統合し、unmount で renderer/listeners を cleanup
+   - existing app: component/module style に統合し、unmount で renderer/listeners を cleanup し、global side effects を避ける
    - static page: minimal `index.html` + module code
    - game: state、input、render cadence、camera convention、DOM HUD ownership、terminal latches を先に決める
    - GLTF: まず1 model を calibrate する
 3. scene contract を作る
-   - renderer: `setPixelRatio(Math.min(devicePixelRatio, 2))`、parent-based resize、`outputColorSpace = THREE.SRGBColorSpace`
+   - renderer: antialias は必要な場合のみ、`setPixelRatio(Math.min(devicePixelRatio, 2))`、parent-based resize、`outputColorSpace = THREE.SRGBColorSpace`
    - camera: position、target、near/far、responsive aspect/frustum update、DOM UI による composition offsets
-   - lighting/materials: non-Basic materials に十分な light。意図しない tint を避ける
+   - lighting/materials: non-Basic materials に十分な light。atlas texture color は意図して tint する場合を除き保持する
    - scene graph: related objects を group、geometries/materials を reuse、frame loop は transforms/state updates に絞る
 4. interaction / animation を実装する
    - render owner は1つ。continuous animation、WebXR、viewer controls では `renderer.setAnimationLoop` を優先。state changes が rendering を駆動する場合は game engine の `requestAnimationFrame` や on-demand な `renderFrame()` path を使う
@@ -147,9 +147,9 @@ attachGltfCalibrationHelpers({
 ## Variation Guidance
 
 - Product viewer: realistic lighting、PBR、orbit controls、loading state、bounded zoom、neutral background
-- Game: constrained camera、snappy input、state machine、pooled objects、debug views、DOM HUD
+- Game: fixed or constrained camera、snappy input、state machine、pooled objects、clear collision/debug views、readable controls/status のための DOM HUD、spatial state のための WebGL cues
 - Showcase/portfolio: cinematic composition、intentional palette、subtle motion、responsive framing
-- Data visualization: readable scale、labels、raycast selection、legend、instancing
+- Data visualization: readable scale、labels、raycast selection、consistent color legend、performance-aware instancing
 - Background effect: low contrast、slow motion、reduced interaction、strict performance budget
 
 rotating cube / particle field、hardcoded `camera.position.z = 5`、CDN/npm version mixing、GLTF の scale/origin/forward direction の同一視に収束しない。

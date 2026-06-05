@@ -148,7 +148,7 @@ native config、plugins、permissions、signing、web assets を変えた後は 
 
 WSL2 で Windows が Android Studio/Emulator を所有する場合:
 
-- WSL で `npx cap sync android` + `./gradlew assembleDebug`
+- `android:cloud:apk` や `android:debug:apk` のような scripts を優先し、WSL で `npx cap sync android` + `./gradlew assembleDebug` で build する
 - Windows `adb.exe` で install / launch。APK path は `wslpath -w android/app/build/outputs/apk/debug/app-debug.apk`
 - Android Studio が必要なら Windows `studio64.exe` に Windows-converted project path を渡す
 - 1 session では ADB host を1つにする。Linux `adb` と Windows `adb.exe` を混ぜない
@@ -230,7 +230,7 @@ Android-facing changes では次を確認する。
 
 ## Variation Guidance
 
-game context で変える。
+デフォルトで同一の mobile wrappers を作らない。game に合わせて実装を調整する:
 
 - arcade/action: responsive controls、low latency、pooling、pause、stable FPS
 - platformer: fixed virtual resolution、camera rounding、collision debug、virtual buttons

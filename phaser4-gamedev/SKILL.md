@@ -164,7 +164,7 @@ rt.draw(sprite, 0, 0);
 rt.render();
 ```
 
-filters は WebGL-only として guard する。
+filters は有効化後にのみ適用し、WebGL-only であることを guard する。full-camera effect が必要な場合を除き internal filters を優先する。
 
 ```ts
 sprite.enableFilters();

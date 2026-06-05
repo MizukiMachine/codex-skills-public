@@ -56,7 +56,7 @@ build output、asset URLs、scene startup、scale mode、orientation、input、a
 2. local dependencies / vendored bundles から Phaser major/minor と Capacitor major を特定
 3. project-native command で build。通常 `npm run build`
 4. Capacitor `webDir` を output に合わせる。通常 `"dist"`
-5. iOS がなければ `@capacitor/ios` を install し、必要なければ `npx cap add ios --packagemanager SPM`
+5. iOS がなければ `@capacitor/ios` を install し、project が CocoaPods を必要としない限り `npx cap add ios --packagemanager SPM`
 6. deterministic loop:
    - `npm run build`
    - `npx cap sync ios`
@@ -215,6 +215,8 @@ iOS-facing changes では次を確認する。
 実行できない check は理由と remaining risk を伝える。
 
 ## Variation Guidance
+
+デフォルトで同一の mobile wrappers を作らない。game に合わせて実装を調整する:
 
 - arcade/action: responsive controls、low latency、pooling、pause、stable FPS
 - platformer: fixed virtual resolution、camera rounding、collision debug、virtual buttons、home-indicator spacing

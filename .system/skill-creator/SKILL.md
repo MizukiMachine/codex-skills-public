@@ -312,8 +312,10 @@ writing は命令形・不定詞的な形を使う。
 
 - YAML frontmatter には `name` と `description` を書く。
 - `name`: skill name。
-- `description`: スキルの primary triggering mechanism。何をするか、どんな context で使うかを含める。
-- 「いつ使うか」はすべて `description` に入れる。body は trigger 後にしか読まれないため、body の "When to Use This Skill" section は trigger には役立たない。
+- `description`: スキルの primary triggering mechanism。Codex がいつスキルを使うべきか理解する助けになる。
+  - 「Skill が何をするか」と「いつ使うか（具体的な trigger/context）」の両方を含める。
+  - 「いつ使うか」はすべて `description` に入れる。body は trigger 後にしか読まれないため、body の "When to Use This Skill" section は trigger には役立たない。
+  - `docx` skill の description 例: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. Use when Codex needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks"
 - YAML frontmatter に他の field を含めない。
 
 ##### Body

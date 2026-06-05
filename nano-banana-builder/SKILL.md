@@ -159,17 +159,17 @@ complete implementations は `references/advanced-patterns.md` を読む。
 **DB に base64 だけ保存する**
 
 問題: blob database、expensive storage、slow retrieval になりやすい。
-改善: object storage に保存し、DB には URL、metadata、prompt、model、ownership を持つ。
+改善: object storage (Vercel Blob/S3) に保存し、DB には URL だけ持つ。
 
 **rate limit handling がない**
 
 問題: production で 429 と悪い UX を生む。
-改善: rate limiting、retry/backoff、quota display、error states を server side に置く。
+改善: rate limiting を実装し、user-friendly な error messages を出す。
 
 **multi-turn context を無視する**
 
 問題: Nano Banana の conversational editing の強みを捨て、small edits が drift しやすくなる。
-改善: iterative editing では session / history を保持し、previous image context を使う。
+改善: iterative refinement のため chat history を track する。
 
 **client-side に API key を hardcode する**
 

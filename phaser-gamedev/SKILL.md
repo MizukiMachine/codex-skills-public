@@ -50,6 +50,8 @@ current API details が重要な場合は memory ではなく exact major/minor 
 
 ## 実装前調査
 
+code を書く前に既存 project の形を調べる:
+
 ```bash
 rg --files | rg '(^|/)(package.json|vite.config|src|public|assets|static|maps|tilemaps|textures|sprites)'
 rg -n "class .*Scene|extends Phaser\\.Scene|scene:|this\\.scene\\.|this\\.load\\.|this\\.physics|this\\.anims|tilemap|nineslice|NineSlice|Matter|Arcade" .
@@ -72,7 +74,7 @@ rules、controls、art direction、target platform の欠落で実装が大き�
 3. animation、tilemap、UI 作成前に assets を測定し loader config を固定する
 4. delta-time movement、explicit physics bodies、stable object lifecycle で gameplay を実装する
 5. fragile systems には collision bodies、tile collision、animation test scenes、FPS、bounds overlays などの debug visibility を足す
-6. repo scripts と browser smoke test で検証する
+6. repo scripts と、playable surface がある場合は browser smoke test で検証する
 
 ## 参照ファイル
 

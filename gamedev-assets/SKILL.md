@@ -166,23 +166,23 @@ frame は sprite sheet grid 内の `[column, row]` pair として参照する。
 repo root から実行する。
 
 ```bash
-# manifest coverage
+# 1) Check manifest coverage (manifest ↔ disk)
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_check.py --manifest path/to/assets_index.lua --root assets
 
-# Lua manifest -> portable JSON
+# 1b) Export Lua manifest to portable JSON (recommended for non-Lua engines/tools)
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_export_json.py --manifest path/to/assets_index.lua --out path/to/assets_index.json
 
-# PNG sizes
+# 2) List PNG sizes
 uv run .codex/skills/gamedev-assets/scripts/asset_sizes.py --root assets --json tmp/asset_sizes.json
 
-# sprite sheet non-empty frames
+# 3) Probe sprite sheet for non-empty frames
 uv run .codex/skills/gamedev-assets/scripts/asset_sheet_probe.py path/to/sheet.png --frame 32x32 --list --json tmp/probe.json
 
-# visible foot baselines audit/fix
+# 3b) Audit/fix visible foot baselines inside sprite frames
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py assets/characters --frame 256x256 --json tmp/baselines.json
 uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py assets/characters --frame 256x256 --target-bottom 255 --out-dir tmp/baseline-fixed
 
-# manifest-driven tilemap editor
+# 4) Debug tilesets / tilemaps with a manifest-driven GUI editor
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py --manifest path/to/assets_index.json
 ```
 
@@ -318,11 +318,10 @@ uv run .codex/skills/gamedev-assets/scripts/tilemap_render_step.py \
 
 outputs:
 
-- `*_render.png`
-- `*_debug.png`
-- `*_diff.png`
-- `*_diff_tiles_debug.png`
-- `*_diff_tiles.json`
+- `*_render.png`: clean render
+- `*_debug.png`: map coords + tile IDs + tileset coords（狙った修正用）
+- `*_diff.png`: 不一致 pixel を示す reference 色の overlay
+- `*_diff_tiles_debug.png` + `*_diff_tiles.json`: 不一致 tile cell の outlines と `{x,y}` リスト
 
 resolved indices を `asset_tilemap_editor.py` で読み込める `tilemap.json` として書きたい場合は、次を追加する。
 
@@ -408,6 +407,8 @@ uv run .codex/skills/gamedev-assets/scripts/asset_manifest_check.py --json tmp/c
 
 ### `asset_manifest_export_json.py`
 
+`assets_index.lua` を `assets_index.json` に export する（engine/tooling 間で portable）。
+
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_manifest_export_json.py --manifest path/to/assets_index.lua --out path/to/assets_index.json
 ```
@@ -447,12 +448,16 @@ uv run .codex/skills/gamedev-assets/scripts/asset_sprite_baseline.py public/asse
 
 ### `asset_sizes.py`
 
+folder 配下のすべての PNG の dimensions を取得する。
+
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_sizes.py
 uv run .codex/skills/gamedev-assets/scripts/asset_sizes.py --root assets/ --json tmp/sizes.json
 ```
 
 ### `asset_tilemap_editor.py`
+
+tiles を選択して grid を描き、tileset の前提を検証する GUI tool。
 
 ```bash
 uv run .codex/skills/gamedev-assets/scripts/asset_tilemap_editor.py --manifest path/to/assets_index.json

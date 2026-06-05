@@ -179,10 +179,16 @@ native config、plugins、web assets 変更後は `npx cap sync android`。live 
 
 - character showcase: lighting、slow damping、polished idle loop
 - gameplay prototype: fast transitions、state-driven animation switching、minimal chrome
-- asset QA: diagnostics overlay、clip info、missing-clip warnings
-- product configurator: constrained camera、touch hotspots、preloading/progress
+- asset QA: diagnostics overlay、clip length/track info、missing-clip warnings
+- product configurator: constrained camera、touch-friendly hotspots、asset preloading and progress states
 
-lighting/background/floor、input tuning、camera constraints、animation UX、diagnostics visibility を product intent に合わせて変える。
+意図して変化させる次元:
+- Lighting/background/floor の処理
+- input tuning と camera constraints
+- animation UX、shortcuts、auto-play strategy
+- diagnostics visibility と error surface
+
+project context がより具体的なものを求めているのに、汎用的な "orbit camera + 3ボタン" の output に収束しないこと。
 
 ## 覚えておくこと
 
