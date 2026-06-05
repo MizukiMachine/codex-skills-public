@@ -1,5 +1,5 @@
 ---
-name: favicon-generator
+name: favicon-builder
 description: "Webサイトやアプリ向けのfavicon・PWAアイコン一式を生成する。既存ブランドに合わせた差し替え、ブラウザプレビュー、フレームワークのメタデータ更新で使う。"
 metadata:
   short-description: "favicon一式を生成"
@@ -55,13 +55,13 @@ rg "primary|brand|--.*color|themeColor" .
 最終 project assets には CLI を使う。
 
 ```bash
-python3 /home/mizuki2/.codex/skills/favicon-generator/scripts/generate_favicon.py \
+python3 /home/mizuki2/.codex/skills/favicon-builder/scripts/generate_favicon.py \
   --letter A --style modern --output ./public
 
-python3 /home/mizuki2/.codex/skills/favicon-generator/scripts/generate_favicon.py \
+python3 /home/mizuki2/.codex/skills/favicon-builder/scripts/generate_favicon.py \
   --lucide rocket --style vibrant --output ./public
 
-python3 /home/mizuki2/.codex/skills/favicon-generator/scripts/generate_favicon.py \
+python3 /home/mizuki2/.codex/skills/favicon-builder/scripts/generate_favicon.py \
   --letter N --bg "#0f172a" --bg2 "#1e293b" --fg "#22d3ee" \
   --shadow 0.5 --highlight 0.3 --glow 0.2 --noise 0.04 \
   --radius 0.22 --output ./public
@@ -79,14 +79,14 @@ local Python に `pip` がない、または isolated one-off run をしたい�
 
 ```bash
 uv run --with Pillow --with cairosvg python \
-  /home/mizuki2/.codex/skills/favicon-generator/scripts/generate_favicon.py \
+  /home/mizuki2/.codex/skills/favicon-builder/scripts/generate_favicon.py \
   --lucide rocket --style vibrant --output ./public
 ```
 
 visual iteration が重要なときは browser studio を使う。
 
 ```bash
-xdg-open /home/mizuki2/.codex/skills/favicon-generator/scripts/generate_favicon.html
+xdg-open /home/mizuki2/.codex/skills/favicon-builder/scripts/generate_favicon.html
 ```
 
 ## Templates
