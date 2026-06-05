@@ -1,0 +1,4 @@
+interface:
+  display_name: "Playwright E2E"
+  short_description: "Playwright中心のE2E/フロントエンドテストワークフロー"
+  default_prompt: "$playwright-e2e を使って、Playwrightと関連ツールでフロントエンドテスト（E2E含む）を計画・実装・デバッグしてください。"
