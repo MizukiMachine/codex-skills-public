@@ -44,27 +44,28 @@ tradeoff priority: correctness / faithfulness / no-leak > staying on-task > styl
 
 ```text
 authoritative state (server source of truth)
-  └─ per-viewer projection / redaction        ← BOUNDARY
-       └─ actor turn:
-            definePlan(state) → renderPlan    ← DIRECT
+  └─ per-viewer projection / redaction        ← BOUNDARY (precondition)
+       └─ for each actor whose turn it is:
+            definePlan(state) → renderPlan      ← DIRECT
             runRevisionLoop(generate, validate, fallback)
                  generate: callModel(prompt + hint)
-                 validate: runValidators(...) ← CENSOR
-                 fallback: safe deterministic ← CORRECT
-            commit accepted output
-            extract structured signals
-       └─ view-specific redaction before client / next agent
+                 validate: runValidators(...)    ← CENSOR
+                 fallback: safe deterministic    ← CORRECT
+            commit accepted output to state
+            extract structured signals (round-trip) ← feeds anti-repetition
+       └─ view-specific redaction before client / next agent ← BOUNDARY (egress)
 ```
 
 `allowedFacts` は手書きせず projection から導く。generation loop は per generation で synchronous に保つ。actors/turns の concurrency は別 latency runtime に分ける。
 
 ## ワークフロー
 
-**Phase A: Boundary を設計する**
+**Phase A: Boundary を設計する** (`references/boundary-design.md`):
 
 1. **actors / scopes を map**
    - users、agents、tools、documents、memories、system processes、external viewers
    - role、goal、allowed inputs、forbidden inputs、allowed outputs、downstream consumers
+   - hidden roles、private memories、public history、spectator views（games）、auth、ACLs、citations、tool traces（RAG）も含める。
 2. **information を sensitivity lattice で分類**
    - `public / user_provided / confidential / secret / forbidden`
    - retrieval results、summaries、memories、diagnostics も data として sensitivity を持つ
@@ -79,7 +80,7 @@ authoritative state (server source of truth)
 6. **egress で view-specific redaction**
    - full data は server-side に保存し、client / next agent には mask 済み snapshot
 
-**Phase B: Control Loop を作る**
+**Phase B: Control Loop を作る** (`references/plan-object.md`, `references/failure-modes.md`, `references/validators.md`):
 
 7. **plan object (Direct) を定義**
    - per-turn contract を data として model 化
@@ -115,7 +116,7 @@ authoritative state (server source of truth)
 
 ## Starter Harness
 
-`assets/control-layer/` は dependency-free typed runnable reference implementation。
+`assets/control-layer/` は dependency-free typed runnable reference implementation。そのままコピーして適応させる。
 
 | File | Role |
 |------|------|

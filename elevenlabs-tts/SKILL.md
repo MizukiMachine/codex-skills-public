@@ -127,7 +127,7 @@ stable output model の例:
 
 ## Variation Guidance
 
-実装は product context に合わせて変える。
+**IMPORTANT**: 実装は product context に合わせて変える。
 
 - voice persona は narrator、assistant、NPC、system alert など role ごとに変える
 - output format は web streaming、downloadable assets、mobile playback constraints で変える

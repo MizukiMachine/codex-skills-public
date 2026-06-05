@@ -252,6 +252,8 @@ practical rule: ambiguous transport state は model failure ではない。files
 
 ## Variation Guidance
 
+**IMPORTANT**: すべての sprite task で同一の Retro Diffusion mode に収束しないこと。
+
 - asset contract に応じて `RD_PRO`、`RD_FAST`、advanced animation styles を使い分ける
 - short attack と longer walk tests で `frames_duration` を変える
 - downstream need に応じて GIF preview / spritesheet を選ぶ
@@ -266,4 +268,11 @@ practical rule: ambiguous transport state は model failure ではない。files
 
 ## 覚えておくこと
 
-Retro Diffusion は built-in style を正しく選び、clean reference を渡し、必要な sprite artifact を明確に求め、advanced-animation prompts を短く保ち、結果を one-off prompt ではなく experiment として追跡したときに強い。
+Retro Diffusion は、こちらが Retro Diffusion 自身の流儀で扱ったときに最も強い:
+
+- 正しい built-in style を選ぶ
+- clean reference を渡す
+- 必要な sprite artifact を正確に求める
+- advanced-animation prompts は極端に短く保つ
+- 信頼できる isometric turnaround 作業には staged `RD Pro Edit` を優先する
+- 結果を one-off prompt ではなく experiment として追跡する

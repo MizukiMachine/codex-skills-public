@@ -210,7 +210,14 @@ runtime sheet export 前:
 
 ## Variation Guidance
 
-pipeline は target look、direction set、action type、sheet layout に応じて変える。
+**IMPORTANT**: すべての spritesheet を同じ aesthetic に押し込めないこと。
+
+pipeline は以下に応じて変える:
+
+- target look: strict retro pixel art と high-resolution pixelated art
+- direction set: south-only、west/east、north、4-direction、8-direction
+- action type: walk、idle、attack、hurt、death
+- sheet layout: single frame、strip、`2x5`、`4x4` など
 
 sequence 内で stable にするもの:
 

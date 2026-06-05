@@ -226,10 +226,10 @@ python3 .agents/skills/gemini-image/scripts/gemini_image_edit.py \
 Useful flags:
 
 - `--thinking-level minimal|High`
-- `--google-search`
+- `--google-search`（grounding を有効化）
 - `--filename-prefix hero`
 - `--print-json`
-- `--n 1`
+- `--n 1`（複数候補は call を繰り返して取得する。API は `generateContent` 1 回につき画像 1 枚を返す）
 
 scripts は `POST /v1beta/models/{model}:generateContent` を `responseModalities=["TEXT","IMAGE"]` 付きで呼び、inline base64 を decode して files を書く。
 
