@@ -1,0 +1,4 @@
+interface:
+  display_name: "Phaser Mobile (iOS/Android)"
+  short_description: "Phaser + Capacitor の iOS/Android ビルド・実機/エミュレータ・sync/署名ワークフロー"
+  default_prompt: "$phaser-mobile を使って、Capacitor 経由（iOS=SPM/Xcode/WKWebView、Android=Gradle/Android Studio/ADB）の Phaser ゲーム出荷を進め、asset sync、scene/asset boot、touch、audio、(iOS) safe area、(Android) hardware back、WebView ライフサイクル、signing、WSL2-to-Windows ADB、Phaser 4 renderer 問題をデバッグしてください。"

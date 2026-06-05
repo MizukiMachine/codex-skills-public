@@ -1,16 +1,16 @@
-# Phaser 4 Android Rendering Notes
+# Phaser 4 Rendering Notes (Capacitor iOS / Android)
 
-Use this when a Capacitor Android Phaser project is confirmed Phaser 4.x, the user asks for Phaser 4, or the task touches Phaser 3 to 4 migration, renderer internals, filters, lighting, shaders, `DynamicTexture`, `RenderTexture`, `SpriteGPULayer`, `TilemapGPULayer`, texture orientation, or renderer performance.
+Use this when a Capacitor Phaser project is confirmed Phaser 4.x, the user asks for Phaser 4, or the task touches Phaser 3 to 4 migration, renderer internals, filters, lighting, shaders, `DynamicTexture`, `RenderTexture`, `SpriteGPULayer`, `TilemapGPULayer`, texture orientation, or renderer performance.
 
-This reference supplements `phaser4-gamedev`; use that skill for the broader Phaser 4 workflow.
+This reference supplements `phaser4-gamedev`; use that skill for the broader Phaser 4 workflow. The renderer model is the same on both mobile targets; platform differences (WKWebView vs Android System WebView, plus iOS thermal/low-power behavior) are called out inline.
 
 ## Version And Renderer Contract
 
 - Inspect the installed Phaser 4 minor version before using version-sensitive APIs.
 - Prefer local typings and official docs for exact API names when renderer details matter.
-- Start new Phaser 4 Android work with WebGL-focused assumptions unless the project has a concrete Canvas compatibility requirement.
+- Start new Phaser 4 mobile work with WebGL-focused assumptions unless the project has a concrete Canvas compatibility requirement.
 - Do not port Phaser 3 renderer internals, pipelines, masks, FX, tint, camera internals, or texture assumptions without a focused audit.
-- Treat filters, lighting, render targets, and GPU layers as architectural choices; they affect batching, fill-rate, memory, and Android WebView compatibility.
+- Treat filters, lighting, render targets, and GPU layers as architectural choices; they affect batching, fill-rate, memory, and mobile WebView compatibility (WKWebView and Android System WebView).
 
 Useful searches before renderer-sensitive edits:
 
@@ -37,7 +37,7 @@ Classify findings:
 
 Use standard objects first unless the requirement or measured bottleneck justifies a specialized renderer path.
 
-## Android-Specific Performance Model
+## Mobile Performance Model
 
 Ask which cost dominates before rewriting architecture:
 - CPU churn: objects, timers, tweens, sounds, or particles created/destroyed every frame.
@@ -45,7 +45,7 @@ Ask which cost dominates before rewriting architecture:
 - Batch breaks: filters, lighting, blend modes, render target switches, shader changes, or mixed texture state.
 - Fill-rate: large translucent, filtered, lit, or full-screen surfaces.
 - Asset pressure: oversized textures, unpadded atlas frames, excessive atlases, or tile data too large for mobile GPUs.
-- Device limits: high DPR, low-power mode, memory pressure, and Android WebView context loss.
+- Device limits: high DPR, low-power mode, memory pressure, mobile WebView context loss, and (iOS) thermal throttling.
 
 Fix pooling, culling, atlas layout, texture sizes, and collision scope before introducing GPU layers or custom shaders.
 
@@ -70,11 +70,11 @@ Do not apply these mechanically without checking the installed Phaser minor vers
 
 Rules:
 - `DynamicTexture` and `RenderTexture` drawing can be buffered; call `render()` when output must become visible.
-- Minimize per-frame render target switches on Android.
+- Minimize per-frame render target switches on mobile.
 - Avoid large full-screen render targets unless they are clearly needed.
 - Enable filters before accessing filter lists, and guard availability because filters are WebGL-only.
 - Prefer object-local filters unless a camera-wide effect is deliberate.
-- Treat blur, bloom, shadows, lighting, and large masks as fill-rate risks.
+- Treat blur, bloom, shadows, lighting, and large masks as fill-rate risks on phone and tablet GPUs.
 - Re-check shaders that sample framebuffer outputs, compressed textures, render textures, or dynamic textures; orientation and alpha may differ from ordinary images.
 
 Minimal render-target pattern:
@@ -96,13 +96,13 @@ if (sprite.filters) {
 }
 ```
 
-## Android Verification
+## Verification
 
-For Phaser 4 renderer changes, verify on browser and Android:
+For Phaser 4 renderer changes, verify on browser and the target device (simulator/emulator/real device):
 - Game boots to the first playable scene without console, loader, or texture key errors.
 - Sprites, atlases, tilemaps, bitmap fonts, UI panels, and pixel-art rounding render correctly.
 - Camera follow, bounds, zoom, fades, filters, masks, lighting, and render textures match intent.
 - Custom shaders sample textures with the correct orientation.
 - `DynamicTexture` or `RenderTexture` output is nonblank after `render()`.
 - GPU layers do not introduce update spikes when data changes.
-- FPS and memory remain acceptable on the target emulator or device.
+- FPS and memory remain acceptable on the target emulator/simulator or device.
