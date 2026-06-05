@@ -1,4 +1,0 @@
-interface:
-  display_name: "Phaser Capacitor Android"
-  short_description: "Phaser Capacitor Androidのビルド・Emulator・ADB手順"
-  default_prompt: "$phaser-capacitor-android を使って、Capacitor Android経由のPhaserゲーム出荷を進め、asset sync、touch、audio、WebView、emulator、Gradle、WSL2-to-Windows ADB問題をデバッグしてください。"

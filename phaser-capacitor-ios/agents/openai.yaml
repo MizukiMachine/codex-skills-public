@@ -1,4 +1,0 @@
-interface:
-  display_name: "Phaser Capacitor iOS"
-  short_description: "Phaser Capacitor iOSのビルド・Simulator・Xcode手順"
-  default_prompt: "$phaser-capacitor-ios を使って、Capacitor iOS経由のPhaserゲーム出荷を進め、asset sync、touch、audio、safe area、WKWebView、Xcode、SPM、signing、Phaser 4 renderer問題をデバッグしてください。"
