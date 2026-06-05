@@ -1,0 +1,4 @@
+interface:
+  display_name: "Three.js Capacitor (iOS/Android)"
+  short_description: "Three.js Capacitor の iOS/Android ビルド・実機/エミュレータ・sync/署名ワークフロー"
+  default_prompt: "$threejs-capacitor を使って、Capacitor 経由（iOS=SPM/Xcode/WKWebView、Android=Gradle/Android Studio/ADB）の Three.js アプリ出荷を進め、asset sync、WebView ライフサイクル、signing、WSL2-to-Windows ADB 問題をデバッグしてください。"
