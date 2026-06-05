@@ -1,4 +1,0 @@
-interface:
-  display_name: "Three.js Capacitor iOS"
-  short_description: "Three.js Capacitor iOSビルドワークフロー"
-  default_prompt: "$threejs-capacitor-ios を使って、Capacitor iOS経由のThree.jsアプリ出荷を進め、SPM、asset sync、WKWebView、signing問題をデバッグしてください。"
