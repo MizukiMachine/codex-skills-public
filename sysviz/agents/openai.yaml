@@ -1,0 +1,4 @@
+interface:
+  display_name: "SysViz"
+  short_description: "SysViz用Mermaid図を解析生成して保存する"
+  default_prompt: "Use $sysviz to generate SysViz Mermaid architecture diagrams for this repository."
