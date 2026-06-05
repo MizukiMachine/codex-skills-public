@@ -28,10 +28,10 @@ build output、file paths、clip names、input mappings、lifecycle behavior、s
 
 **作業前に確認すること**
 
-- exact Vite output directory と Capacitor `webDir`
+- exact Vite output directory (`dist` または `www`) と一致する Capacitor `webDir`
 - `public/` 配下の GLB/JSON と `https://localhost` で動く URL paths
 - `assets_index.json` による animation contract。event handlers に hardcoded clip strings を置かない
-- Node/Capacitor/Android Studio/SDK versions と project Capacitor major
+- Node/Capacitor/Android Studio/SDK versions が project の Capacitor major version と一致すること。そのversionの official docs が別途要求しない限り、Android Studio bundled Gradle JDK を優先する
 - WSL2/Linux build + Windows emulator の場合、Windows `adb.exe` と explicit path conversion
 - desktop mouse / mobile touch mappings
 - WebGL context loss、pause/resume、hardware back behavior
@@ -64,7 +64,12 @@ build output、file paths、clip names、input mappings、lifecycle behavior、s
    - `npx cap sync android`
    - `npx cap run android` または `npx cap open android`
 
-WSL2 + Windows emulator では、smoke test は WSL-built APK を Windows `adb.exe` で install、native Gradle/manifest/plugin work は Windows Android Studio を使う。
+WSL2 project + Windows emulator では、まずどちらの path が速いかを決める:
+
+- WSL-built APK を Windows `adb.exe` で install する: 既存の web/native output を test するのに最適。
+- Android project を Windows Android Studio で開く: native の Gradle/manifest/plugin code を編集する場合や Studio tooling を使う場合に最適。
+
+ユーザーのゴールが Android app の smoke test のときに、flaky な WSL2 emulator GUI の debug にデフォルトで走らないこと。代わりに Windows の emulator/device host を使う。
 
 ## 実装ガイド
 
@@ -77,9 +82,9 @@ WSL2 + Windows emulator では、smoke test は WSL-built APK を Windows `adb.e
 runtime fetches:
 
 - Good: `fetch('/assets/assets_index.json')`
-- Avoid: filesystem paths、`file://` assumptions、environment-specific hostnames
+- Avoid: filesystem paths、`file://` assumptions、environment-specific hostnames（live reload を意図的に設定している場合を除く）
 
-Android は bundled web assets を `https://localhost` で serve する。具体的な routing reason なしに `androidScheme` を変えない。
+Android は bundled web assets をデフォルトで `server.androidScheme` を通じて `https://localhost` から serve する。絶対 `/assets/...` URL はその origin 下で正しく解決される。具体的な routing reason なしに `androidScheme` を `https` または `http` 以外に変えない。
 
 ### `assets_index.json` Animation Contract
 
@@ -106,13 +111,13 @@ runtime pattern:
 - Mouse: left rotate、wheel dolly/zoom、right pan
 - Touch: one-finger rotate、two-finger dolly + pan
 
-`canvas.style.touchAction = 'none'` を設定し、WebView に drag gesture を scroll/zoom として奪わせない。constrained pan は `controls.update()` 後に適用し、rotate/zoom semantics を黙って変えない。
+`canvas.style.touchAction = 'none'` を設定し、WebView に drag gesture を page scroll や zoom として奪わせない。vertical-only pan などの constrained motion が必要な場合は、constraint を毎 frame `controls.update()` の後に適用する。constraint を追加する際に rotate/zoom semantics を黙って変えない。
 
-Android hardware back button は closeable state、route stack、camera mode reset がある場合 `@capacitor/app` で扱う。
+Android hardware back button は、閉じるべき in-app state、pop すべき route stack、reset すべき camera mode がある場合 `@capacitor/app` で扱う。default の exit behavior をそのままにしてよいのは、それが explicit な product decision である場合だけ。
 
 ### Performance / Stability
 
-- pixel ratio は `Math.min(window.devicePixelRatio, 2)` に cap
+- pixel ratio は `Math.min(window.devicePixelRatio, 2)` に cap する。Android screen の多くは 3x-4x
 - mixers/actions/materials を reuse
 - resize 時は camera aspect、projection matrix、renderer size を更新
 - animation switching は metadata defaults から fade transitions
@@ -122,7 +127,7 @@ Android hardware back button は closeable state、route stack、camera mode res
 
 ### Capacitor Android
 
-official Capacitor docs を source of truth にする。Capacitor 8-era では概ね Node 22+、Android Studio + SDK、API 24+、Android Studio bundled JDK/Gradle JDK。
+project の major version に対応する official Capacitor docs を source of truth にする。現行の Capacitor 8-era project では概ね Node 22+、Android Studio + Android SDK、API 24+ の Android platform support、そして多くの local setup では separately managed JDK ではなく Android Studio bundled JDK/Gradle JDK。
 
 確認:
 
@@ -131,7 +136,7 @@ official Capacitor docs を source of truth にする。Capacitor 8-era では�
 - `adb devices`
 - Android Studio Gradle sync
 
-native config、plugins、web assets 変更後は `npx cap sync android`。live reload は development-only。`server.url` を使う場合は reachable LAN/emulator host を使い、必要な場合だけ `server.cleartext: true` を設定する。release 前に `server.url` を消す。release builds には keystore が必要。
+native config、plugins、web assets 変更後は `npx cap sync android`。live reload は development-only。`server.url` を使う場合は reachable LAN/emulator host を使い、必要な場合だけ `server.cleartext: true` を設定する。release builds の前に `server.url` を消す。release builds には project-owned keystore が必要。debug builds は自動署名される（auto-sign）。
 
 ## 避けること
 

@@ -105,7 +105,13 @@ production brief のように構造化する。
 - composition constraints
 - explicit avoid list
 
-frame list は具体的にする。例: `Frame 1: ready idle`, `Frame 5: first shot muzzle flash`。patterns は `references/prompt-patterns.md`。
+frame list は具体的にする。例:
+
+- `Frame 1: ready idle`
+- `Frame 5: first shot muzzle flash`
+- `Frame 10: return to idle`
+
+patterns は `references/prompt-patterns.md`。
 
 ### 4. naive cell crops を信用しない
 
@@ -123,7 +129,13 @@ output size が正しくても hats、coats、feet、muzzle flashes が implied 
 
 cleaner edges が必要な場合、original rigid cell crops ではなく recovered component crops に background removal をかける。
 
-remove.bg batch は `scripts/remove_bg_batch.py`。whole-sheet background removal は geometry を壊しやすい。
+remove.bg batch は `scripts/remove_bg_batch.py`。
+
+理由:
+
+- raw cell crops は既に間違っている可能性がある
+- whole-sheet background removal は元の geometry を壊すことが多い
+- per-component removal は recover した silhouette を保持する
 
 ### 6. one shared anchor に normalize
 
@@ -135,11 +147,13 @@ remove.bg batch は `scripts/remove_bg_batch.py`。whole-sheet background remova
 
 これで sideways drift と fake skating を防ぐ。
 
-opaque flat-background crops の場合は `scripts/normalize_flat_bg_frames.py` を使う。corner background を flood-fill し、foreground を crop し、same center/bottom anchor へ normalize する。
+生成された cell が transparent crops ではなく **opaque flat-background crops** の場合は、それらの cell から直接 GIF を作ってはいけない。まず `scripts/normalize_flat_bg_frames.py` を使い、connected corner background を flood-fill し、実際の foreground を crop し、すべての frame を same center/bottom anchor へ normalize する。これは、model が各 nominal `256x256` cell 内でキャラクターを異なる x/y offset に置いてしまう、よくある idle-sheet failure を修正する。
 
 ### 6b. visible foot baseline を audit
 
-normalization 後、final engine frames 内の **visible** alpha bounds を確認する。`256x256` frame でも feet が `y = 215` で終わり下に 40px transparent padding があると、Phaser などで shadow/origin bugs が出る。
+normalization 後、final engine frames 内の **visible** alpha bounds を確認する。
+
+これは image canvas size とは別の話である。`256x256` frame でも feet が `y = 215` で終わり下に 40px transparent padding があると、frame は依然として間違っている。Phaser のような engine では sprite origin と shadow は通常、visible pixels ではなく full frame rectangle に対して適用されるため、bottom padding が frame ごとに不揃いだとキャラクターが shadow の上に浮いて見える。
 
 runtime sheet export 前:
 

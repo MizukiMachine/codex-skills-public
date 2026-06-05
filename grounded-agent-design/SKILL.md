@@ -120,10 +120,11 @@ authoritative state (server source of truth)
 | File | Role |
 |------|------|
 | `plan.ts` | Direct: `ControlPlan`、`definePlan`、`renderPlan` |
-| `validators.ts` | Censor: validators と `runValidators` |
+| `validators.ts` | Censor: `Validator` 型、`groundedReferences`、`noBoundaryLeak`、`hasForwardSubstance`、`notRepetitive`、`runValidators` |
 | `revisionLoop.ts` | Correct: bounded attempts、hint feedback、safe fallback、diagnostics |
 | `lexicons/en.yaml`, `lexicons/ja.yaml` | detection cue words。domain/language 調整はここ |
-| `loadLexicon.ts` | YAML -> `Lexicon` |
+| `loadLexicon.ts` | lexicon YAML を `Lexicon` に読み込む（dependency-free; `loadLexicon("en")` またはパス指定） |
+| `lexicons.ts` | YAML から `englishLexicon` / `japaneseLexicon` を公開する薄い loader |
 | `index.ts` | barrel export |
 | `demo.ts` | API key 不要の self-check |
 
@@ -135,7 +136,7 @@ verify:
 node --import tsx assets/control-layer/demo.ts
 ```
 
-期待値は `ALL PASS`。`tsx` がない場合は project に `npm i -D tsx`。
+期待値は `ALL PASS`。`tsx` が resolve できる project から実行する。なければ `npm i -D tsx`（harness 自体は dependency-free で、`tsx` は TS runner にすぎない）。
 
 ## Patterns
 
@@ -156,8 +157,10 @@ const { value, accepted, usedFallback } = await runRevisionLoop({
 cold-context rule:
 
 ```ts
+// first turn: history が存在しない。「commit to a position」を強制すると、model は反応する
+// ための history を捏造する。代わりに open する — ただし substance は要求し続ける。
 const plan = definePlan({ hasPriorContext: false, intents: [openingIntent], wantsForwardMove: true });
-// first turn では committed history を捏造させない
+// plan.requiresForwardMove === false  (cold context では definePlan が override する)
 ```
 
 RAG pattern:
@@ -167,12 +170,18 @@ RAG pattern:
 - censor は chunk に trace しない claims を reject
 - internal fields/scores は egress で redact
 
+full pipeline と hard rules: `references/boundary-design.md` → RAG pattern。
+
 simulation / game pattern:
 
 - actor ごとに role-visible secrets を project
 - public speech と action/vote を channel 分離
 - spoken line は invented events / boundary leaks で censor
 - decision は legal-target check
+
+full pipeline と hard rules: `references/boundary-design.md` → Simulation / game pattern。
+
+**Prompt boundary template:** コピーして使えるコンパクトな起点 prompt は `references/boundary-design.md` → Prompt boundary template にある。
 
 ## 避けること
 
@@ -256,5 +265,5 @@ simulation / game pattern:
 説明例:
 
 ```text
-I designed the system around information boundaries rather than a single all-knowing prompt, then wrapped each generation in a deterministic Direct->Censor->Correct control loop. Each agent receives only the context it is authorized to see, free-form language is separated from structured decisions, every user-facing view is redacted from authoritative state, and every turn is validated against enumerated ground truth with a bounded revision loop and a safe fallback.
+I designed the system around information boundaries rather than a single all-knowing prompt, then wrapped each generation in a deterministic Direct->Censor->Correct control loop. Each agent receives only the context it is authorized to see, free-form language is separated from structured decisions, every user-facing view is redacted from authoritative state, and every turn is validated against enumerated ground truth with a bounded revision loop and a safe fallback. This keeps the LLM expressive while keeping permissions, hidden state, citations, grounding, and workflow actions controllable and testable.
 ```

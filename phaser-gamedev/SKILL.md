@@ -124,9 +124,9 @@ const config: Phaser.Types.Core.GameConfig = {
 
 ```ts
 class GameScene extends Phaser.Scene {
-  init(data: unknown) {}
-  preload() {}
-  create() {}
+  init(data: unknown) {}      // 前のシーンからデータを受け取る
+  preload() {}                // create の前に assets を load
+  create() {}                 // objects、physics、input をセットアップ
   update(time: number, delta: number) {
     this.player.x += this.speed * (delta / 1000);
   }
@@ -136,8 +136,8 @@ class GameScene extends Phaser.Scene {
 ### Scene Transitions
 
 ```ts
-this.scene.start('GameScene', { level: 1 });
-this.scene.launch('UIScene');
+this.scene.start('GameScene', { level: 1 }); // 現在のシーンを停止し、新しいシーンを開始
+this.scene.launch('UIScene');                // overlay を並行して実行
 this.scene.pause('GameScene');
 this.scene.stop('UIScene');
 ```
@@ -149,18 +149,18 @@ this.scene.stop('UIScene');
 | System | Use When |
 |--------|----------|
 | Arcade | platformers、shooters、top-down action、AABB collision games |
-| Matter | physics puzzles、irregular shapes、sensors、constraints |
+| Matter | physics puzzles、irregular shapes、sensors、ragdoll-like motion、constraints |
 | None | menus、visual novels、card games、puzzle UIs、static interactive screens |
 
 ### Scene Structure
 
 ```text
 scenes/
-  BootScene.ts
-  MenuScene.ts
-  GameScene.ts
-  UIScene.ts
-  GameOverScene.ts
+  BootScene.ts      # Preload、loading UI、global asset packs
+  MenuScene.ts      # Title、options、save selection
+  GameScene.ts      # Main simulation と world objects
+  UIScene.ts        # 並行起動される HUD overlay
+  GameOverScene.ts  # Results、restart、progression
 ```
 
 global `window` state より scene data、registries、services、typed game-state modules を優先する。

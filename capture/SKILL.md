@@ -103,6 +103,8 @@ Author: `Assistant`
 
 ## Model Prompts Used
 
+<送信した model prompt ごとに、以下を含める:>
+
 ### <Model Name> Prompt Sent
 
 \```text

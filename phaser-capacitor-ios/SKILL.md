@@ -120,10 +120,12 @@ iOS bundled assets は Capacitor の WKWebView 内で serve される。`public/
 - major rewrite 前に FPS、active objects、physics bodies、tweens、timers、particles、cache size を測定
 - object churn、collision explosions、oversized textures、culling を先に直す
 - every frame の object/tween/sound creation を避ける
+- repeat spawns には object pools を使う
 - scene shutdown で timers/listeners/subscriptions を止める
-- loader errors を surface
+- Phaser loader errors を listen し、失敗した key または URL を surface する
 - backgrounding で simulation/audio を pause
 - iOS では custom pipelines、render textures、large textures、filters、memory pressure による WebGL context loss を想定
+- touch、safe area、orientation、audio、performance が重要な場合は simulator または real device で app を検証する
 
 ### Capacitor iOS Integration
 

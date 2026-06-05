@@ -101,8 +101,8 @@ cel pixels を decode した場合はさらに次を推定できる。
 
 **indexed pixels を RGBA とみなす**
 
-問題: indexed cel pixels は palette indices であり、直接 RGBA と解釈すると色と transparency が壊れる。
-改善: palette を parse した後だけ RGBA に変換する。
+問題: indexed cel pixels は palette indices であり、transparency は通常 transparent index (header) で表される。直接 RGBA と解釈すると色と transparency が壊れる。
+改善: "indexed" を独自の path として保ち、実際に palette を parse した後だけ RGBA に map する (そして palette が欠落しているケースを記録する)。
 
 **linked cels を無視する**
 
@@ -116,8 +116,8 @@ cel pixels を decode した場合はさらに次を推定できる。
 
 **authoring intent と render intent を混同する**
 
-問題: tags、slices、user data は authoring intent、pixels / bounds は render intent で、別の事実を表す。
-改善: 両方を出し、runtime offset などは final exported PNG alpha bounds で検証する。
+問題: tags、slices、user data は intent を表し、pixels は appearance を表す。これらは食い違うことがある。
+改善: 両方の事実を output し、明示的に要求されない限り一方で他方を "correct" しない。
 
 ## Variation Guidance
 
