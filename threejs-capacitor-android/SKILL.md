@@ -1,195 +1,201 @@
 ---
 name: threejs-capacitor-android
-description: "Capacitor Android上のThree.jsアプリをViteとGradleで構築・出荷する。GLTF表示、操作UI、WebViewライフサイクル、ADB/エミュレータ連携の不具合調査で使う。"
+description: "Vite と Gradle を使って、Capacitor Android 上で Three.js アプリを構築・リリースする。GLTF読み込み、assets_index によるアニメーションUI、OrbitControls のマウス/タッチ対応、Android の sync/run/署名、WSL2 + Windows エミュレータ/ADB のトラブルシュートを扱う。"
 metadata:
   short-description: "Three.js + Capacitor Android/ADB ワークフロー"
 ---
 
 # Three.js Capacitor Android
 
-browser で動く interactive Three.js app を Capacitor で Android native shell に出荷する。Vite build output、static asset paths、animation metadata、controls、Android WebView lifecycle、Gradle、sync/run、signing の境界で使う。
+Capacitor を通じて Android ネイティブシェルで動作するインタラクティブな Three.js アプリを構築・リリースするスキル。
+ウェブビルド出力、アニメーションコントラクト、コントロール、Android WebView ライフサイクル、ネイティブの sync/run/signing ワークフローなど、障害が最も発生しやすい統合境界に焦点を当てる。
 
-iOS target は `threejs-capacitor-ios` を使う。web / Three.js layer はほぼ共有だが、native shell、lifecycle、toolchain、store build workflow は異なる。
+iOS ターゲットには `threejs-capacitor-ios` スキルを使用する。ウェブ/Three.js レイヤーは両者でほぼ同一であり、異なるのはネイティブシェル・ライフサイクル・ツールチェーン・ストアビルドのワークフロー（Gradle/Android Studio vs SPM/Xcode）のみ。
 
-## 基本方針: Two Runtimes, One Contract
+## 哲学: 2つのランタイム、1つのコントラクト
 
-合意すべき systems:
+プロジェクトを合意が必要な2つのシステムとして扱う:
+- ウェブレンダラーランタイム（Three.js + Vite + ブラウザ API）
+- ネイティブランタイムラッパー（Capacitor Android + Android System WebView + Gradle）
 
-- web renderer runtime: Three.js + Vite + browser APIs
-- native runtime wrapper: Capacitor Android + Android System WebView + Gradle
+開発環境が分割されている場合は、ホスト境界もコントラクトとして扱う:
+- ビルドホスト: Node/Vite/Capacitor のビルドと Gradle assemble を実行する場所
+- デバイスホスト: `adb`、Android Studio、エミュレータ/実機接続が存在する場所
+- パスブリッジ: WSL2 → Windows の `wslpath -w` など
 
-development environment が split している場合は host boundary も contract とする。
+ほとんどの障害はコントラクトが暗黙的な場合に発生する。
+ファイルパス、アニメーション名、ビルド出力、入力マッピング、ライフサイクル挙動、Android のビルド/signing の選択を明示的かつテスト可能にする。
 
-- build host: Node/Vite/Capacitor build と Gradle assemble の場所
-- device host: `adb`、Android Studio、emulator/device connection の場所
-- path bridge: WSL2 -> Windows の `wslpath -w` など
+**実装前に確認すること:**
+- ウェブ出力ディレクトリ（`dist` または `www`）は何か、Capacitor の `webDir` と一致しているか?
+- `public/` 配下の GLB/JSON は `https://localhost` 上で動く絶対 URL（`/assets/...`）で読み込まれているか?
+- アニメーション名はハードコードされた文字列ではなくデータ（`assets_index.json`）から読み込まれているか? イベントハンドラにクリップ名文字列を埋め込んでいないか?
+- JDK は使用している Capacitor バージョンと一致しているか（Android Studio には互換 JDK が同梱されている。手動で設定する場合は Capacitor の環境セットアップドキュメントに従うこと — 例: Capacitor 8 → JDK 17+）、また `ANDROID_HOME`/SDK は設定済みか?
+- WSL2/Linux でビルドし Windows のエミュレータを使う構成か? その場合は Windows `adb.exe` と明示的なパス変換が必要。
+- デスクトップとタッチのコントロールは意図的にマッピングされているか、それとも製品 UX に合わない可能性のあるデフォルトに任せているか?
 
-build output、file paths、clip names、input mappings、lifecycle behavior、signing を explicit / testable にする。
+**コア原則:**
+1. コントラクトファーストのデータフロー: UI とアニメーション再生はコード内のアドホックなクリップ名ではなく JSON メタデータから導出すること。
+2. ツールチェーンファーストの Android セットアップ: アプリロジックのデバッグを始める前に Android Studio + SDK + Gradle JDK + `adb` を揃えること。
+3. 対称コントロール: デスクトップとモバイルの動作が一致するよう、マウスとタッチのマッピングを一緒に定義すること。
+4. ビルド・sync の規律: ネイティブの実行はすべて最新のウェブアセットと sync に依存する。
+5. 高速診断: 深いデバッグに入る前に、パス・クリップ名・アクション解決・WebGL 失敗に対する小さなランタイムチェックを優先すること。
 
-**作業前に確認すること**
+## クイックスタートワークフロー
 
-- exact Vite output directory (`dist` または `www`) と一致する Capacitor `webDir`
-- `public/` 配下の GLB/JSON と `https://localhost` で動く URL paths
-- `assets_index.json` による animation contract。event handlers に hardcoded clip strings を置かない
-- Node/Capacitor/Android Studio/SDK versions が project の Capacitor major version と一致すること。そのversionの official docs が別途要求しない限り、Android Studio bundled Gradle JDK を優先する
-- WSL2/Linux build + Windows emulator の場合、Windows `adb.exe` と explicit path conversion
-- desktop mouse / mobile touch mappings
-- WebGL context loss、pause/resume、hardware back behavior
-
-**優先順位**
-
-1. metadata-driven asset / animation selection
-2. Android Studio、SDK、Gradle JDK、`adb` の toolchain-first verification
-3. mouse/touch mappings を同時に定義
-4. native run は fresh build + sync
-5. missing assets、unresolved clips、WebGL failures の runtime checks
-
-## 参照ファイル
-
-| Topic | File | Use When |
-| --- | --- | --- |
-| Android workflow | [references/capacitor-android-workflow.md](references/capacitor-android-workflow.md) | setup、build/sync/run、emulator/device、live reload、signing |
-| WSL2 + Windows Emulator | [references/windows-wsl-emulator-workflow.md](references/windows-wsl-emulator-workflow.md) | WSL2/Linux project、Windows Android Studio/Emulator、WSL emulator controls |
-| Animation contract | [references/threejs-animation-index-pattern.md](references/threejs-animation-index-pattern.md) | GLTF/GLB animation UI、clip resolution、metadata-driven actions |
-| Gotchas | [references/gotchas.md](references/gotchas.md) | browser works but Android fails、Gradle/JDK/SDK、touch/WebGL/back-button |
-
-## Quick Start
-
-1. `package.json`、`vite.config.*`、`capacitor.config.*`、`public/assets/**` を確認
-2. project-native command で build。通常 `npm run build`
-3. Capacitor `webDir` を output に合わせる。通常 `"dist"`
-4. Android がなければ `npm install @capacitor/android` -> `npx cap add android`
-5. deterministic loop:
+1. `package.json`、`vite.config.*`、`capacitor.config.*`、`public/assets/**` を確認する。
+2. Vite で Three.js アプリをビルドする（通常 `npm run build`）。
+3. 静的アセットは `public/` 以下に置き、絶対 URL（`/assets/...`）で読み込む。
+4. Capacitor の `webDir` を出力に合わせる（通常 `"dist"`）。
+5. Android がなければ追加する（`npm install @capacitor/android` → `npx cap add android`）。
+6. 決定論的なループを繰り返す:
    - `npm run build`
    - `npx cap sync android`
    - `npx cap run android` または `npx cap open android`
 
-WSL2 project + Windows emulator では、まずどちらの path が速いかを決める:
+コマンドレベルの詳細は `references/capacitor-android-workflow.md` を参照。
 
-- WSL-built APK を Windows `adb.exe` で install する: 既存の web/native output を test するのに最適。
-- Android project を Windows Android Studio で開く: native の Gradle/manifest/plugin code を編集する場合や Studio tooling を使う場合に最適。
+**WSL2 プロジェクト + Windows エミュレータの場合**、まずどちらのパスが速いかを決める:
+- WSL でビルドした APK を Windows `adb.exe` でインストールする: 既存のウェブ/ネイティブ出力をスモークテストするのに最適。
+- Android プロジェクトを Windows の Android Studio で開く: ネイティブの Gradle/manifest/plugin コードを編集する場合や Studio のツールを使う場合に最適。
 
-ユーザーのゴールが Android app の smoke test のときに、flaky な WSL2 emulator GUI の debug にデフォルトで走らないこと。代わりに Windows の emulator/device host を使う。
+ユーザーのゴールが Android アプリのスモークテストのときに、不安定な WSL2 エミュレータ GUI のデバッグへデフォルトで突入しないこと。代わりに Windows のエミュレータ/デバイスホストを使う。手順は `references/windows-wsl-emulator-workflow.md`。
 
-## 実装ガイド
+## 参照ファイル
 
-### Project Shape
+| トピック | ファイル | 使う場面 |
+| --- | --- | --- |
+| Android ワークフロー | [references/capacitor-android-workflow.md](references/capacitor-android-workflow.md) | セットアップ、build/sync/run、エミュレータ/実機、ライブリロード、signing |
+| WSL2 + Windows エミュレータ | [references/windows-wsl-emulator-workflow.md](references/windows-wsl-emulator-workflow.md) | WSL2/Linux プロジェクト、Windows の Android Studio/エミュレータ、WSL からのエミュレータ操作 |
+| アニメーションコントラクト | [references/threejs-animation-index-pattern.md](references/threejs-animation-index-pattern.md) | GLTF/GLB アニメーション UI、クリップ解決、メタデータ駆動アクション |
+| Gotchas | [references/gotchas.md](references/gotchas.md) | ブラウザでは動くが Android で失敗、Gradle/JDK/SDK、タッチ/WebGL/バックボタン |
 
-- app code: `index.html` と `src/*`
-- GLBs、textures、JSON contracts: `public/assets/...`
-- Vite default: `capacitor.config.ts` with `webDir: "dist"`
+## 実装ガイドライン
 
-runtime fetches:
+### 1) プロジェクト構成
 
-- Good: `fetch('/assets/assets_index.json')`
-- Avoid: filesystem paths、`file://` assumptions、environment-specific hostnames（live reload を意図的に設定している場合を除く）
+曖昧さを最小化するために、次の構成を推奨する:
+- アプリコードは `index.html` と `src/*`
+- GLB、テクスチャ、JSON コントラクトは `public/assets/...`
+- `capacitor.config.ts` に `webDir: "dist"`
 
-Android は bundled web assets をデフォルトで `server.androidScheme` を通じて `https://localhost` から serve する。絶対 `/assets/...` URL はその origin 下で正しく解決される。具体的な routing reason なしに `androidScheme` を `https` または `http` 以外に変えない。
+Vite を使用する場合、すべてのランタイム fetch をブラウザと Android System WebView（Chromium）の両方に互換させること:
+- 推奨: `fetch('/assets/assets_index.json')`
+- 非推奨: ファイルシステムパス、`file://` 前提、環境依存のホスト名（ライブリロードを意図的に設定している場合を除く）。
 
-### `assets_index.json` Animation Contract
+スキームに関する注意: Android はデフォルトで `server.androidScheme` を通じて `https://localhost` からバンドル済みウェブアセットを配信する。絶対パスの `/assets/...` URL はこのオリジン下で正しく解決される。具体的なルーティング上の理由なしに `androidScheme` を `https`/`http` 以外に変えないこと。
 
-single source of truth:
+### 2) `assets_index.json` によるアニメーションコントラクト
 
-- character skeleton URL
-- animation source URL
-- `animations[]`: app id、exact `sourceClipName`、loop mode、transition defaults
+単一の信頼できるデータソースを使用する:
+- キャラクタースケルトン URL
+- アニメーションソース URL
+- 以下を含む `animations[]` エントリ:
+  - 安定したアプリ ID（`idle`、`walk`、`run`）
+  - `sourceClipName`（`AnimationClip.name` と完全一致）
+  - ループモードとトランジションのデフォルト値
 
-runtime pattern:
+ランタイムのパターン:
+1. インデックス JSON を読み込む
+2. スケルトン GLB とアニメーション GLB を読み込む
+3. 各 UI ボタンを `sourceClipName` でクリップに対応付ける
+4. アプリ ID をキーとする `AnimationAction` マップを構築する
+5. インデックスのデフォルトアクションを再生する
 
-1. index JSON を load
-2. skeleton GLB と animation GLB を load
-3. UI control を `sourceClipName` で clip に解決
-4. app id keyed `AnimationAction` map を作る
-5. index の default action を play
+`references/threejs-animation-index-pattern.md` を参照。
 
-詳細は `references/threejs-animation-index-pattern.md`。
+### 3) コントロール: デスクトップとタッチ
 
-### Controls
+`OrbitControls` を使用し、マッピングを明示的に設定する:
+- マウス:
+  - 左 = 回転
+  - ホイール = ドリー/ズーム
+  - 右 = パン
+- タッチ:
+  - 1本指 = 回転
+  - 2本指 = ドリー + パン
 
-`OrbitControls` mappings を明示する。
+WebView がドラッグジェスチャーをページスクロール/ズームとして横取りしないよう、`canvas.style.touchAction = 'none'` を設定する。
+製品が垂直方向のみのパンなどの制約付き移動を要求する場合は、毎フレーム `controls.update()` の後にカメラの移動量を制限する。
+この制約を追加する際に rotate/zoom のセマンティクスを無言で変更しないこと。
 
-- Mouse: left rotate、wheel dolly/zoom、right pan
-- Touch: one-finger rotate、two-finger dolly + pan
+Android の**ハードウェアバックボタン**は、閉じるべきアプリ内状態・pop すべきルートスタック・リセットすべきカメラモードがある場合に `@capacitor/app` で処理すること（`App.addListener('backButton', ...)`）。デフォルトの終了挙動をそのまま使ってよいのは、それが明示的な製品判断である場合だけ。
 
-`canvas.style.touchAction = 'none'` を設定し、WebView に drag gesture を page scroll や zoom として奪わせない。vertical-only pan などの constrained motion が必要な場合は、constraint を毎 frame `controls.update()` の後に適用する。constraint を追加する際に rotate/zoom semantics を黙って変えない。
+### 4) パフォーマンスと安定性のガードレール
 
-Android hardware back button は、閉じるべき in-app state、pop すべき route stack、reset すべき camera mode がある場合 `@capacitor/app` で扱う。default の exit behavior をそのままにしてよいのは、それが explicit な product decision である場合だけ。
+- ピクセル比を制限する: `Math.min(window.devicePixelRatio, 2)`（多くの Android 画面は 3x〜4x）。
+- mixer/actions/materials を再利用し、クリックごとに再生成しないこと。
+- リサイズ時は常にカメラのアスペクト、プロジェクション、レンダラーサイズを更新する。
+- アニメーションの切り替えはメタデータのデフォルトのフェードトランジションで行う。
+- `webglcontextlost`/`webglcontextrestored` を処理する — Android はメモリ圧迫時やバックグラウンド移行時に GL コンテキストを積極的に破棄する。
+- `@capacitor/app` の `pause` でレンダリングループを一時停止し、`resume` で意図的に再開する。
+- シーン置換やビュー離脱時は geometry、materials、textures、controls、renderer を dispose する。
 
-### Performance / Stability
+### 5) Capacitor Android インテグレーション
 
-- pixel ratio は `Math.min(window.devicePixelRatio, 2)` に cap する。Android screen の多くは 3x-4x
-- mixers/actions/materials を reuse
-- resize 時は camera aspect、projection matrix、renderer size を更新
-- animation switching は metadata defaults から fade transitions
-- `webglcontextlost` / `webglcontextrestored` を扱う
-- Capacitor `pause` で render loop を pause、`resume` で意図して再開
-- scene replacement / view leave で geometry、materials、textures、controls、renderer を dispose
+プロジェクトの major version に対応する公式 Capacitor ドキュメントを真実の源とする。現行の Capacitor 8 系では概ね Node 22+、Android Studio + Android SDK、API 24+ サポート、そして多くのローカル構成では別管理の JDK ではなく Android Studio 同梱の Gradle JDK。
 
-### Capacitor Android
+ツールチェーンの要件:
+- **Capacitor バージョンに対応した JDK** — 通常は別途インストール不要で、Android Studio に互換 JDK が同梱されている。`JAVA_HOME` を手動で設定する場合は Capacitor の環境セットアップドキュメントに従うこと（例: Capacitor 8 → JDK 17+）。
+- **Android SDK + platform-tools**（`ANDROID_HOME` を設定し、`adb` を PATH に追加）。
+- **Android Studio**（または CLI Gradle）— Windows、Linux（WSL2 含む）、macOS で動作。Mac は不要。
 
-project の major version に対応する official Capacitor docs を source of truth にする。現行の Capacitor 8-era project では概ね Node 22+、Android Studio + Android SDK、API 24+ の Android platform support、そして多くの local setup では separately managed JDK ではなく Android Studio bundled JDK/Gradle JDK。
+確認: `node --version` / `npx cap doctor` / `adb devices` / Android Studio の Gradle sync。
 
-確認:
+ネイティブ設定・プラグイン・ウェブアセットの変更後は `npx cap sync android` を再実行すること。ライブリロードは開発専用。`server.url` を使う場合は到達可能な LAN/エミュレータホストを指定し、必要なときだけ `server.cleartext: true` を設定する。リリースビルドの前には `server.url` を消すこと。リリースビルドには独自のキーストアが必要（デバッグビルドは自動署名される）。詳細はワークフローリファレンスを参照。
 
-- `node --version`
-- `npx cap doctor`
-- `adb devices`
-- Android Studio Gradle sync
+## 避けるべきアンチパターン
 
-native config、plugins、web assets 変更後は `npx cap sync android`。live reload は development-only。`server.url` を使う場合は reachable LAN/emulator host を使い、必要な場合だけ `server.cleartext: true` を設定する。release builds の前に `server.url` を消す。release builds には project-owned keystore が必要。debug builds は自動署名される（auto-sign）。
+❌ **UI ハンドラにクリップ名をハードコードする**
+問題: GLB でクリップ名が変更されると、ボタンが静かに壊れる。
+改善策: `assets_index.json` からボタンをマッピングし、起動時に一度だけクリップ名を解決する。
 
-## 避けること
+❌ **Android をブラウザ専用のバグとして扱う**
+問題: Android には WebView オリジン、ライフサイクル、メモリ、入力挙動があり、デスクトップ Chrome では露出しない。
+改善策: バンドルされたアセットパス、タッチ挙動、コンテキストロス処理、WebView コンソールログをエミュレータまたは実機で確認する。
 
-**UI handlers に clip names を hardcode**
+❌ **不一致な JDK / 未設定の SDK / 古い Gradle 状態**
+問題: Gradle が "unsupported class file" / "SDK location not found" などの不可解なエラーで失敗する。
+改善策: Android Studio に同梱されている Gradle JDK（または Capacitor ドキュメントが指定するバージョン）を使用し、`ANDROID_HOME`/`local.properties` を設定し、`npx cap doctor` を実行してから Gradle sync / clean する。
 
-問題: GLB 内の clip name が変わると buttons が黙って壊れる。
-改善: `assets_index.json` から buttons を map し、startup 時に clip names を一度だけ resolve する。
+❌ **ウェブアセットを再ビルドせずに Android を実行する**
+問題: デバイス/エミュレーターに古い JS/CSS が表示され、デバッグが誤解を招く。
+改善策: `cap sync`/`cap run` の前に必ずビルドを行うスクリプトを使用する。
 
-**Android を browser-only bug として扱う**
+❌ **WSL2 で ADB ホストを混在させる**
+問題: Linux `adb` と Windows `adb.exe` が別サーバーと通信し、デバイスが missing/offline/不整合に見える。
+改善策: デバイスホストを先に1つ選ぶ。Windows がエミュレータを所有する場合は WSL から Windows `adb.exe` を実行し、APK パスは `wslpath -w` で変換する。
 
-問題: Android には WebView origin、lifecycle、memory、input behavior があり、desktop Chrome では露出しない。
-改善: bundled asset paths、touch behavior、context-loss handling、WebView console logs を emulator または device で確認する。
+❌ **コントロールマッピングを暗黙的なままにする**
+問題: デスクトップとモバイルの操作が UX 要件から乖離し、WebView がタッチジェスチャーを横取りする。
+改善策: `mouseButtons`/`touches` を明示的に設定し、canvas に `touch-action: none` を指定する。
 
-**wrong JDK、missing SDK、stale Gradle state**
+❌ **開発用 `server.url` を出荷する**
+問題: `server.url` はアプリを開発マシンやリモートのウェブバンドルに向け、リリースのセキュリティ/パフォーマンス挙動を変える。
+改善策: 意図的なライブ更新アーキテクチャがない限り、本番では `server.url` を削除してビルド済みアセットを出荷する。
 
-問題: Gradle は class-file、SDK location、plugin errors など誤解しやすい失敗を返す。
-改善: Android Studio の Gradle JDK を使い、SDK paths を設定し、`npx cap doctor` を実行してから Gradle sync / clean する。
+❌ **ウェブコントラクトのエラーをネイティブから先にデバッグする**
+問題: 問題の多くは JSON キーの欠落・不正なパス・未解決のクリップにあるにもかかわらず、Android Studio で時間を無駄にする。
+改善策: インデックスの構造とクリップ解決に関する起動時のアサーション/ログを追加し、`chrome://inspect` で WebView のエラーを確認する。
 
-**web assets rebuild なしで Android run**
+## バリエーションガイダンス
 
-問題: device/emulator が stale JS/CSS を表示し、debug が誤誘導される。
-改善: `cap sync` と `cap run` の前に必ず build する scripts を使う。
+**重要**: デフォルトで同一のビューワーを生成しないこと。
+製品の意図に合わせて実装を調整する:
+- キャラクターショーケース: 豊かなライティング、ゆっくりしたカメラダンピング、洗練されたアイドルループを重視。
+- ゲームプレイプロトタイプ: 高速トランジション、状態駆動のアニメーション切り替え、最小限の UI。
+- アセット QA ツール: 診断オーバーレイ、クリップの長さ/トラック情報、欠落クリップの警告を明確に表示。
+- プロダクトコンフィギュレータ: 制約付きカメラ、タッチフレンドリーなホットスポット、アセットのプリロードと進捗表示。
 
-**WSL2 で ADB hosts を混ぜる**
+少なくとも以下のディメンションを意図的に変化させること:
+- ビジュアルスタイル（ライティング/背景/床の処理）
+- 入力チューニング（ダンピング/ズーム/パン速度、カメラ制約）
+- アニメーション UX（ボタン、キーボードショートカット、自動再生戦略）
+- 診断の可視性とエラー表面
 
-問題: Linux `adb` と Windows `adb.exe` が別 server と話し、devices が missing、offline、inconsistent に見える。
-改善: device host を先に選ぶ。Windows が emulator を所有する場合は WSL から Windows `adb.exe` を実行し、APK path は `wslpath -w` で変換する。
+文脈がより多くを要求しているにもかかわらず、汎用的な「orbit + 3ボタン」の出力に収束しないようにする。
 
-**control mappings を implicit にする**
+## まとめ
 
-問題: desktop と mobile の interaction が UX requirements から diverge し、WebView が gestures を消費することがある。
-改善: `mouseButtons`、`touches`、`touch-action: none` を明示する。
-
-**development `server.url` を ship**
-
-問題: `server.url` は app を dev machine または remote web bundle に向け、release の security / performance behavior を変える。
-改善: intentional live-update architecture がない限り、production では `server.url` を削除して built assets を ship する。
-
-## Variation Guidance
-
-- character showcase: lighting、slow damping、polished idle loop
-- gameplay prototype: fast transitions、state-driven animation switching、minimal chrome
-- asset QA: diagnostics overlay、clip length/track info、missing-clip warnings
-- product configurator: constrained camera、touch-friendly hotspots、asset preloading and progress states
-
-意図して変化させる次元:
-- Lighting/background/floor の処理
-- input tuning と camera constraints
-- animation UX、shortcuts、auto-play strategy
-- diagnostics visibility と error surface
-
-project context がより具体的なものを求めているのに、汎用的な "orbit camera + 3ボタン" の output に収束しないこと。
-
-## 覚えておくこと
-
-Three.js + Capacitor Android は explicit contracts と disciplined workflow で成功する。metadata contract を作り、controls を明示し、Android toolchain と mobile WebView lifecycle を揃え、build/sync/run を deterministic にする。
+Three.js + Capacitor Android は、コントラクトが明示的でワークフローが規律正しい場合に成功する。
+明確なメタデータコントラクトを構築し、コントロールを意図的にマッピングし、Android ツールチェーンとモバイル WebView ライフサイクルを揃え、build/sync/run を決定論的に保つこと。

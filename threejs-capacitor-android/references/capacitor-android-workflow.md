@@ -18,7 +18,7 @@ Then compare against the official Capacitor environment setup docs for that majo
 - Android SDK platform API 24+
 - Android Studio's bundled Gradle JDK for most local workflows
 
-Do not hardcode a JDK version from memory. If `JAVA_HOME` is needed, set it to the Gradle JDK path shown in Android Studio: Settings/Preferences > Build, Execution, Deployment > Build Tools > Gradle > Gradle JDK.
+Do not hardcode a JDK version from memory. If `JAVA_HOME` is needed, set it to the Gradle JDK path shown in Android Studio: Settings/Preferences > Build, Execution, Deployment > Build Tools > Gradle > Gradle JDK. As a rule of thumb the JDK must match the Capacitor major version (e.g. Capacitor 8 → JDK 17+), but always defer to the docs.
 
 Useful checks:
 
@@ -37,9 +37,9 @@ If the project is in WSL2 but the emulator is on Windows, do not assume Linux `a
 From the project root:
 
 ```bash
-npm install @capacitor/core
-npm install -D @capacitor/cli
-npm install @capacitor/android
+npm install @capacitor/core@latest
+npm install -D @capacitor/cli@latest
+npm install @capacitor/android@latest
 ```
 
 Initialize Capacitor if needed:
@@ -70,9 +70,9 @@ Or open Android Studio:
 npx cap open android
 ```
 
-`cap sync` copies built web assets into `android/app/src/main/assets/public/` and updates native dependencies. `cap run` builds, installs, and launches on a connected device or emulator.
+`cap sync` copies built web assets into `android/app/src/main/assets/public/` and updates native dependencies. `cap run` builds, installs, and launches on a connected device or emulator via Gradle.
 
-Prefer adding scripts that encode the sequence:
+Prefer adding scripts that encode the sequence so build/sync can't be skipped:
 
 ```json
 {
@@ -112,6 +112,7 @@ WSL2:
 - If WSL2 emulator GUI controls are unreliable, keep building in WSL and run/install with Windows `adb.exe`.
 - Convert WSL APK paths with `wslpath -w` before passing them to Windows tools.
 - Run PowerShell commands from `/mnt/c` or another Windows filesystem directory to avoid UNC-current-directory failures.
+- Full procedure: `references/windows-wsl-emulator-workflow.md`.
 
 ## Config Notes
 
@@ -121,12 +122,12 @@ Typical Vite config:
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.example.app',
+  appId: 'com.example.app',     // becomes the Gradle applicationId
   appName: 'My Three App',
-  webDir: 'dist',
+  webDir: 'dist',               // must contain the built index.html
   server: {
-    androidScheme: 'https'
-  }
+    androidScheme: 'https',     // default; assets served from https://localhost
+  },
 };
 
 export default config;
@@ -135,7 +136,8 @@ export default config;
 Notes:
 - `appId` becomes the Gradle `applicationId`.
 - `webDir` must contain the built `index.html`.
-- `server.androidScheme` defaults to `https`; keep it unless a route strategy forces a change.
+- `server.androidScheme` defaults to `https`; keep it unless a route strategy forces a change. Absolute `/assets/...` URLs resolve correctly under that origin.
+- `android.allowMixedContent: true` only if you must load `http://` assets.
 - Do not rely on `file://` paths. Bundled assets are served from a local WebView origin.
 
 ## Live Reload
@@ -164,6 +166,17 @@ npx cap run android
 
 Remove `server.url` before production builds unless the app intentionally uses a remote update system. Shipping `server.url` accidentally is a common release bug.
 
+## Validation
+
+```bash
+npx cap doctor
+```
+
+Look for:
+- matching `@capacitor/*` versions
+- Android status healthy
+- sync writing the native project correctly
+
 ## WebView Debugging
 
 For physical devices:
@@ -178,7 +191,7 @@ For Android Studio:
 
 ## Signing a Release
 
-Debug builds auto-sign. Release builds need a project-owned keystore.
+Debug builds auto-sign with a debug key. Release builds need a project-owned keystore.
 
 Generate one:
 
@@ -187,7 +200,7 @@ keytool -genkey -v -keystore my-release.jks -keyalg RSA \
   -keysize 2048 -validity 10000 -alias my-app
 ```
 
-Store secrets outside git. A common pattern is `android/keystore.properties` with:
+Store secrets outside git. A common pattern is `android/keystore.properties` (gitignore it) with:
 
 ```properties
 storeFile=../my-release.jks
@@ -226,8 +239,8 @@ Build:
 
 ```bash
 cd android
-./gradlew bundleRelease
-./gradlew assembleRelease
+./gradlew bundleRelease    # -> app-release.aab (Play Store)
+./gradlew assembleRelease  # -> app-release.apk (sideload)
 ```
 
-Use Android Studio or official Android/Capacitor docs as source of truth for permissions, target SDK, Play Store requirements, and signing policy.
+Use Android Studio or official Android/Capacitor docs as source of truth for permissions (`android/app/src/main/AndroidManifest.xml`), target SDK, Play Store requirements, and signing policy.

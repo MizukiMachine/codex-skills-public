@@ -45,9 +45,9 @@ Do not edit Capacitor-generated SPM package internals such as `CapApp-SPM` manua
 From the project root:
 
 ```bash
-npm install @capacitor/core
-npm install -D @capacitor/cli
-npm install @capacitor/ios
+npm install @capacitor/core@latest
+npm install -D @capacitor/cli@latest
+npm install @capacitor/ios@latest
 ```
 
 Initialize Capacitor if needed:
@@ -80,7 +80,7 @@ Or open Xcode:
 npx cap open ios
 ```
 
-Prefer adding scripts that encode the sequence:
+Prefer adding scripts that encode the sequence so build/sync can't be skipped:
 
 ```json
 {
@@ -138,6 +138,17 @@ npx cap spm-migration-assistant
 
 Then run `npx cap open ios` and verify the local `CapApp-SPM` package is added in Xcode Package Dependencies. The migration tool may warn about plugins that cannot be represented as SPM packages.
 
+## Validation
+
+```bash
+npx cap doctor
+```
+
+Look for:
+- matching `@capacitor/*` versions
+- iOS status healthy
+- sync writing `Package.swift` for plugins
+
 ## Config Notes
 
 Typical Vite config:
@@ -146,9 +157,9 @@ Typical Vite config:
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.example.app',
+  appId: 'com.example.app',     // becomes the iOS bundle identifier unless changed in Xcode
   appName: 'My Three App',
-  webDir: 'dist'
+  webDir: 'dist',               // must contain the built index.html
 };
 
 export default config;
