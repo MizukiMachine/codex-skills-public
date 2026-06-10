@@ -1,0 +1,4 @@
+interface:
+  display_name: "QnA"
+  short_description: "1問ずつQ&Aで要件定義・設計・意思決定・理解を進める対話ワークフロー"
+  default_prompt: "$qna を使って、1問ずつのQ&A形式で対話を進めてください。"
