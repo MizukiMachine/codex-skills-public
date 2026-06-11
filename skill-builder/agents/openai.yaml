@@ -1,0 +1,5 @@
+interface:
+  display_name: "Skill Builder"
+  short_description: "高品質なCodexスキルの作成・更新とメタデータ設計ガイド"
+  icon_small: "./assets/skill-creator-small.svg"
+  icon_large: "./assets/skill-creator.png"
