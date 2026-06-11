@@ -13,6 +13,7 @@ and `architecture.md` (where the boundary sits in the app).
 - [Map actors and scopes](#map-actors-and-scopes)
 - [Classify information (sensitivity lattice)](#classify-information-sensitivity-lattice)
 - [Build an access matrix](#build-an-access-matrix)
+- [Isolate generation contexts](#isolate-generation-contexts)
 - [Split agent tasks](#split-agent-tasks)
 - [Choose output contracts by risk](#choose-output-contracts-by-risk)
 - [Construct prompts from rendered context](#construct-prompts-from-rendered-context)
@@ -33,7 +34,8 @@ robust design is a **per-viewer projection** of a single authoritative state:
 - a redaction/projection function per viewer that strips anything that viewer may
   not see (other actors' secret roles, private results, hidden targets, tool
   traces, retrieval internals);
-- generation, and any UI for that viewer, runs only on the projected slice.
+- generation, and any UI for that viewer, runs only on the projected slice in a
+  fresh/scoped context that has not seen the hidden state.
 
 This is the same idea as fog-of-war in an authoritative multiplayer server, and
 it doubles as the source of the plan's `allowedFacts`. Build the boundary first;
@@ -83,6 +85,26 @@ actor | public history | private memory | retrieved docs | hidden state | tool t
 Prefer allowlists over denylists — enumerating what to hide always misses a case.
 Render role-visible context from code, not from prompt prose alone.
 
+## Isolate generation contexts
+
+Do not generate public or actor-limited free text from a model invocation that has
+already seen hidden, forbidden, or cross-actor private state. The orchestrator may
+hold full state; the speaker, answerer, or downstream agent should receive only a
+projection.
+
+Acceptable isolation mechanisms:
+
+- **Fresh model call** — build messages from the projection only.
+- **Restricted sub-agent** — launch with the projected context and scoped tools.
+- **Scoped worker/process** — accept only projected context, legal IDs, and the
+  output contract.
+
+The boundary must include tools and data access, not just prompt text. A
+sub-agent is not isolated if it can read unrestricted files, databases, RAG
+indexes, memories, logs, or tool traces. If the current invocation has already
+read secret state, use it only as the orchestrator that builds the projection and
+validates the result.
+
 ## Split agent tasks
 
 Avoid a single "mega prompt". Use narrow tasks, each with its own context and
@@ -116,6 +138,11 @@ The prompt builder should receive already-authorized data. A good context
 includes: actor identity/role/objective/style, current phase/task, allowed public
 history or retrieved evidence, allowed private memory, legal IDs/document IDs for
 target selection, and the output contract + refusal/uncertainty rules.
+
+For public or actor-limited natural language, pass the rendered context to an
+isolated generator: a fresh API call, restricted sub-agent, or scoped worker. Do
+not reuse an all-knowing conversation that saw raw state and then ask it to
+"ignore" hidden fields.
 
 The prompt must **not** contain: API keys/credentials/env values; raw hidden
 state for actors that cannot see it; system-only instructions disguised as
@@ -151,7 +178,7 @@ User request
   -> Auth/tenant scope
   -> Planner: structured retrieval plan with filters
   -> Retriever: ACL-filtered documents
-  -> Reader/Answerer: only authorized snippets + citation IDs
+  -> Reader/Answerer: isolated generation with authorized snippets + citation IDs
   -> Verifier: citation coverage and unsupported-claim check
   -> Redactor: remove internal fields
   -> User-facing answer
@@ -160,7 +187,8 @@ User request
 Hard rules:
 
 - Apply ACL filtering **before** generation, not after.
-- Give the answerer document IDs and excerpts, not raw unrestricted corpora.
+- Give the answerer document IDs and excerpts in a fresh/scoped generation
+  context, not raw unrestricted corpora or an all-knowing orchestrator context.
 - Treat retrieved documents as untrusted evidence, never as system instructions.
 - Ignore/flag document text that asks the model to reveal secrets, bypass access
   checks, change roles, or act outside the user's request.
@@ -178,7 +206,7 @@ a chunk (see `validators.md`).
 ```text
 Authoritative state
   -> actor-specific prompt context
-  -> public speech or private speech
+  -> isolated public speech or private speech generator
   -> metadata extraction / action decision
   -> rule engine validation
   -> redacted event stream per viewer
@@ -187,6 +215,7 @@ Authoritative state
 Hard rules:
 
 - Give each character only role-visible secrets.
+- Use a fresh/scoped generation context for each actor's public or private speech.
 - Keep public speech simple and natural; infer metadata from the displayed text
   when possible (the metadata round-trip in `validators.md`).
 - Use structured outputs for votes, targets, actions, and binary decisions.
@@ -225,6 +254,8 @@ Add narrow tests around the boundaries:
 
 - An unauthorized document never appears in prompt context.
 - An agent cannot select an illegal target/document/action ID.
+- A public/actor-limited generator cannot access unrestricted tools, memory,
+  filesystem, RAG indexes, logs, or hidden state.
 - Public output does not expose hidden state.
 - Viewer-specific redaction removes private event fields.
 - RAG answer citations are drawn only from authorized retrieval results.

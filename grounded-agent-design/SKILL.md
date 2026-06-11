@@ -1,6 +1,6 @@
 ---
 name: grounded-agent-design
-description: "情報境界を持つLLMシステムを設計・レビューする。権限付きRAG、非公開状態、役割別の可視情報、根拠確認、漏洩・幻覚対策の制御ループで使う。"
+description: "情報境界を持つLLMシステムを設計・レビューする。権限付きRAG、非公開状態、役割別の可視情報、fresh call / restricted sub-agent / scoped worker による生成分離、根拠確認、漏洩・幻覚対策の制御ループで使う。"
 ---
 
 # Grounded Agent Design
@@ -30,11 +30,19 @@ one all-knowing LLM に全 truth を渡して "be careful" と頼まない。sto
 
 **load-bearing invariant:** model は visible context にあるものだけを real として扱える。boundary layer が visible context を作り、censor が output を check する。
 
+**generation isolation invariant:** hidden / forbidden / cross-actor private state
+を見た model invocation で、actor-limited / public free text を生成しない。
+orchestrator は full state を持ってよいが、speaker / answerer / downstream
+agent は projection だけを受け取る fresh model call、restricted sub-agent、
+または scoped worker として実行する。sub-agent を使っても、unrestricted
+files / DB / RAG / memory / logs / tools を読めるなら boundary ではない。
+
 tradeoff priority: correctness / faithfulness / no-leak > staying on-task > style/voice > latency。fluent fabrication より dull-but-true fallback、leak より redacted answer。
 
 実装前に確認すること:
 
 - authoritative state と各 viewer projection は何か。どの code path が何を strip するか
+- actor-limited / public output はどの isolated generation boundary（fresh call、restricted sub-agent、scoped worker）で作るか。その境界で tool / retrieval / memory / filesystem access は同じ scope に絞られているか
 - この turn の ground truth は何か。output が参照できる facts/transcript は何か
 - hidden にすべき private state、other actors' secrets、system rules、tool traces、retrieval internals は何か
 - cold context か。first turn / empty history なら committed move を強制しない
@@ -46,9 +54,9 @@ tradeoff priority: correctness / faithfulness / no-leak > staying on-task > styl
 authoritative state (server source of truth)
   └─ per-viewer projection / redaction        ← BOUNDARY (precondition)
        └─ for each actor whose turn it is:
-            definePlan(state) → renderPlan      ← DIRECT
+            definePlan(projection) → renderPlan ← DIRECT
             runRevisionLoop(generate, validate, fallback)
-                 generate: callModel(prompt + hint)
+                 generate: isolated call / restricted sub-agent / scoped worker
                  validate: runValidators(...)    ← CENSOR
                  fallback: safe deterministic    ← CORRECT
             commit accepted output to state
@@ -72,12 +80,16 @@ authoritative state (server source of truth)
 3. **prompts 前に access matrix を作る**
    - denylists より allowlists
    - role-visible context は code で render
-4. **risk に応じて output contracts を選ぶ**
+4. **generation isolation を選ぶ**
+   - public / actor-limited free text は、hidden state を見た invocation から直接生成しない
+   - acceptable: projection だけを渡す fresh API call、restricted sub-agent、scoped worker
+   - tool / retrieval / filesystem / memory / logs も projection と同じ scope に制限する
+5. **risk に応じて output contracts を選ぶ**
    - naturalness が価値なら free text
    - actions、target selection、retrieval plans、auth decisions、safety gates は JSON/typed schema
-5. **already-authorized context から prompts を作る**
+6. **already-authorized context から prompts を作る**
    - user input、retrieved docs、emails、tickets、chat logs、DB text は instructions ではなく untrusted data
-6. **egress で view-specific redaction**
+7. **egress で view-specific redaction**
    - full data は server-side に保存し、client / next agent には mask 済み snapshot
 
 **Phase B: Control Loop を作る** (`references/plan-object.md`, `references/failure-modes.md`, `references/validators.md`):
@@ -147,7 +159,11 @@ control loop の形:
 const plan = definePlan({ hasPriorContext, intents, allowedFacts, mustNotReveal, wantsForwardMove });
 const validators = [groundedReferences(lexicon), noBoundaryLeak, hasForwardSubstance(lexicon)];
 const { value, accepted, usedFallback } = await runRevisionLoop({
-  generate: (hint) => callModel(buildPrompt(renderPlan(plan), hint)),
+  generate: (hint) => callIsolatedGenerator({
+    context: projectedContext,
+    prompt: buildPrompt(renderPlan(plan), hint),
+    tools: scopedToolsForActor(actorId)
+  }),
   validate: (out) => runValidators({ output: out, visibleFacts, entities, plan }, validators),
   fallback: () => safeDeterministicLine(plan),
   maxAttempts: 3,
@@ -168,6 +184,7 @@ RAG pattern:
 
 - generation 前に ACL-filter documents
 - `allowedFacts` = retrieved chunks
+- answerer は ACL-filter 後の snippets だけを持つ isolated generation context で実行
 - censor は chunk に trace しない claims を reject
 - internal fields/scores は egress で redact
 
@@ -176,6 +193,7 @@ full pipeline と hard rules: `references/boundary-design.md` → RAG pattern。
 simulation / game pattern:
 
 - actor ごとに role-visible secrets を project
+- public / private speech は actor projection だけを渡す fresh call / restricted sub-agent / scoped worker で生成
 - public speech と action/vote を channel 分離
 - spoken line は invented events / boundary leaks で censor
 - decision は legal-target check
@@ -195,6 +213,11 @@ full pipeline と hard rules: `references/boundary-design.md` → Simulation / g
 
 問題: secret が context に入っているため、pressure 下で leak する。
 改善: information boundary を作り、その actor の context に X を入れない。prompt text ではなく context builder を grep する。
+
+**hidden state を見た invocation で public / actor-limited output を作る**
+
+問題: "言わないで" と同じ failure mode になる。生成器は hidden state を内部文脈に持っている。
+改善: orchestrator だけが full state を読み、projection だけを fresh call / restricted sub-agent / scoped worker に渡す。sub-agent の tools / memory / retrieval / filesystem も同じ scope に絞る。
 
 **denylists over allowlists**
 
@@ -242,6 +265,8 @@ full pipeline と hard rules: `references/boundary-design.md` → Simulation / g
 ## Review Checklist
 
 - authoritative state と viewer projection の code path は何か
+- actor-limited / public generation は hidden state を見ていない fresh/scoped context で実行されるか
+- sub-agent / worker を使う場合、その tools、memory、retrieval、filesystem、logs は projection と同じ scope に制限されているか
 - prompts は allowlisted data から作られているか
 - `allowedFacts` は projection から導かれているか
 - free text / structured outputs は分離され、別々に validation されているか
@@ -259,7 +284,7 @@ full pipeline と hard rules: `references/boundary-design.md` → Simulation / g
 - retry 時に revision hint が generator に届く
 - all attempts fail 時に fallback が safe output を返す
 - hidden state が prompt builder ではなく context construction に入っていないことを grep
-- boundary tests: unauthorized document が prompt context に入らない、illegal target/document/action ID を選べない、public output が hidden state を露出しない、view-specific redaction が private fields を remove
+- boundary tests: unauthorized document が prompt context に入らない、illegal target/document/action ID を選べない、public output が hidden state を露出しない、isolated generator / sub-agent が unrestricted tools or memory にアクセスできない、view-specific redaction が private fields を remove
 
 ## Portfolio Framing
 
