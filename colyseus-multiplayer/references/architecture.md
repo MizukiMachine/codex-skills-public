@@ -70,10 +70,11 @@ export class MatchRoom extends Room<MatchState> {
     if (player) player.connected = true;
   }
 
-  onLeave(client: Client, consented: boolean) {
-    if (consented) {
-      this.state.players.delete(client.sessionId);
-    }
+  onLeave(client: Client, code: number) {
+    // Colyseus 0.17: onLeave receives a numeric close code, not a boolean.
+    // With onDrop defined above, abnormal disconnects are handled there, so
+    // onLeave fires for consented/normal leaves -> remove the player.
+    this.state.players.delete(client.sessionId);
   }
 
   update(deltaTime: number) {
@@ -207,7 +208,7 @@ Then convert to renderer-specific origins at the edge. Avoid letting one client 
 - `onJoin(client, options, auth)`: create player/session state and announce membership.
 - `onDrop(client, code)`: handle unexpected disconnects and offer reconnection.
 - `onReconnect(client)`: restore active participation.
-- `onLeave(client, consented)`: clean up when the connection is permanently gone or voluntarily left.
+- `onLeave(client, code)`: clean up when the connection is permanently gone or voluntarily left. `code` is a numeric close code (Colyseus 0.17; earlier versions passed a boolean `consented`).
 - `onDispose()`: release external resources and timers.
 
 Design these as one lifecycle, not isolated callbacks.

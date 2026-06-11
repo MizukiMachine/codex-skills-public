@@ -200,6 +200,17 @@ For turn-based, card, social, or relaxed co-op games, skip this complexity until
 - Simulate latency instead of assuming localhost behavior generalizes
 - Confirm the client is reading env-configured URLs rather than hardcoded localhost values
 
+### Verifying multiplayer with real concurrent sessions
+
+Multiplayer bugs only show up with concurrent clients, so verify with real sessions rather than reasoning alone. When a headless-browser MCP (e.g. `phantom_*` navigate/click/type/evaluate/screenshot) is available:
+
+- Open two or more independent sessions against the dev URL to exercise join, presence, and state propagation across clients.
+- Drive intent in one session (move/attack/ready) and assert via screenshot or `phantom_evaluate` that the other session sees the authoritative result — not just local echo.
+- Reproduce reconnect paths: kill one session's socket (close/navigate away, or evaluate `room.connection.transport.close()`), confirm the survivor sees the disconnect, then rejoin and confirm `reconnect(token)` restores the seat within the window.
+- Read the browser console for `room.onError`/join failures rather than trusting a clean-looking screen.
+
+If no browser MCP is available, fall back to two manually opened tabs and report that automated multi-session verification was not performed.
+
 ## Client Anti-Patterns
 
 - Polling `room.state` every frame instead of using callbacks for entity lifecycle
