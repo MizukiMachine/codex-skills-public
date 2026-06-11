@@ -1,4 +1,4 @@
 interface:
   display_name: "Grounded Agent Design"
-  short_description: "情報境界の設計＋Direct→Censor→Correct 制御ループでLLM出力を根拠ベースに保つ"
-  default_prompt: "$grounded-agent-design を使って、authoritative stateの閲覧者別projectionで情報境界を設計し、各生成をDirect→Censor→Correct制御ループで囲んで、根拠があり漏洩せず目的から外れない出力にしてください。"
+  short_description: "閲覧者別projectionと生成分離＋Direct→Censor→CorrectでLLM出力を根拠ベースに保つ"
+  default_prompt: "$grounded-agent-design を使って、authoritative stateの閲覧者別projectionで情報境界を設計し、public/actor-limited出力はfresh call・restricted sub-agent・scoped workerなどの隔離された生成境界で作り、各生成をDirect→Censor→Correct制御ループで囲んで、根拠があり漏洩せず目的から外れない出力にしてください。"

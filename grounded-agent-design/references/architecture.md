@@ -7,6 +7,7 @@ its relationship to a separate latency/orchestration runtime.
 ## Contents
 
 - [Information boundary is a precondition](#information-boundary-is-a-precondition)
+- [Generation isolation](#generation-isolation)
 - [Where the loop plugs in](#where-the-loop-plugs-in)
 - [Bounded attempts and the safe fallback](#bounded-attempts-and-the-safe-fallback)
 - [Diagnostics as a first-class output](#diagnostics-as-a-first-class-output)
@@ -30,6 +31,24 @@ contracts, prompt-injection defense, redaction-by-view, and the RAG/game
 patterns — in [boundary-design.md](boundary-design.md). The rest of this file
 assumes the boundary exists and focuses on where the run-time loop plugs into it.
 
+## Generation isolation
+
+The orchestrator may read full authoritative state, but a model invocation that
+has seen hidden, forbidden, or cross-actor private state must not produce public
+or actor-limited free text. Use it only to build the projection, route the task,
+and validate the result.
+
+Run the generator behind an explicit isolation boundary:
+
+- fresh model call whose messages are built only from the projection;
+- restricted sub-agent with projected context and scoped tools;
+- scoped worker/process that receives only projected context, legal IDs, and the
+  output contract.
+
+Scope tool, retrieval, memory, filesystem, DB, logs, and trace access with the
+same rules as the prompt context. A sub-agent with limited text but unrestricted
+tools is not isolated.
+
 ## Where the loop plugs in
 
 The control loop wraps the single unit of generation in your app's turn:
@@ -38,9 +57,9 @@ The control loop wraps the single unit of generation in your app's turn:
 app turn
   └─ for each actor whose turn it is:
        build projected context (boundary)        ← precondition
-       definePlan(state) → renderPlan             ← Direct
+       definePlan(projection) → renderPlan         ← Direct
        runRevisionLoop(generate, validate, fallback)
-            generate: callModel(prompt + hint)
+            generate: fresh call / restricted sub-agent / scoped worker
             validate: runValidators(...)          ← Censor
             fallback: safe deterministic line      ← Correct
        commit accepted output to state
@@ -100,6 +119,10 @@ layer → runtime.
 
 - [ ] A per-viewer context projection exists; secret state never enters the wrong
       context (verified by reading the context builder).
+- [ ] Public/actor-limited free text is generated in a fresh/scoped context that
+      has not seen hidden state.
+- [ ] Sub-agent / worker tools, retrieval, memory, filesystem, DB, logs, and
+      traces are restricted to the same scope as the projected prompt context.
 - [ ] `allowedFacts` is derived from the projection, not hand-written.
 - [ ] The cold-context rule is applied via `definePlan`, not duplicated per call.
 - [ ] Spoken and decision channels are validated separately.
