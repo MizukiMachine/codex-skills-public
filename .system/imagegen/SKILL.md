@@ -1,157 +1,144 @@
 ---
 name: "imagegen"
-description: "AI生成のビットマップ画像を作成・編集する。写真、イラスト、テクスチャ、スプライト、モックアップ、透明背景切り抜きが必要なときに使う。SVGやHTML/CSSで直接作る用途は除く。"
+description: "Generate or edit raster images when the task benefits from AI-created bitmap visuals such as photos, illustrations, textures, sprites, mockups, or transparent-background cutouts. Use when Codex should create a brand-new image, transform an existing image, or derive visual variants from references, and the output should be a bitmap asset rather than repo-native code or vector. Do not use when the task is better handled by editing existing SVG/vector/code-native assets, extending an established icon or logo system, or building the visual directly in HTML/CSS/canvas."
 ---
 
 # Image Generation Skill
 
-現在の project 用に画像を生成または編集する。対象例は website assets、game assets、UI mockups、product mockups、wireframes、logo design、photorealistic images、infographics など。
+Generates or edits images for the current project (for example website assets, game assets, UI mockups, product mockups, wireframes, logo design, photorealistic images, or infographics).
 
-## Top-Level Modes and Rules
+## Top-level modes and rules
 
-このスキルには top-level mode が2つだけある。
+This skill has exactly two top-level modes:
 
-- **Default built-in tool mode (preferred):** 通常の画像生成、編集、単純な transparent image request では built-in `image_gen` tool を使う。`OPENAI_API_KEY` は不要。
-- **Fallback CLI mode:** `scripts/image_gen.py` CLI を使う。ユーザーが CLI/API/model path を明示的に求めた場合、または `gpt-image-1.5` による true model-native transparency fallback をユーザーが明示確認した後だけ使う。`OPENAI_API_KEY` が必要。
+- **Default built-in tool mode (preferred):** built-in `image_gen` tool for normal image generation, editing, and simple transparent-image requests. Does not require `OPENAI_API_KEY`.
+- **Fallback CLI mode:** `scripts/image_gen.py` CLI. Use when the user explicitly asks for the CLI/API/model path, or after the user explicitly confirms a true model-native transparency fallback with `gpt-image-1.5`. Requires `OPENAI_API_KEY`.
 
-CLI fallback では CLI が次の subcommand を提供する。
+Within CLI fallback, the CLI exposes three subcommands:
 
 - `generate`
 - `edit`
 - `generate-batch`
 
-ルール:
-
-- 通常の画像生成・編集依頼では built-in `image_gen` tool を既定で使う。
-- ordinary quality、size、file-path control のためだけに CLI fallback へ切り替えない。
-- ユーザーが transparent image/background を明示した場合も、まず built-in `image_gen` に留まる。flat removable chroma-key background で prompt し、installed helper `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py` で local removal する。
-- built-in `image_gen` や CLI `gpt-image-2` から CLI `gpt-image-1.5` へ黙って切り替えない。これは model/path downgrade として扱い、ユーザーが既に `gpt-image-1.5`、`scripts/image_gen.py`、CLI fallback を明示していない限り確認する。
-- transparent request が chroma-key removal ではきれいに処理しにくい、true/native transparency を求めている、または local removal validation に失敗した場合は、`gpt-image-2` が `background=transparent` を support しないため true transparency には CLI `gpt-image-1.5 --background transparent --output-format png` が必要だと説明し、進めるか確認する。CLI fallback はユーザー確認後だけ実行する。
-- `batch` という語だけでは CLI fallback を意味しない。大量 asset や batch-generate の依頼でも CLI/API/model control を明示していない場合は built-in path に留まり、asset や variant ごとに built-in call を1回ずつ行う。
-- built-in tool が失敗または利用不可の場合、CLI fallback があり `OPENAI_API_KEY` が必要だと伝える。ユーザーがその fallback を明示的に求めた場合だけ進める。
-- ユーザーが CLI mode を明示した場合は bundled `scripts/image_gen.py` workflow を使う。一回限りの SDK runner を作らない。
-- `scripts/image_gen.py` は絶対に変更しない。足りないものがある場合は、他の作業をする前にユーザーへ確認する。
+Rules:
+- Use the built-in `image_gen` tool by default for normal image generation and editing requests.
+- Do not switch to CLI fallback for ordinary quality, size, or file-path control.
+- If the user explicitly asks for a transparent image/background, stay on built-in `image_gen` first: prompt for a flat removable chroma-key background, then remove it locally with the installed helper at `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py`.
+- Never silently switch from built-in `image_gen` or CLI `gpt-image-2` to CLI `gpt-image-1.5`. Treat this as a model/path downgrade and ask the user before doing it, unless the user has already explicitly requested `gpt-image-1.5`, `scripts/image_gen.py`, or CLI fallback.
+- If a transparent request appears too complex for clean chroma-key removal, asks for true/native transparency, or local removal fails validation, explain that true transparency requires CLI `gpt-image-1.5 --background transparent --output-format png` because `gpt-image-2` does not support `background=transparent`, then ask whether to proceed. Run the CLI fallback only after the user confirms.
+- The word `batch` by itself does not mean CLI fallback. If the user asks for many assets or says to batch-generate assets without explicitly asking for CLI/API/model controls, stay on the built-in path and issue one built-in call per requested asset or variant.
+- If the built-in tool fails or is unavailable, tell the user the CLI fallback exists and that it requires `OPENAI_API_KEY`. Proceed only if the user explicitly asks for that fallback.
+- If the user explicitly asks for CLI mode, use the bundled `scripts/image_gen.py` workflow. Do not create one-off SDK runners.
+- Never modify `scripts/image_gen.py`. If something is missing, ask the user before doing anything else.
 
 Built-in save-path policy:
+- In built-in tool mode, Codex saves generated images under `$CODEX_HOME/*` by default.
+- Do not describe or rely on OS temp as the default built-in destination.
+- Do not describe or rely on a destination-path argument (if any) on the built-in `image_gen` tool. If a specific location is needed, generate first and then move or copy the selected output from `$CODEX_HOME/generated_images/...`.
+- Save-path precedence in built-in mode:
+  1. If the user names a destination, move or copy the selected output there.
+  2. If the image is meant for the current project, move or copy the final selected image into the workspace before finishing.
+  3. If the image is only for preview or brainstorming, render it inline; the underlying file can remain at the default `$CODEX_HOME/*` path.
+- Never leave a project-referenced asset only at the default `$CODEX_HOME/*` path.
+- Do not overwrite an existing asset unless the user explicitly asked for replacement; otherwise create a sibling versioned filename such as `hero-v2.png` or `item-icon-edited.png`.
 
-- built-in tool mode では、Codex は既定で generated images を `$CODEX_HOME/*` 配下に保存する。
-- built-in の既定保存先を OS temp として説明したり、それに依存したりしない。
-- built-in `image_gen` tool に destination-path argument があるかのように説明・依存しない。特定 location が必要なら、生成後に `$CODEX_HOME/generated_images/...` から選択した output を移動または copy する。
-- built-in mode の save-path precedence:
-  1. ユーザーが destination を指定した場合、選択 output をそこへ移動または copy する。
-  2. 画像が current project 用の場合、完了前に最終選択 image を workspace へ移動または copy する。
-  3. preview や brainstorming だけなら inline に render する。underlying file は既定の `$CODEX_HOME/*` path に残っていてよい。
-- project から参照する asset を既定の `$CODEX_HOME/*` path のみに残さない。
-- ユーザーが replacement を明示していない限り existing asset を上書きしない。`hero-v2.png` や `item-icon-edited.png` のような sibling versioned filename を作る。
+Shared prompt guidance for both modes lives in `references/prompting.md` and `references/sample-prompts.md`.
 
-両 mode 共通の prompt guidance は `references/prompting.md` と `references/sample-prompts.md` にある。
-
-CLI mode 専用 docs/resources:
-
+Fallback-only docs/resources for CLI mode:
 - `references/cli.md`
 - `references/image-api.md`
 - `references/codex-network.md`
 - `scripts/image_gen.py`
 
 Local post-processing helper:
+- `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py`: removes a flat chroma-key background from a generated image and writes a PNG/WebP with alpha. Prefer auto-key sampling, soft matte, and despill for antialiased edges.
 
-- `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py`: generated image の flat chroma-key background を除去し、alpha 付き PNG/WebP を書き出す。antialiased edges には auto-key sampling、soft matte、despill を優先する。
+## When to use
+- Generate a new image (concept art, product shot, cover, website hero)
+- Generate a new image using one or more reference images for style, composition, or mood
+- Edit an existing image (inpainting, lighting or weather transformations, background replacement, object removal, compositing, transparent background)
+- Produce many assets or variants for one task
 
-## When to Use
+## When not to use
+- Extending or matching an existing SVG/vector icon set, logo system, or illustration library inside the repo
+- Creating simple shapes, diagrams, wireframes, or icons that are better produced directly in SVG, HTML/CSS, or canvas
+- Making a small project-local asset edit when the source file already exists in an editable native format
+- Any task where the user clearly wants deterministic code-native output instead of a generated bitmap
 
-- 新しい image を生成する。例: concept art、product shot、cover、website hero。
-- style、composition、mood の参照として1枚以上の reference image を使い、新しい image を生成する。
-- 既存 image を編集する。例: inpainting、lighting/weather transformation、background replacement、object removal、compositing、transparent background。
-- 1つの task で多数の assets や variants を作る。
+## Decision tree
 
-## When Not to Use
+Think about two separate questions:
 
-- repo 内の既存 SVG/vector icon set、logo system、illustration library を拡張・一致させる場合。
-- simple shapes、diagrams、wireframes、icons など、SVG、HTML/CSS、canvas で直接作る方が適切な場合。
-- source file が editable native format で既に存在する小さな project-local asset edit。
-- ユーザーが generated bitmap ではなく deterministic code-native output を明確に求めている task。
-
-## Decision Tree
-
-次の2点を分けて考える。
-
-1. **Intent:** 新規画像か、既存画像の編集か。
-2. **Execution strategy:** 1 asset か、多数の assets/variants か。
+1. **Intent:** is this a new image or an edit of an existing image?
+2. **Execution strategy:** is this one asset or many assets/variants?
 
 Intent:
-
-- ユーザーが既存 image の一部を保ったまま変更したい場合は **edit** として扱う。
-- ユーザーが image を style、composition、mood、subject guidance の参照としてだけ提供した場合は **generate** として扱う。
-- image が提供されていない場合は **generate** として扱う。
+- If the user wants to modify an existing image while preserving parts of it, treat the request as **edit**.
+- If the user provides images only as references for style, composition, mood, or subject guidance, treat the request as **generate**.
+- If the user provides no images, treat the request as **generate**.
 
 Built-in edit semantics:
-
-- built-in edit mode は、attached image や thread 内で以前に生成された image のように、conversation context 上で既に見えている image のためのもの。
-- ユーザーが local image file を built-in tool で編集したい場合、まず built-in `view_image` tool で読み込み、conversation context に image が見える状態にしてから built-in edit flow を進める。
-- built-in tool で任意 filesystem-path editing ができると約束しない。
-- local file に direct file-path control、masks、その他 CLI-only parameter が必要な場合は、ユーザーが明示的に求めた場合だけ CLI fallback を使う。
-- edit では invariants を強く保持し、既定では non-destructive に保存する。
+- Built-in edit mode is for images already visible in the conversation context, such as attached images or images generated earlier in the thread.
+- If the user wants to edit a local image file with the built-in tool, first load it with built-in `view_image` tool so the image is visible in the conversation context, then proceed with the built-in edit flow.
+- Do not promise arbitrary filesystem-path editing through the built-in tool.
+- If a local file still needs direct file-path control, masks, or other explicit CLI-only parameters, use the explicit CLI fallback only when the user asks for it.
+- For edits, preserve invariants aggressively and save non-destructively by default.
 
 Execution strategy:
+- In the built-in default path, produce many assets or variants by issuing one `image_gen` call per requested asset or variant.
+- In the CLI fallback path, use the CLI `generate-batch` subcommand only when the user explicitly chose CLI mode and needs many prompts/assets.
+- For many distinct assets, do not use `n` as a substitute for separate prompts. `n` is for variants of one prompt; distinct assets need distinct built-in calls or distinct CLI `generate-batch` jobs.
 
-- built-in default path では、asset または variant ごとに `image_gen` call を1回ずつ出して多数 outputs を作る。
-- CLI fallback path では、ユーザーが CLI mode を明示的に選び、多数 prompts/assets が必要な場合だけ CLI `generate-batch` subcommand を使う。
-- 多数の distinct assets では、separate prompt の代わりに `n` を使わない。`n` は1 prompt の variants 用である。distinct assets には distinct built-in calls または distinct CLI `generate-batch` jobs が必要。
-
-ユーザーが既存画像の変更を明確に求めていない限り、新規画像を求めていると仮定する。
+Assume the user wants a new image unless they clearly ask to change an existing one.
 
 ## Workflow
-
-1. top-level mode を決める。既定は built-in。単純な transparent-output request も built-in。fallback CLI は明示要求または transparent-output fallback の明示確認後だけ使う。
-2. intent を `generate` または `edit` に決める。
-3. output が preview-only か current project で消費されるものかを決める。
-4. execution strategy を single asset、repeated built-in calls、CLI `generate-batch` から決める。
-5. inputs を先に集める。prompt(s)、exact text (verbatim)、constraints/avoid list、input images。
-6. すべての input image について role を明示する。
+1. Decide the top-level mode: built-in by default, including simple transparent-output requests; fallback CLI only if explicitly requested or after the user explicitly confirms a transparent-output fallback.
+2. Decide the intent: `generate` or `edit`.
+3. Decide whether the output is preview-only or meant to be consumed by the current project.
+4. Decide the execution strategy: single asset vs repeated built-in calls vs CLI `generate-batch`.
+5. Collect inputs up front: prompt(s), exact text (verbatim), constraints/avoid list, and any input images.
+6. For every input image, label its role explicitly:
    - reference image
    - edit target
    - supporting insert/style/compositing input
-7. edit target が local filesystem 上だけにあり built-in path に留まる場合は、conversation context に image を出すため `view_image` で先に inspect する。
-8. ユーザーが photo、illustration、sprite、product image、banner など raster-style asset を明示した場合、SVG/HTML/CSS placeholder で代替せず `image_gen` を使う。icon、logo、UI graphic が既存 repo-native SVG/vector/code assets に合わせるべき場合は、直接それらを編集する方を優先する。
-9. specificity に応じて prompt を補強する。
-   - ユーザー prompt が具体的で詳細なら、creative requirement を足さず clear spec に normalize する。
-   - ユーザー prompt が generic なら、output quality を実質的に改善する tasteful augmentation だけ足す。
-10. built-in `image_gen` tool を既定で使う。
-11. transparent-output request では下の transparent image guidance に従う。built-in `image_gen` で flat chroma-key background 付きに生成し、選択 output を workspace または `tmp/imagegen/` へ copy し、installed `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py` helper を実行し、alpha result を検証してから使う。この path が不適切に見える、または失敗した場合は CLI `gpt-image-1.5` へ切り替える前に確認する。
-12. output を inspect し、subject、style、composition、text accuracy、invariants/avoid items を検証する。
-13. targeted change を1つだけ加えて iterate し、再確認する。
-14. preview-only work では image を inline render する。underlying file は既定の `$CODEX_HOME/generated_images/...` path のままでよい。
-15. project-bound work では選択 artifact を workspace へ移動または copy し、必要なら consuming code や references を更新する。project-referenced asset を既定の `$CODEX_HOME/generated_images/...` path のみに残さない。
-16. batches または multi-asset request では、ユーザーが preview-only を明示していない限り、要求された deliverable はすべて workspace に final として保存する。discarded variant は要求されていない限り保持不要。
-17. ユーザーが CLI fallback を明示的に選択または確認した場合のみ、model、quality、size、`input_fidelity`、masks、output format、output paths、network setup について fallback-only docs を使う。
-18. workspace-bound asset の final saved path(s)、final prompt または prompt set、built-in tool と fallback CLI mode のどちらを使ったかを必ず報告する。
+7. If the edit target is only on the local filesystem and you are staying on the built-in path, inspect it with `view_image` first so the image is available in conversation context.
+8. If the user asked for a photo, illustration, sprite, product image, banner, or other explicitly raster-style asset, use `image_gen` rather than substituting SVG/HTML/CSS placeholders. If the request is for an icon, logo, or UI graphic that should match existing repo-native SVG/vector/code assets, prefer editing those directly instead.
+9. Augment the prompt based on specificity:
+   - If the user's prompt is already specific and detailed, normalize it into a clear spec without adding creative requirements.
+   - If the user's prompt is generic, add tasteful augmentation only when it materially improves output quality.
+10. Use the built-in `image_gen` tool by default.
+11. For transparent-output requests, follow the transparent image guidance below: generate with built-in `image_gen` on a flat chroma-key background, copy the selected output into the workspace or `tmp/imagegen/`, run the installed `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py` helper, and validate the alpha result before using it. If this path looks unsuitable or fails, ask before switching to CLI `gpt-image-1.5`.
+12. Inspect outputs and validate: subject, style, composition, text accuracy, and invariants/avoid items.
+13. Iterate with a single targeted change, then re-check.
+14. For preview-only work, render the image inline; the underlying file may remain at the default `$CODEX_HOME/generated_images/...` path.
+15. For project-bound work, move or copy the selected artifact into the workspace and update any consuming code or references. Never leave a project-referenced asset only at the default `$CODEX_HOME/generated_images/...` path.
+16. For batches or multi-asset requests, persist every requested deliverable final in the workspace unless the user explicitly asked to keep outputs preview-only. Discarded variants do not need to be kept unless requested.
+17. If the user explicitly chooses or confirms the CLI fallback, then use the fallback-only docs for model, quality, size, `input_fidelity`, masks, output format, output paths, and network setup.
+18. Always report the final saved path(s) for any workspace-bound asset(s), plus the final prompt or prompt set and whether the built-in tool or fallback CLI mode was used.
 
-## Transparent Image Requests
+## Transparent image requests
 
-transparent-image request でも最初は built-in `image_gen` を使う。built-in tool は true transparent-background control を公開していないため、removable chroma-key source image を作り、key color を local で alpha に変換する。
+Transparent-image requests still use built-in `image_gen` first. Because the built-in tool does not expose a true transparent-background control, create a removable chroma-key source image and then convert the key color to alpha locally.
 
-既定手順:
+Default sequence:
+1. Use built-in `image_gen` to generate the requested subject on a perfectly flat solid chroma-key background.
+2. Choose a key color that is unlikely to appear in the subject: default `#00ff00`, use `#ff00ff` for green subjects, and avoid `#0000ff` for blue subjects.
+3. After generation, move or copy the selected source image from `$CODEX_HOME/generated_images/...` into the workspace or `tmp/imagegen/`.
+4. Run the installed helper path, not a project-relative script path:
+   ```bash
+   python "${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chroma_key.py" \
+     --input <source> \
+     --out <final.png> \
+     --auto-key border \
+     --soft-matte \
+     --transparent-threshold 12 \
+     --opaque-threshold 220 \
+     --despill
+   ```
+5. Validate that the output has an alpha channel, transparent corners, plausible subject coverage, and no obvious key-color fringe. If a thin fringe remains, retry once with `--edge-contract 1`; use `--edge-feather 0.25` only when the edge is visibly stair-stepped and the subject is not shiny or reflective.
+6. Save the final alpha PNG/WebP in the project if the asset is project-bound. Never leave a project-referenced transparent asset only under `$CODEX_HOME/*`.
 
-1. built-in `image_gen` で、要求 subject を perfectly flat solid chroma-key background 上に生成する。
-2. subject に出にくい key color を選ぶ。既定は `#00ff00`。green subject には `#ff00ff` を使う。blue subject には `#0000ff` を避ける。
-3. 生成後、選択 source image を `$CODEX_HOME/generated_images/...` から workspace または `tmp/imagegen/` に移動または copy する。
-4. project-relative script path ではなく installed helper path を実行する。
-
-```bash
-python "${CODEX_HOME:-$HOME/.codex}/skills/.system/imagegen/scripts/remove_chroma_key.py" \
-  --input <source> \
-  --out <final.png> \
-  --auto-key border \
-  --soft-matte \
-  --transparent-threshold 12 \
-  --opaque-threshold 220 \
-  --despill
-```
-
-5. output に alpha channel がある、corner が transparent、subject coverage が妥当、key-color fringe が目立たないことを検証する。薄い fringe が残る場合は `--edge-contract 1` で1回 retry する。edge が visibly stair-stepped で、subject が shiny/reflective でない場合だけ `--edge-feather 0.25` を使う。
-6. asset が project-bound なら final alpha PNG/WebP を project に保存する。project-referenced transparent asset を `$CODEX_HOME/*` のみに残さない。
-
-transparent request は次のように prompt する。
+Prompt transparent requests like this:
 
 ```text
 Create the requested subject on a perfectly flat solid #00ff00 chroma-key background for background removal.
@@ -161,72 +148,68 @@ Do not use #00ff00 anywhere in the subject.
 No cast shadow, no contact shadow, no reflection, no watermark, and no text unless explicitly requested.
 ```
 
-chroma keying の代わりに CLI `gpt-image-1.5 --background transparent --output-format png` を自動使用しない。ユーザーが true/native transparency を求める場合、local removal validation が失敗した場合、または hair、fur、feathers、smoke、glass、liquids、translucent materials、reflective objects、soft shadows、realistic product grounding、実用的な key color と衝突する subject colors など複雑な request の場合は、切り替え前に確認する。
+Do not automatically use CLI `gpt-image-1.5 --background transparent --output-format png` instead of chroma keying. Ask the user first when the user asks for true/native transparency, when local removal fails validation, or when the requested image is complex: hair, fur, feathers, smoke, glass, liquids, translucent materials, reflective objects, soft shadows, realistic product grounding, or subject colors that conflict with all practical key colors.
 
-確認は簡潔に行う。
+Use a concise confirmation like:
 
 ```text
 This likely needs true native transparency. The default built-in path uses a chroma-key background plus local removal, but true transparency requires the CLI fallback with gpt-image-1.5 because gpt-image-2 does not support background=transparent. It also requires OPENAI_API_KEY. Should I proceed with that CLI fallback?
 ```
 
-## Prompt Augmentation
+## Prompt augmentation
 
-ユーザー prompt を structured, production-oriented spec に整える。ユーザーの goal を明確かつ actionable にするが、機械的に detail を追加しない。
+Reformat user prompts into a structured, production-oriented spec. Make the user's goal clearer and more actionable, but do not blindly add detail.
 
-closed schema ではなく prompt-shaping guidance として扱う。役に立つ line だけ使い、必要なら clarity を上げる short labeled line を追加する。
+Treat this as prompt-shaping guidance, not a closed schema. Use only the lines that help, and add a short extra labeled line when it materially improves clarity.
 
-### Specificity Policy
+### Specificity policy
 
-ユーザー prompt の具体性で augmentation 量を決める。
+Use the user's prompt specificity to decide how much augmentation is appropriate:
 
-- prompt が既に具体的で詳細なら、その具体性を保持し、normalize/structure だけ行う。
-- prompt が generic なら、result を実質的に改善する tasteful augmentation を足してよい。
+- If the prompt is already specific and detailed, preserve that specificity and only normalize/structure it.
+- If the prompt is generic, you may add tasteful augmentation when it will materially improve the result.
 
 Allowed augmentations:
-
-- composition/framing hints
-- polish level または intended-use hints
+- composition or framing hints
+- polish level or intended-use hints
 - practical layout guidance
-- stated request を支える reasonable scene concreteness
+- reasonable scene concreteness that supports the stated request
 
 Not allowed augmentations:
+- extra characters or objects that are not implied by the request
+- brand names, slogans, palettes, or narrative beats that are not implied
+- arbitrary side-specific placement unless the surrounding layout supports it
 
-- request から implied されない extra characters/objects
-- implied されない brand names、slogans、palettes、narrative beats
-- surrounding layout が支えない arbitrary side-specific placement
+## Use-case taxonomy (exact slugs)
 
-## Use-Case Taxonomy
+Classify each request into one of these buckets and keep the slug consistent across prompts and references.
 
-各 request を次の bucket のいずれかに分類し、prompt や reference で slug を一貫して使う。
+Generate:
+- photorealistic-natural — candid/editorial lifestyle scenes with real texture and natural lighting.
+- product-mockup — product/packaging shots, catalog imagery, merch concepts.
+- ui-mockup — app/web interface mockups and wireframes; specify the desired fidelity.
+- infographic-diagram — diagrams/infographics with structured layout and text.
+- scientific-educational — classroom explainers, scientific diagrams, and learning visuals with required labels and accuracy constraints.
+- ads-marketing — campaign concepts and ad creatives with audience, brand position, scene, and exact tagline/copy.
+- productivity-visual — slide, chart, workflow, and data-heavy business visuals.
+- logo-brand — logo/mark exploration, vector-friendly.
+- illustration-story — comics, children’s book art, narrative scenes.
+- stylized-concept — style-driven concept art, 3D/stylized renders.
+- historical-scene — period-accurate/world-knowledge scenes.
 
-生成:
+Edit:
+- text-localization — translate/replace in-image text, preserve layout.
+- identity-preserve — try-on, person-in-scene; lock face/body/pose.
+- precise-object-edit — remove/replace a specific element (including interior swaps).
+- lighting-weather — time-of-day/season/atmosphere changes only.
+- background-extraction — transparent background / clean cutout. Use built-in `image_gen` with chroma-key removal first for simple opaque subjects; ask before using CLI true transparency for complex subjects.
+- style-transfer — apply reference style while changing subject/scene.
+- compositing — multi-image insert/merge with matched lighting/perspective.
+- sketch-to-render — drawing/line art to photoreal render.
 
-- `photorealistic-natural`: candid/editorial lifestyle scenes、real texture、natural lighting。
-- `product-mockup`: product/packaging shots、catalog imagery、merch concepts。
-- `ui-mockup`: app/web interface mockups、wireframes。desired fidelity を指定する。
-- `infographic-diagram`: structured layout と text を持つ diagrams/infographics。
-- `scientific-educational`: labels と accuracy constraints が必要な classroom explainers、scientific diagrams、learning visuals。
-- `ads-marketing`: audience、brand position、scene、exact tagline/copy を持つ campaign concepts と ad creatives。
-- `productivity-visual`: slides、charts、workflow、data-heavy business visuals。
-- `logo-brand`: logo/mark exploration、vector-friendly。
-- `illustration-story`: comics、children's book art、narrative scenes。
-- `stylized-concept`: style-driven concept art、3D/stylized renders。
-- `historical-scene`: period-accurate/world-knowledge scenes。
+## Shared prompt schema
 
-編集:
-
-- `text-localization`: in-image text を翻訳・置換し、layout を保持する。
-- `identity-preserve`: try-on、person-in-scene。face/body/pose を lock する。
-- `precise-object-edit`: 特定 element の remove/replace。interior swaps を含む。
-- `lighting-weather`: time-of-day、season、atmosphere のみを変える。
-- `background-extraction`: transparent background / clean cutout。simple opaque subjects では built-in `image_gen` with chroma-key removal を先に使い、complex subjects で true CLI transparency を使う前に確認する。
-- `style-transfer`: reference style を適用しつつ subject/scene を変える。
-- `compositing`: multi-image insert/merge。lighting/perspective を合わせる。
-- `sketch-to-render`: drawing/line art から photoreal render。
-
-## Shared Prompt Schema
-
-両 top-level mode で共通の prompt scaffolding として、次の labeled spec を使う。
+Use the following labeled spec as shared prompt scaffolding for both top-level modes:
 
 ```text
 Use case: <taxonomy slug>
@@ -246,22 +229,19 @@ Avoid: <negative constraints>
 ```
 
 Notes:
-
-- `Asset type` と `Input images` は prompt scaffolding であり、dedicated CLI flags ではない。
-- `Scene/backdrop` は visual setting を指す。fallback CLI の `background` parameter とは別物で、そちらは output transparency behavior を制御する。
-- `Quality:`、`Input fidelity:`、masks、output format、output paths など fallback-only execution notes は CLI path だけに属する。built-in `image_gen` tool arguments として扱わない。
+- `Asset type` and `Input images` are prompt scaffolding, not dedicated CLI flags.
+- `Scene/backdrop` refers to the visual setting. It is not the same as the fallback CLI `background` parameter, which controls output transparency behavior.
+- Fallback-only execution notes such as `Quality:`, `Input fidelity:`, masks, output format, and output paths belong in the CLI path only. Do not treat them as built-in `image_gen` tool arguments.
 
 Augmentation rules:
-
-- 短く保つ。
-- prompt を実質的に改善する detail だけ追加する。
-- edit では invariants (`change only X; keep Y unchanged`) を明示する。
-- 成功を妨げる critical detail が欠けている場合だけ質問する。それ以外は進める。
+- Keep it short.
+- Add only the details needed to improve the prompt materially.
+- For edits, explicitly list invariants (`change only X; keep Y unchanged`).
+- If any critical detail is missing and blocks success, ask a question; otherwise proceed.
 
 ## Examples
 
-### Generation Example
-
+### Generation example (hero image)
 ```text
 Use case: product-mockup
 Asset type: landing page hero
@@ -272,8 +252,7 @@ Lighting/mood: soft studio lighting
 Constraints: no logos, no text, no watermark
 ```
 
-### Edit Example
-
+### Edit example (invariants)
 ```text
 Use case: precise-object-edit
 Asset type: product photo background replacement
@@ -281,44 +260,41 @@ Primary request: replace only the background with a warm sunset gradient
 Constraints: change only the background; keep the product and its edges unchanged; no text; no watermark
 ```
 
-## Prompting Best Practices
+## Prompting best practices
+- Structure prompt as scene/backdrop -> subject -> details -> constraints.
+- Include intended use (ad, UI mock, infographic) to set the mode and polish level.
+- Use camera/composition language for photorealism.
+- Only use SVG/vector stand-ins when the user explicitly asked for vector output or a non-image placeholder.
+- Quote exact text and specify typography + placement.
+- For tricky words, spell them letter-by-letter and require verbatim rendering.
+- For multi-image inputs, reference images by index and describe how they should be used.
+- For edits, repeat invariants every iteration to reduce drift.
+- Iterate with single-change follow-ups.
+- If the prompt is generic, add only the extra detail that will materially help.
+- If the prompt is already detailed, normalize it instead of expanding it.
+- For CLI fallback only, see `references/cli.md` and `references/image-api.md` for model, `quality`, `input_fidelity`, masks, output format, and output-path guidance.
+- For transparent images, use the built-in-first chroma-key workflow unless the request is complex enough to need true CLI transparency; ask before switching to CLI `gpt-image-1.5`.
 
-- prompt は scene/backdrop -> subject -> details -> constraints の順に構造化する。
-- intended use (ad、UI mock、infographic など) を含め、mode と polish level を伝える。
-- photorealism では camera/composition language を使う。
-- ユーザーが vector output または non-image placeholder を明示した場合だけ SVG/vector stand-ins を使う。
-- exact text は quote し、typography と placement を指定する。
-- tricky words は letter-by-letter で綴り、verbatim rendering を要求する。
-- multi-image inputs では image index で参照し、どう使うかを説明する。
-- edit では drift を減らすため、iteration ごとに invariants を繰り返す。
-- single-change follow-up で iterate する。
-- prompt が generic なら material に役立つ extra detail だけ加える。
-- prompt が詳細なら expand せず normalize する。
-- CLI fallback 専用の model、`quality`、`input_fidelity`、masks、output format、output-path guidance は `references/cli.md` と `references/image-api.md` を参照する。
-- transparent images では request が complex で true CLI transparency を必要とする場合を除き、built-in-first chroma-key workflow を使う。CLI `gpt-image-1.5` へ切り替える前に確認する。
+More principles shared by both modes: `references/prompting.md`.
+Copy/paste specs shared by both modes: `references/sample-prompts.md`.
 
-両 mode 共通の追加原則: `references/prompting.md`。
-両 mode 共通の copy/paste specs: `references/sample-prompts.md`。
+## Guidance by asset type
+Asset-type templates (website assets, game assets, wireframes, logo) are consolidated in `references/sample-prompts.md`.
 
-## Guidance by Asset Type
+## gpt-image-2 guidance for CLI fallback
 
-website assets、game assets、wireframes、logo などの asset-type template は `references/sample-prompts.md` に集約されている。
+The fallback CLI defaults to `gpt-image-2`.
 
-## gpt-image-2 Guidance for CLI Fallback
-
-fallback CLI は既定で `gpt-image-2` を使う。
-
-- true model-native transparent output が必要な場合を除き、新規 CLI/API workflow では `gpt-image-2` を使う。
-- transparent request が CLI fallback を必要としそうな場合、ユーザーが `gpt-image-1.5`、`scripts/image_gen.py`、CLI fallback を既に明示していない限り、`gpt-image-1.5` を使う前に確認する。built-in chroma-key path が既定だが、true transparency は `gpt-image-2` が `background=transparent` を support しないため `gpt-image-1.5` が必要だと説明する。
-- `gpt-image-2` は image inputs で常に high fidelity を使う。この model では `input_fidelity` を設定しない。
-- `gpt-image-2` は `quality` values `low`、`medium`、`high`、`auto` を support する。
-- fast drafts、thumbnails、quick iterations では `quality low` を使う。final assets、dense text、diagrams、identity-sensitive edits、high-resolution outputs では `medium`、`high`、または `auto` を使う。
-- square images は一般に生成が最速。fast square draft では `1024x1024` を使う。
-- 4K-style output を求められた場合、landscape は `3840x2160`、portrait は `2160x3840` を使う。
-- `gpt-image-2` size は `auto` または `WIDTHxHEIGHT`。ただし max edge `<= 3840px`、both edges multiples of `16px`、long-to-short ratio `<= 3:1`、total pixels が `655,360` から `8,294,400` の間という constraint をすべて満たす必要がある。
+- Use `gpt-image-2` for new CLI/API workflows unless the request needs true model-native transparent output.
+- If a transparent request may need CLI fallback, ask before using `gpt-image-1.5` unless the user already explicitly requested `gpt-image-1.5`, `scripts/image_gen.py`, or CLI fallback. Explain that the built-in chroma-key path is the default, but true transparency requires `gpt-image-1.5` because `gpt-image-2` does not support `background=transparent`.
+- `gpt-image-2` always uses high fidelity for image inputs; do not set `input_fidelity` with this model.
+- `gpt-image-2` supports `quality` values `low`, `medium`, `high`, and `auto`.
+- Use `quality low` for fast drafts, thumbnails, and quick iterations. Use `medium`, `high`, or `auto` for final assets, dense text, diagrams, identity-sensitive edits, or high-resolution outputs.
+- Square images are typically fastest to generate. Use `1024x1024` for fast square drafts.
+- If the user asks for 4K-style output, use `3840x2160` for landscape or `2160x3840` for portrait.
+- `gpt-image-2` size may be `auto` or `WIDTHxHEIGHT` if all constraints hold: max edge `<= 3840px`, both edges multiples of `16px`, long-to-short ratio `<= 3:1`, total pixels between `655,360` and `8,294,400`.
 
 Popular `gpt-image-2` sizes:
-
 - `1024x1024` square
 - `1536x1024` landscape
 - `1024x1536` portrait
@@ -328,63 +304,53 @@ Popular `gpt-image-2` sizes:
 - `2160x3840` 4K portrait
 - `auto`
 
-## Fallback CLI Mode Only
+## Fallback CLI mode only
 
-### Temp and Output Conventions
-
-この convention は CLI fallback のみに適用される。built-in `image_gen` の output behavior ではない。
-
-- intermediate files (例: JSONL batches) には `tmp/imagegen/` を使い、完了後に削除する。
-- final artifacts は `output/imagegen/` 配下に書く。
-- output path control には `--out` または `--out-dir` を使い、filename は stable かつ descriptive に保つ。
+### Temp and output conventions
+These conventions apply only to the CLI fallback. They do not describe built-in `image_gen` output behavior.
+- Use `tmp/imagegen/` for intermediate files (for example JSONL batches); delete them when done.
+- Write final artifacts under `output/imagegen/`.
+- Use `--out` or `--out-dir` to control output paths; keep filenames stable and descriptive.
 
 ### Dependencies
-
-この repo では dependency management に `uv` を優先する。
+Prefer `uv` for dependency management in this repo.
 
 Required Python package:
-
 ```bash
 uv pip install openai
 ```
 
-local chroma-key removal と optional downscaling に必要:
-
+Required for local chroma-key removal and optional downscaling:
 ```bash
 uv pip install pillow
 ```
 
 Portability note:
-
-- installed skill をこの repo の外で使う場合、その environment の package manager で dependencies を install する。
-- uv-managed environment では `uv pip install ...` を優先する。
+- If you are using the installed skill outside this repo, install dependencies into that environment with its package manager.
+- In uv-managed environments, `uv pip install ...` remains the preferred path.
 
 ### Environment
+- `OPENAI_API_KEY` must be set for live API calls.
+- Do not ask the user for `OPENAI_API_KEY` when using the built-in `image_gen` tool.
+- Never ask the user to paste the full key in chat. Ask them to set it locally and confirm when ready.
 
-- live API calls には `OPENAI_API_KEY` が必要。
-- built-in `image_gen` tool を使う場合は、ユーザーに `OPENAI_API_KEY` を求めない。
-- ユーザーに full key を chat に貼らせない。local に設定して準備できたら確認してもらう。
+If the key is missing, give the user these steps:
+1. Create an API key in the OpenAI platform UI: https://platform.openai.com/api-keys
+2. Set `OPENAI_API_KEY` as an environment variable in their system.
+3. Offer to guide them through setting the environment variable for their OS/shell if needed.
 
-key がない場合は次を伝える。
+If installation is not possible in this environment, tell the user which dependency is missing and how to install it into their active environment.
 
-1. OpenAI platform UI で API key を作成する: https://platform.openai.com/api-keys
-2. system の environment variable として `OPENAI_API_KEY` を設定する。
-3. 必要なら OS/shell ごとの environment variable 設定を案内すると提案する。
-
-この environment で installation ができない場合は、欠けている dependency と active environment への install 方法を伝える。
-
-### Script-Mode Notes
-
-- CLI commands と examples: `references/cli.md`
+### Script-mode notes
+- CLI commands + examples: `references/cli.md`
 - API parameter quick reference: `references/image-api.md`
-- CLI mode の network approvals / sandbox settings: `references/codex-network.md`
+- Network approvals / sandbox settings for CLI mode: `references/codex-network.md`
 
-## Reference Map
-
-- `references/prompting.md`: 両 mode 共通の prompting principles。
-- `references/sample-prompts.md`: 両 mode 共通の copy/paste prompt recipes。
-- `references/cli.md`: `scripts/image_gen.py` による fallback-only CLI usage。
-- `references/image-api.md`: fallback-only API/CLI parameter reference。
-- `references/codex-network.md`: CLI mode の fallback-only network/sandbox troubleshooting。
-- `scripts/image_gen.py`: fallback-only CLI implementation。ユーザーが CLI mode を明示的に選ぶ、または transparent request の true CLI transparency fallback を明示確認した場合以外は load/use しない。
-- `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py`: built-in transparent-image request 用の local post-processing helper。
+## Reference map
+- `references/prompting.md`: shared prompting principles for both modes.
+- `references/sample-prompts.md`: shared copy/paste prompt recipes for both modes.
+- `references/cli.md`: fallback-only CLI usage via `scripts/image_gen.py`.
+- `references/image-api.md`: fallback-only API/CLI parameter reference.
+- `references/codex-network.md`: fallback-only network/sandbox troubleshooting for CLI mode.
+- `scripts/image_gen.py`: fallback-only CLI implementation. Do not load or use it unless the user explicitly chooses CLI mode or explicitly confirms a transparent request's true CLI transparency fallback.
+- `$CODEX_HOME/skills/.system/imagegen/scripts/remove_chroma_key.py`: local post-processing helper for built-in transparent-image requests.

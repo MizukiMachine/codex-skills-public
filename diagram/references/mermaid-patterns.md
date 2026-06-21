@@ -1,24 +1,24 @@
-# Mermaid Diagram Patterns
+# Mermaid図パターン / Mermaid Diagram Patterns
 
-## Table of Contents
-1. [Theme Configuration](#theme-configuration)
-2. [Color Schemes](#color-schemes)
-3. [C4 System Context](#c4-system-context)
-4. [C4 Container](#c4-container)
-5. [Layered Architecture](#layered-architecture)
-6. [Component Diagram](#component-diagram)
-7. [Data Flow](#data-flow)
-8. [Sequence Diagram](#sequence-diagram)
-9. [ER Diagram](#er-diagram)
-10. [State Diagram](#state-diagram)
-11. [Deployment Diagram](#deployment-diagram)
-12. [Dependency Diagram](#dependency-diagram)
+## 目次 / Table of Contents
+1. [テーマ設定 / Theme Configuration](#theme-configuration)
+2. [配色 / Color Schemes](#color-schemes)
+3. [システムコンテキスト / C4 System Context](#c4-system-context)
+4. [コンテナ / C4 Container](#c4-container)
+5. [レイヤードアーキテクチャ / Layered Architecture](#layered-architecture)
+6. [コンポーネント図 / Component Diagram](#component-diagram)
+7. [データフロー / Data Flow](#data-flow)
+8. [シーケンス図 / Sequence Diagram](#sequence-diagram)
+9. [エンティティ関係図 / ER Diagram](#er-diagram)
+10. [状態図 / State Diagram](#state-diagram)
+11. [デプロイ図 / Deployment Diagram](#deployment-diagram)
+12. [依存関係図 / Dependency Diagram](#dependency-diagram)
 
 ---
 
-## Theme Configuration
+## テーマ設定 / Theme Configuration
 
-Base theme with custom colors:
+カスタム色つきの基本テーマ / Base theme with custom colors:
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
   'primaryColor': '#7FB3D0',
@@ -30,47 +30,47 @@ Base theme with custom colors:
 
 ---
 
-## Color Schemes
+## 配色 / Color Schemes
 
-### Layer Colors (top to bottom) - Pastel Palette
-| Layer | Fill | Stroke |
+### レイヤー色 / Layer Colors - Pastel Palette
+| レイヤー / Layer | Fill | Stroke |
 |-------|------|--------|
-| Entry | `#5D6D7E` | `#4A4d60` |
-| Presentation | `#F5B7b1` | `#D98880` |
-| Application | `#FAD7A0` | `#C68A00` |
-| Service | `#F9E79F` | `#D4AC00` |
-| Domain | `#A9DFBF` | `#52BE80` |
-| Data Access | `#A3E4D7` | `#48C9B0` |
-| Infrastructure | `#AED6F1` | `#5DADE2` |
+| 入口 / Entry | `#5D6D7E` | `#4A4d60` |
+| 表示 / Presentation | `#F5B7b1` | `#D98880` |
+| アプリケーション / Application | `#FAD7A0` | `#C68A00` |
+| サービス / Service | `#F9E79F` | `#D4AC00` |
+| ドメイン / Domain | `#A9DFBF` | `#52BE80` |
+| データアクセス / Data Access | `#A3E4D7` | `#48C9B0` |
+| インフラ / Infrastructure | `#AED6F1` | `#5DADE2` |
 
-### Region Colors - Pastel Palette
-| Region | Fill | Stroke |
+### 地域色 / Region Colors - Pastel Palette
+| 地域 / Region | Fill | Stroke |
 |--------|------|--------|
 | JP | `#FADBD8` | `#D98880` |
 | US | `#FCF3CF` | `#F4D03F` |
 | EU | `#D7BDE2` | `#BB8FCE` |
 
-### Component Colors - Pastel Palette
-| Type | Fill | Stroke |
+### コンポーネント色 / Component Colors - Pastel Palette
+| 種別 / Type | Fill | Stroke |
 |------|------|--------|
-| Core | `#AED6F1` | `#5DADE2` |
-| Data | `#A3E4D7` | `#48C9B0` |
-| Input | `#AED6F1` | `#5DADE2` |
-| Process | `#FAD7A0` | `#F5B041` |
-| Output | `#A9DFBF` | `#52BE80` |
+| コア / Core | `#AED6F1` | `#5DADE2` |
+| データ / Data | `#A3E4D7` | `#48C9B0` |
+| 入力 / Input | `#AED6F1` | `#5DADE2` |
+| 処理 / Process | `#FAD7A0` | `#F5B041` |
+| 出力 / Output | `#A9DFBF` | `#52BE80` |
 
 ---
-## C4 System Context
+## システムコンテキスト / C4 System Context
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#7FB3D0'}}}%%
 flowchart TB
     subgraph External["外部システム / External Systems"]
-        MobileApp["[Mobile App]<br/>モバイルアプリ"]
-        AdminConsole["[Admin Console]<br/>管理コンソール"]
+        MobileApp["[Mobile App] モバイルアプリ<br/>Mobile App"]
+        AdminConsole["[Admin Console] 管理コンソール<br/>Admin Console"]
     end
 
     subgraph System["システム名 / System Name"]
-        Core["[Core Service]<br/>コアサービス"]
+        Core["[Core Service] コアサービス<br/>Core Service"]
     end
     MobileApp -->|"HTTPS<br/>リクエスト"| Core
     AdminConsole -->|"HTTPS<br/>管理操作"| Core
@@ -81,17 +81,17 @@ flowchart TB
 
 ---
 
-## C4 Container
+## コンテナ / C4 Container
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#7FB3D0'}}}%%
 flowchart TB
-    subgraph Cloud["Cloud Platform"]
+    subgraph Cloud["クラウド基盤 / Cloud Platform"]
         subgraph Global["グローバル / Global"]
-            LB["[Load Balancer]<br/>負荷分散"]
+            LB["[Load Balancer] 負荷分散<br/>Load Balancer"]
         end
         subgraph Region["リージョン / Region"]
-            API["[API Server]<br/>アプリケーション"]
-            DB[("Database<br/>データベース")]
+            API["[API Server] APIサーバ<br/>API Server"]
+            DB[("データベース<br/>Database")]
         end
     end
     LB --> API
@@ -100,7 +100,7 @@ flowchart TB
 ```
 
 ---
-## Layered Architecture
+## レイヤードアーキテクチャ / Layered Architecture
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#7FB3D0'}}}%%
 flowchart TB
@@ -126,7 +126,7 @@ flowchart TB
 ```
 
 ---
-## Component Diagram
+## コンポーネント図 / Component Diagram
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#7FB3D0'}}}%%
 flowchart TB
@@ -146,7 +146,7 @@ flowchart TB
 ```
 
 ---
-## Data Flow
+## データフロー / Data Flow
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#7FB3D0'}}}%%
 flowchart LR
@@ -169,26 +169,26 @@ flowchart LR
 ```
 
 ---
-## Sequence Diagram
+## シーケンス図 / Sequence Diagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as Client<br/>クライアント
-    participant S as Server<br/>サーバー
-    participant DB as Database<br/>データベース
+    participant C as クライアント<br/>Client
+    participant S as サーバー<br/>Server
+    participant DB as データベース<br/>Database
     Note over C,DB: リクエスト処理フロー / Request Flow
-    C->>S: Request<br/>リクエスト
+    C->>S: リクエスト<br/>Request
     activate S
-    S->>DB: Query<br/>クエリ
+    S->>DB: クエリ<br/>Query
     activate DB
-    DB-->>S: Result<br/>結果
+    DB-->>S: 結果<br/>Result
     deactivate DB
-    S-->>C: Response<br/>レスポンス
+    S-->>C: レスポンス<br/>Response
     deactivate S
 ```
 
 ---
-## ER Diagram
+## エンティティ関係図 / ER Diagram
 ```mermaid
 erDiagram
     %% エンティティ定義 / Entity Definitions
@@ -207,7 +207,7 @@ erDiagram
 ```
 
 ---
-## State Diagram
+## 状態図 / State Diagram
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
@@ -225,7 +225,7 @@ stateDiagram-v2
 ```
 
 ---
-## Deployment Diagram
+## デプロイ図 / Deployment Diagram
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#7FB3D0'}}}%%
 flowchart TB
@@ -247,7 +247,7 @@ flowchart TB
 ```
 
 ---
-## Dependency Diagram
+## 依存関係図 / Dependency Diagram
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#7FB3D0'}}}%%
 flowchart BT

@@ -1,4 +1,4 @@
 interface:
   display_name: "Diagram"
-  short_description: "コード解析からMermaidアーキテクチャ図を生成"
-  default_prompt: "$diagram を使って、このプロジェクトを解析しアーキテクチャ図を生成してください。"
+  short_description: "日本語メインのMermaid図をコード解析から生成"
+  default_prompt: "$diagram を使って、このプロジェクトを解析し、日本語メイン・英語補助のMermaidアーキテクチャ図を生成してください。"
